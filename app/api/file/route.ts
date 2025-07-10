@@ -99,9 +99,11 @@ export async function POST(req: NextRequest) {
 
   try {
     if (fileType === "wav") {
-      buffer = await convertWavToMono(buffer);
+      const convertedBuffer = await convertWavToMono(buffer);
+      buffer = Buffer.from(convertedBuffer);
     } else if (fileType === "ogg") {
-      buffer = await convertOggToOpus(buffer);
+      const convertedBuffer = await convertOggToOpus(buffer);
+      buffer = Buffer.from(convertedBuffer);
     }
   } catch (err) {
     console.error("Conversion error:", err);
