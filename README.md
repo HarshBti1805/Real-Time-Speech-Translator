@@ -88,23 +88,3 @@ Then open [http://localhost:3000](http://localhost:3000) in your browser.
 You can start editing the project from `app/page.tsx`. Changes will be reflected in real-time.
 
 > This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to load [Geist](https://vercel.com/font), a custom font by Vercel.
-
----
-
-## 📚 Learn More
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Interactive Next.js Tutorial](https://nextjs.org/learn)
-- [Next.js GitHub Repository](https://github.com/vercel/next.js)
-
----
-
-## 🚀 Deployment
-
-Deploy on [Vercel](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) for the best experience.
-
-Refer to [Next.js deployment docs](https://nextjs.org/docs/app/building-your-application/deploying) for more options.
-
----
-
-Let me know if you'd like this tailored for GitHub formatting with badges or links to specific endpoints like `/api/speech`, `/api/translate`, etc.
