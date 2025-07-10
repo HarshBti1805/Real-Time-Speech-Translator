@@ -18,7 +18,6 @@ export default function VoiceRecording() {
   const audioChunks = useRef<Blob[]>([]);
 
   // Image/text recognition state
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState("");
   const [cameraActive, setCameraActive] = useState(false);
@@ -123,7 +122,6 @@ export default function VoiceRecording() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
-      setSelectedImage(file);
       handleImageUpload(file);
     }
   };
@@ -170,7 +168,6 @@ export default function VoiceRecording() {
               const file = new File([blob], "camera-capture.jpg", {
                 type: "image/jpeg",
               });
-              setSelectedImage(file);
               handleImageUpload(file);
             }
           },
@@ -204,7 +201,6 @@ export default function VoiceRecording() {
               const file = new File([blob], "screenshot.png", {
                 type: "image/png",
               });
-              setSelectedImage(file);
               handleImageUpload(file);
             }
           }, "image/png");
@@ -223,7 +219,6 @@ export default function VoiceRecording() {
     setTranscription("");
     setExtractedText("");
     setImagePreview(null);
-    setSelectedImage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
