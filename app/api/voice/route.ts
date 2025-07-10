@@ -99,52 +99,6 @@ export async function POST(req: Request) {
       const results = [];
       let foundHighConfidence = false;
 
-      // Try primary languages first
-      console.log("Trying primary languages...");
-      for (const langConfig of primaryLanguages) {
-        if (foundHighConfidence) break;
-
-        const result = await tryLanguageDetection(langConfig, audio);
-        if (result && result.qualityScore > MIN_QUALITY_THRESHOLD) {
-          results.push(result);
-
-          // Early termination if we find high confidence
-          if (result.confidence > CONFIDENCE_THRESHOLD) {
-            console.log(
-              `High confidence found for ${
-                langConfig.name
-              } (${result.confidence.toFixed(3)}), stopping search`
-            );
-            foundHighConfidence = true;
-            break;
-          }
-        }
-      }
-
-      // Only try secondary languages if no high confidence match found
-      if (!foundHighConfidence && results.length === 0) {
-        console.log("No good primary matches, trying secondary languages...");
-        for (const langConfig of secondaryLanguages) {
-          const result = await tryLanguageDetection(langConfig, audio);
-          if (result && result.qualityScore > MIN_QUALITY_THRESHOLD) {
-            results.push(result);
-
-            // Early termination for secondary languages too
-            if (result.confidence > CONFIDENCE_THRESHOLD) {
-              console.log(
-                `High confidence found for ${
-                  langConfig.name
-                } (${result.confidence.toFixed(3)}), stopping search`
-              );
-              break;
-            }
-          }
-
-          // Limit secondary language attempts
-          if (results.length >= 3) break;
-        }
-      }
-
       // Helper function to try language detection
       async function tryLanguageDetection(
         langConfig: { code: string; name: string },
@@ -203,6 +157,52 @@ export async function POST(req: Request) {
         } catch (err) {
           console.log(`Error with ${langConfig.name}:`, err.message);
           return null;
+        }
+      }
+
+      // Try primary languages first
+      console.log("Trying primary languages...");
+      for (const langConfig of primaryLanguages) {
+        if (foundHighConfidence) break;
+
+        const result = await tryLanguageDetection(langConfig, audio);
+        if (result && result.qualityScore > MIN_QUALITY_THRESHOLD) {
+          results.push(result);
+
+          // Early termination if we find high confidence
+          if (result.confidence > CONFIDENCE_THRESHOLD) {
+            console.log(
+              `High confidence found for ${
+                langConfig.name
+              } (${result.confidence.toFixed(3)}), stopping search`
+            );
+            foundHighConfidence = true;
+            break;
+          }
+        }
+      }
+
+      // Only try secondary languages if no high confidence match found
+      if (!foundHighConfidence && results.length === 0) {
+        console.log("No good primary matches, trying secondary languages...");
+        for (const langConfig of secondaryLanguages) {
+          const result = await tryLanguageDetection(langConfig, audio);
+          if (result && result.qualityScore > MIN_QUALITY_THRESHOLD) {
+            results.push(result);
+
+            // Early termination for secondary languages too
+            if (result.confidence > CONFIDENCE_THRESHOLD) {
+              console.log(
+                `High confidence found for ${
+                  langConfig.name
+                } (${result.confidence.toFixed(3)}), stopping search`
+              );
+              break;
+            }
+          }
+
+          // Limit secondary language attempts
+          if (results.length >= 3) break;
         }
       }
 
@@ -302,10 +302,7 @@ export async function POST(req: Request) {
           bestConfidence = response.results[0].alternatives[0].confidence || 0;
         }
       } catch (err) {
-        console.error(
-          `Error with specified language ${fullLanguageCode}:`,
-          err.message
-        );
+        console.error(`Error with specified language ${fullLanguageCode}:`);
 
         // Clean up file before returning error
         if (filePath && fs.existsSync(filePath)) {
@@ -313,8 +310,13 @@ export async function POST(req: Request) {
         }
 
         let errorMessage = "Speech recognition failed.";
-        if (err && typeof err === "object" && "message" in err && typeof (err as any).message === "string") {
-          errorMessage = `Speech recognition failed for language ${baseLanguage}: ${(err as any).message}`;
+        if (
+          err &&
+          typeof err === "object" &&
+          "message" in err &&
+          typeof err.message === "string"
+        ) {
+          errorMessage = `Speech recognition failed for language ${baseLanguage}: ${err.message}`;
         } else {
           errorMessage = `Speech recognition failed for language ${baseLanguage}.`;
         }
@@ -324,6 +326,7 @@ export async function POST(req: Request) {
           },
           { status: 400 }
         );
+      }
     }
 
     if (!bestTranscription.trim()) {
@@ -348,7 +351,7 @@ export async function POST(req: Request) {
       baseLanguage === "auto" ? detectedLanguage.split("-")[0] : baseLanguage;
 
     let translation = bestTranscription;
-    let translatedFrom = detectedBaseLanguage;
+    const translatedFrom = detectedBaseLanguage;
 
     // Only translate if the detected language is different from target language
     if (detectedBaseLanguage !== targetLanguage) {
@@ -387,5 +390,17 @@ export async function POST(req: Request) {
 
     console.log("Final result:", result);
     return NextResponse.json(result);
-  } 
+  } catch (error) {
+    console.error("Error processing audio:", error);
+
+    // Clean up file if it exists
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    return NextResponse.json(
+      { error: "Internal server error processing audio" },
+      { status: 500 }
+    );
+  }
 }
