@@ -181,7 +181,7 @@ export default function VoiceRecording() {
   const captureScreenshot = async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { mediaSource: "screen" },
+        video: true,
       });
 
       const video = document.createElement("video");
@@ -355,7 +355,7 @@ export default function VoiceRecording() {
             <h3 className="font-semibold mb-2">Selected Image:</h3>
             <img
               src={imagePreview}
-              alt="Preview"
+              alt="Selected image preview"
               className="max-w-full max-h-64 rounded-lg border"
             />
           </div>
