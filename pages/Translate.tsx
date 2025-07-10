@@ -329,7 +329,7 @@ export default function Translate() {
           <ul className="text-sm text-gray-600 space-y-1">
             <li>• Type or paste text in any language</li>
             <li>
-              • Select source language (choose "Auto-detect" for automatic
+              • Select source language (choose `Auto-detect` for automatic
               detection)
             </li>
             <li>• Select your target language from the dropdown</li>
