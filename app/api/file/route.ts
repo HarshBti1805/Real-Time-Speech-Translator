@@ -126,12 +126,12 @@ export async function POST(req: NextRequest) {
   if (sampleRate) config.sampleRateHertz = sampleRate;
 
   try {
-    const [response] = await speechClient.recognize({
+    const response = await speechClient.recognize({
       audio: { content: audioBytes },
       config,
     });
 
-    const transcription = response.results
+    const transcription = response[0].results
       ?.map((r) => r.alternatives?.[0]?.transcript)
       .join("\n");
 
