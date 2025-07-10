@@ -387,15 +387,5 @@ export async function POST(req: Request) {
 
     console.log("Final result:", result);
     return NextResponse.json(result);
-      try {
-        fs.unlinkSync(filePath);
-      } catch (cleanupError) {
-        console.error("Error cleaning up file:", cleanupError);
-      }
-    }
-
-    return NextResponse.json(
-      { error: `Processing failed` },
-      { status: 500 }
-    );
-
+  } 
+}
