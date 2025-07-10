@@ -4,10 +4,28 @@ import { Translate } from "@google-cloud/translate/build/src/v2";
 let translate: Translate;
 
 try {
+  // Validate required environment variables
+  if (!process.env.GOOGLE_CLOUD_PROJECT_ID) {
+    throw new Error("GOOGLE_CLOUD_PROJECT_ID is not set");
+  }
+  if (!process.env.GOOGLE_CLOUD_CLIENT_EMAIL) {
+    throw new Error("GOOGLE_CLOUD_CLIENT_EMAIL is not set");
+  }
+  if (!process.env.GOOGLE_CLOUD_PRIVATE_KEY) {
+    throw new Error("GOOGLE_CLOUD_PRIVATE_KEY is not set");
+  }
+
+  const credentials = {
+    client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
+    private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY.replace(/\\n/g, "\n"),
+  };
+
   translate = new Translate({
     projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-    keyFilename: process.env.GOOGLE_CLOUD_KEY_FILE,
+    credentials: credentials,
   });
+
+  console.log("Google Translate client initialized successfully");
 } catch (initError) {
   console.error("Failed to initialize Google Translate client:", initError);
 }
