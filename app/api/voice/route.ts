@@ -155,7 +155,11 @@ export async function POST(req: Request) {
           }
           return null;
         } catch (err) {
-          console.log(`Error with ${langConfig.name}:`, err.message);
+          if (err instanceof Error) {
+            console.log(`Error with ${langConfig.name}:`, err.message);
+          } else {
+            console.log(`Error with ${langConfig.name}:`, err);
+          }
           return null;
         }
       }
