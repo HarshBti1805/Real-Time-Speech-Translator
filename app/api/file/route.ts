@@ -21,6 +21,15 @@ const sampleRateMap: Record<string, number | undefined> = {
   wav: undefined,
 };
 
+// Define proper types for the Google Speech-to-Text configuration
+interface SpeechConfig {
+  languageCode: string;
+  alternativeLanguageCodes?: string[];
+  enableAutomaticPunctuation?: boolean;
+  encoding?: string;
+  sampleRateHertz?: number;
+}
+
 // 🔁 Convert WAV to Mono using external Node server
 async function convertWavToMono(buffer: Buffer): Promise<Buffer> {
   const res = await fetch("http://localhost:5000/convert", {
@@ -104,7 +113,8 @@ export async function POST(req: NextRequest) {
 
   const audioBytes = buffer.toString("base64");
 
-  const config: any = {
+  // Use proper typing instead of 'any'
+  const config: SpeechConfig = {
     languageCode: "en-US",
     alternativeLanguageCodes: ["hi-IN", "es-ES", "fr-FR"],
     enableAutomaticPunctuation: true,
