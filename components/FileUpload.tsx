@@ -12,7 +12,7 @@ export default function FileUpload() {
     formData.append("audio", fileToSend);
     formData.append("fileType", fileType);
 
-    const res = await fetch("http://localhost:3000/api/file", {
+    const res = await fetch("/api/file", {
       method: "POST",
       body: formData,
     });

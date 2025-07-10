@@ -36,7 +36,7 @@ export default function VoiceRecording() {
     formData.append("audio", fileToSend);
 
     try {
-      const res = await fetch("http://localhost:3000/api/speech", {
+      const res = await fetch("/api/speech", {
         method: "POST",
         body: formData,
       });
@@ -103,7 +103,7 @@ export default function VoiceRecording() {
       reader.readAsDataURL(file);
 
       // Send to OCR API
-      const res = await fetch("http://localhost:3000/api/ocr", {
+      const res = await fetch("/api/ocr", {
         method: "POST",
         body: formData,
       });

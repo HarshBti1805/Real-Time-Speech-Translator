@@ -30,7 +30,7 @@ export default function Translate() {
         // Determine if we should auto-detect based on source language selection
         const shouldAutoDetect = source === "auto" || source === "";
 
-        const res = await fetch("http://localhost:3000/api/translate", {
+        const res = await fetch("/api/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
