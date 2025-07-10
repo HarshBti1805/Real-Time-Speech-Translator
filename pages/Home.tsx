@@ -1,36 +1,55 @@
-// pages/index.jsx
+// pages/index.tsx
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { languageOptions, baseLanguageOptions } from "@/lib/data";
 
-export default function MainPage() {
-  const [result, setResult] = useState(null);
-  const [baseLanguage, setBaseLanguage] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [targetLanguage, setTargetLanguage] = useState("en");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioLevel, setAudioLevel] = useState(0);
-  const [isRealTimeMode, setIsRealTimeMode] = useState(false);
-  const [realtimeTranslation, setRealtimeTranslation] = useState(null);
+// Type definitions
+interface TranslationResult {
+  transcription: string;
+  translation?: string;
+  detectedLanguage: string;
+  targetLanguage: string;
+  wasTranslated: boolean;
+  confidence?: number;
+  error?: string;
+}
 
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const streamRef = useRef(null);
-  const timerRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const analyzerRef = useRef(null);
-  const realtimeIntervalRef = useRef(null);
-  const chunkCounterRef = useRef(0);
+interface Language {
+  code: string;
+  name: string;
+}
+
+export default function MainPage() {
+  const [result, setResult] = useState<TranslationResult | null>(null);
+  const [baseLanguage, setBaseLanguage] = useState<string>("");
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [targetLanguage, setTargetLanguage] = useState<string>("en");
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [recordingTime, setRecordingTime] = useState<number>(0);
+  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [isRealTimeMode, setIsRealTimeMode] = useState<boolean>(false);
+  const [realtimeTranslation, setRealtimeTranslation] =
+    useState<TranslationResult | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyzerRef = useRef<AnalyserNode | null>(null);
+  const realtimeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const chunkCounterRef = useRef<number>(0);
 
   // Audio level monitoring
   useEffect(() => {
-    let animationFrame;
+    let animationFrame: number | undefined;
 
     if (isRecording && analyzerRef.current) {
       const updateAudioLevel = () => {
-        const dataArray = new Uint8Array(analyzerRef.current.frequencyBinCount);
-        analyzerRef.current.getByteFrequencyData(dataArray);
+        const analyzer = analyzerRef.current;
+        if (!analyzer) return;
+        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+        analyzer.getByteFrequencyData(dataArray);
 
         const average =
           dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
@@ -72,7 +91,7 @@ export default function MainPage() {
   }, [isRecording]);
 
   // Real-time processing
-  const processRealtimeAudio = async () => {
+  const processRealtimeAudio = async (): Promise<void> => {
     if (
       !isRealTimeMode ||
       !mediaRecorderRef.current ||
@@ -135,7 +154,7 @@ export default function MainPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
+        const data: TranslationResult = await res.json();
 
         if (data.transcription && data.transcription.trim()) {
           // Update the single real-time translation instead of adding to array
@@ -148,7 +167,7 @@ export default function MainPage() {
         console.error("Real-time API error:", res.status);
         // Don't show error to user unless it's critical
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === "TimeoutError") {
         console.error("Real-time processing timeout");
       } else {
@@ -165,7 +184,7 @@ export default function MainPage() {
     }
   };
 
-  const startRecording = async () => {
+  const startRecording = async (): Promise<void> => {
     try {
       console.log("Starting recording...");
 
@@ -189,18 +208,20 @@ export default function MainPage() {
 
       // Set up audio level monitoring
       audioContextRef.current = new (window.AudioContext ||
-        window.webkitAudioContext)();
+        (window as any).webkitAudioContext)();
       analyzerRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyzerRef.current);
       analyzerRef.current.fftSize = 256;
 
       // Check if MediaRecorder supports the preferred format
-      let options = { mimeType: "audio/webm;codecs=opus" };
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      let options: MediaRecorderOptions = {
+        mimeType: "audio/webm;codecs=opus",
+      };
+      if (!MediaRecorder.isTypeSupported(options.mimeType!)) {
         console.log("WebM Opus not supported, trying alternatives...");
         options = { mimeType: "audio/webm" };
-        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        if (!MediaRecorder.isTypeSupported(options.mimeType!)) {
           console.log("WebM not supported, using default format");
           options = {};
         }
@@ -209,7 +230,7 @@ export default function MainPage() {
       mediaRecorderRef.current = new MediaRecorder(stream, options);
       console.log("MediaRecorder created with options:", options);
 
-      mediaRecorderRef.current.ondataavailable = (e) => {
+      mediaRecorderRef.current.ondataavailable = (e: BlobEvent) => {
         if (e.data.size > 0) {
           audioChunksRef.current.push(e.data);
         }
@@ -229,7 +250,13 @@ export default function MainPage() {
 
           if (audioBlob.size === 0) {
             console.error("Audio blob is empty");
-            setResult({ error: "No audio data captured. Please try again." });
+            setResult({
+              error: "No audio data captured. Please try again.",
+              transcription: "",
+              detectedLanguage: "",
+              targetLanguage: targetLanguage,
+              wasTranslated: false,
+            });
             setIsProcessing(false);
             return;
           }
@@ -245,16 +272,26 @@ export default function MainPage() {
               body: formData,
             });
 
-            const data = await res.json();
+            const data: TranslationResult = await res.json();
             if (res.ok) {
               setResult(data);
             } else {
-              setResult({ error: data.error || "Unknown error occurred" });
+              setResult({
+                error: data.error || "Unknown error occurred",
+                transcription: "",
+                detectedLanguage: "",
+                targetLanguage: targetLanguage,
+                wasTranslated: false,
+              });
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error("Network Error:", error);
             setResult({
               error: "Network error occurred. Please check your connection.",
+              transcription: "",
+              detectedLanguage: "",
+              targetLanguage: targetLanguage,
+              wasTranslated: false,
             });
           } finally {
             setIsProcessing(false);
@@ -262,9 +299,15 @@ export default function MainPage() {
         }
       };
 
-      mediaRecorderRef.current.onerror = (event) => {
-        console.error("MediaRecorder error:", event.error);
-        setResult({ error: "Recording error occurred" });
+      mediaRecorderRef.current.onerror = (event: Event) => {
+        console.error("MediaRecorder error:", (event as any).error);
+        setResult({
+          error: "Recording error occurred",
+          transcription: "",
+          detectedLanguage: "",
+          targetLanguage: targetLanguage,
+          wasTranslated: false,
+        });
         setIsRecording(false);
         setIsProcessing(false);
       };
@@ -283,7 +326,7 @@ export default function MainPage() {
         "Recording started",
         isRealTimeMode ? "(Real-time mode)" : "(Standard mode)"
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Recording Error:", error);
       let errorMessage = "Could not access microphone.";
 
@@ -297,11 +340,17 @@ export default function MainPage() {
       }
 
       alert(errorMessage);
-      setResult({ error: errorMessage });
+      setResult({
+        error: errorMessage,
+        transcription: "",
+        detectedLanguage: "",
+        targetLanguage: targetLanguage,
+        wasTranslated: false,
+      });
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = (): void => {
     console.log("Stopping recording...");
 
     if (mediaRecorderRef.current && isRecording) {
@@ -334,20 +383,20 @@ export default function MainPage() {
     setAudioLevel(0);
   };
 
-  const clearResults = () => {
+  const clearResults = (): void => {
     setResult(null);
     setRealtimeTranslation(null);
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const getLanguageName = (code) => {
+  const getLanguageName = (code: string): string => {
     const lang = languageOptions.find(
-      (l) => l.code === code || l.code === code?.split("-")[0]
+      (l: Language) => l.code === code || l.code === code?.split("-")[0]
     );
     return lang ? lang.name : code;
   };
@@ -399,7 +448,7 @@ export default function MainPage() {
               className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={isRecording || isProcessing}
             >
-              {baseLanguageOptions.map((lang) => (
+              {baseLanguageOptions.map((lang: Language) => (
                 <option key={lang.code} value={lang.code}>
                   {lang.name}
                 </option>
@@ -417,7 +466,7 @@ export default function MainPage() {
               className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={isRecording || isProcessing}
             >
-              {languageOptions.map((lang) => (
+              {languageOptions.map((lang: Language) => (
                 <option key={lang.code} value={lang.code}>
                   {lang.name}
                 </option>
