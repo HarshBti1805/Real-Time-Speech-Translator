@@ -7,7 +7,20 @@ export const config = {
   },
 };
 
-const fileEncodingMap: Record<string, string | undefined> = {
+// Define the allowed encoding types from Google Speech API
+type AudioEncoding =
+  | "MP3"
+  | "WEBM_OPUS"
+  | "OGG_OPUS"
+  | "ENCODING_UNSPECIFIED"
+  | "LINEAR16"
+  | "FLAC"
+  | "MULAW"
+  | "AMR"
+  | "AMR_WB"
+  | "SPEEX_WITH_HEADER_BYTE";
+
+const fileEncodingMap: Record<string, AudioEncoding | undefined> = {
   mp3: "MP3",
   webm: "WEBM_OPUS",
   ogg: "OGG_OPUS",
@@ -26,7 +39,7 @@ interface SpeechConfig {
   languageCode: string;
   alternativeLanguageCodes?: string[];
   enableAutomaticPunctuation?: boolean;
-  encoding?: string;
+  encoding?: AudioEncoding;
   sampleRateHertz?: number;
 }
 
