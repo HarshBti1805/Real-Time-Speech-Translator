@@ -28,7 +28,7 @@ async function convertWavToMono(buffer: Buffer): Promise<Buffer> {
     headers: {
       "Content-Type": "audio/wav",
     },
-    body: buffer,
+    body: new Uint8Array(buffer),
   });
 
   if (!res.ok) {
@@ -45,7 +45,7 @@ async function convertOggToOpus(buffer: Buffer): Promise<Buffer> {
     headers: {
       "Content-Type": "audio/ogg",
     },
-    body: buffer,
+    body: new Uint8Array(buffer),
   });
 
   if (!res.ok) {
@@ -90,9 +90,9 @@ export async function POST(req: NextRequest) {
 
   try {
     if (fileType === "wav") {
-      buffer = await convertWavToMono(buffer as Buffer);
+      buffer = await convertWavToMono(buffer);
     } else if (fileType === "ogg") {
-      buffer = await convertOggToOpus(buffer as Buffer);
+      buffer = await convertOggToOpus(buffer);
     }
   } catch (err) {
     console.error("Conversion error:", err);
