@@ -40,4 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.gcloud-credentials.json
+gcloud-credentials.json
