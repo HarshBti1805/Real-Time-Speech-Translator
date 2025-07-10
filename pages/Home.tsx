@@ -25,6 +25,10 @@ interface TimeoutError extends Error {
   name: "TimeoutError";
 }
 
+interface WindowWithWebkitAudioContext extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 export default function MainPage() {
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [baseLanguage, setBaseLanguage] = useState<string>("");
@@ -223,10 +227,10 @@ export default function MainPage() {
 
       // Set up audio level monitoring
       audioContextRef.current = new (window.AudioContext ||
-        (window as AudioContext & { webkitAudioContext?: AudioContext })
-          .webkitAudioContext)();
+        (window as WindowWithWebkitAudioContext).webkitAudioContext!)();
       analyzerRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
+
       source.connect(analyzerRef.current);
       analyzerRef.current.fftSize = 256;
 

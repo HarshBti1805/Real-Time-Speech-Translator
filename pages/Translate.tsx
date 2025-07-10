@@ -14,56 +14,63 @@ export default function Translate() {
   const [error, setError] = useState("");
 
   // Auto-detect and translate function
-  const translateText = useCallback(async (inputText, target, source) => {
-    if (!inputText.trim()) {
-      setTranslatedText("");
-      setDetectedLang("");
-      setError("");
-      return;
-    }
-
-    setIsTranslating(true);
-    setError("");
-
-    try {
-      // Determine if we should auto-detect based on source language selection
-      const shouldAutoDetect = source === "auto" || source === "";
-
-      const res = await fetch("http://localhost:3000/api/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: inputText,
-          targetLang: target,
-          sourceLang: shouldAutoDetect ? null : source, // Send null for auto-detect
-          autoDetect: shouldAutoDetect,
-        }),
-      });
-
-      const data = await res.json();
-
-      console.log(data);
-
-      if (res.ok) {
-        setTranslatedText(data.translatedText);
-        setDetectedLang(data.detectedLang || "");
-        setConfidence(data.confidence || 0);
+  const translateText = useCallback(
+    async (inputText: string, target: string, source: string) => {
+      if (!inputText.trim()) {
+        setTranslatedText("");
+        setDetectedLang("");
         setError("");
-      } else {
-        setError(data.error || "Translation failed");
+        return;
+      }
+
+      setIsTranslating(true);
+      setError("");
+
+      try {
+        // Determine if we should auto-detect based on source language selection
+        const shouldAutoDetect = source === "auto" || source === "";
+
+        const res = await fetch("http://localhost:3000/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: inputText,
+            targetLang: target,
+            sourceLang: shouldAutoDetect ? null : source, // Send null for auto-detect
+            autoDetect: shouldAutoDetect,
+          }),
+        });
+
+        const data = await res.json();
+
+        console.log(data);
+
+        if (res.ok) {
+          setTranslatedText(data.translatedText);
+          setDetectedLang(data.detectedLang || "");
+          setConfidence(data.confidence || 0);
+          setError("");
+        } else {
+          setError(data.error || "Translation failed");
+          setTranslatedText("");
+          setDetectedLang("");
+          setConfidence(0);
+        }
+      } catch (error) {
+        let message = "Network error";
+        if (error instanceof Error) {
+          message = `Network error: ${error.message}`;
+        }
+        setError(message);
         setTranslatedText("");
         setDetectedLang("");
         setConfidence(0);
+      } finally {
+        setIsTranslating(false);
       }
-    } catch (error) {
-      setError(`Network error: ${error.message}`);
-      setTranslatedText("");
-      setDetectedLang("");
-      setConfidence(0);
-    } finally {
-      setIsTranslating(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   // Debounce effect for real-time translation
   useEffect(() => {
@@ -111,14 +118,14 @@ export default function Translate() {
   };
 
   // Get language name from code
-  const getLanguageName = (code) => {
+  const getLanguageName = (code: string) => {
     const lang = languageOptions.find((l) => l.code === code);
     return lang ? lang.name : code;
   };
 
   // Character and word count utilities
-  const getCharacterCount = (text) => text.length;
-  const getWordCount = (text) => {
+  const getCharacterCount = (text: string): number => text.length;
+  const getWordCount = (text: string): number => {
     return text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
   };
 
