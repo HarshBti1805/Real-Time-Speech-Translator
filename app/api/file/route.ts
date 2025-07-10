@@ -45,7 +45,7 @@ interface SpeechConfig {
 
 // 🔁 Convert WAV to Mono using external Node server
 async function convertWavToMono(buffer: Buffer): Promise<Buffer> {
-  const res = await fetch("http://localhost:5000/convert", {
+  const res = await fetch("https://ffmpeg-server-ervj.onrender.com/convert", {
     method: "POST",
     headers: {
       "Content-Type": "audio/wav",
@@ -62,13 +62,16 @@ async function convertWavToMono(buffer: Buffer): Promise<Buffer> {
 
 // 🔁 Convert OGG (possibly Vorbis) to Opus using external Node server
 async function convertOggToOpus(buffer: Buffer): Promise<Buffer> {
-  const res = await fetch("http://localhost:5000/convert-to-opus", {
-    method: "POST",
-    headers: {
-      "Content-Type": "audio/ogg",
-    },
-    body: new Uint8Array(buffer),
-  });
+  const res = await fetch(
+    "https://ffmpeg-server-ervj.onrender.com/convert-to-opus",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "audio/ogg",
+      },
+      body: new Uint8Array(buffer),
+    }
+  );
 
   if (!res.ok) {
     throw new Error(`OGG conversion failed: ${res.statusText}`);

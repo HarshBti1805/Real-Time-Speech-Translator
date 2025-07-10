@@ -19,6 +19,12 @@ interface Language {
   name: string;
 }
 
+// Custom error types for better type safety
+
+interface TimeoutError extends Error {
+  name: "TimeoutError";
+}
+
 export default function MainPage() {
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [baseLanguage, setBaseLanguage] = useState<string>("");
@@ -167,8 +173,17 @@ export default function MainPage() {
         console.error("Real-time API error:", res.status);
         // Don't show error to user unless it's critical
       }
-    } catch (error: any) {
-      if (error.name === "TimeoutError") {
+    } catch (error: unknown) {
+      function isTimeoutError(e: unknown): e is TimeoutError {
+        return (
+          typeof e === "object" &&
+          e !== null &&
+          "name" in e &&
+          typeof (e as { name: unknown }).name === "string" &&
+          (e as { name: string }).name === "TimeoutError"
+        );
+      }
+      if (isTimeoutError(error)) {
         console.error("Real-time processing timeout");
       } else {
         console.error("Real-time processing error:", error);
@@ -208,7 +223,8 @@ export default function MainPage() {
 
       // Set up audio level monitoring
       audioContextRef.current = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+        (window as AudioContext & { webkitAudioContext?: AudioContext })
+          .webkitAudioContext)();
       analyzerRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyzerRef.current);
@@ -284,7 +300,7 @@ export default function MainPage() {
                 wasTranslated: false,
               });
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error("Network Error:", error);
             setResult({
               error: "Network error occurred. Please check your connection.",
@@ -300,7 +316,9 @@ export default function MainPage() {
       };
 
       mediaRecorderRef.current.onerror = (event: Event) => {
-        console.error("MediaRecorder error:", (event as any).error);
+        // MediaRecorderErrorEvent is not available in all TS libs, so cast to unknown and use type guard
+        const err = (event as unknown as { error?: Error }).error;
+        console.error("MediaRecorder error:", err);
         setResult({
           error: "Recording error occurred",
           transcription: "",
@@ -326,17 +344,20 @@ export default function MainPage() {
         "Recording started",
         isRealTimeMode ? "(Real-time mode)" : "(Standard mode)"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Recording Error:", error);
       let errorMessage = "Could not access microphone.";
 
-      if (error.name === "NotAllowedError") {
-        errorMessage =
-          "Microphone access denied. Please allow microphone access and try again.";
-      } else if (error.name === "NotFoundError") {
-        errorMessage = "No microphone found. Please check your audio devices.";
-      } else if (error.name === "NotReadableError") {
-        errorMessage = "Microphone is being used by another application.";
+      if (error instanceof DOMException) {
+        if (error.name === "NotAllowedError") {
+          errorMessage =
+            "Microphone access denied. Please allow microphone access and try again.";
+        } else if (error.name === "NotFoundError") {
+          errorMessage =
+            "No microphone found. Please check your audio devices.";
+        } else if (error.name === "NotReadableError") {
+          errorMessage = "Microphone is being used by another application.";
+        }
       }
 
       alert(errorMessage);
