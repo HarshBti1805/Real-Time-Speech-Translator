@@ -90,14 +90,14 @@ export async function POST(req: NextRequest) {
 
   try {
     if (fileType === "wav") {
-      buffer = await convertWavToMono(buffer);
+      buffer = await convertWavToMono(buffer as Buffer);
     } else if (fileType === "ogg") {
-      buffer = await convertOggToOpus(buffer);
+      buffer = await convertOggToOpus(buffer as Buffer);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error("Conversion error:", err);
     return NextResponse.json(
-      { error: "Audio conversion failed", details: err.message },
+      { error: "Audio conversion failed" },
       { status: 500 }
     );
   }

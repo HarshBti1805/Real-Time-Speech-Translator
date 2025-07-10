@@ -12,7 +12,6 @@ import {
 
 export default function VoiceRecording() {
   // Voice recording state
-  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [transcription, setTranscription] = useState("");
   const [recording, setRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
