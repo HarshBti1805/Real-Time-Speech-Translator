@@ -1,5 +1,5 @@
 // app/api/voice/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { speechClient, translateClient } from "@/lib/googleClient";
@@ -312,13 +312,18 @@ export async function POST(req: Request) {
           fs.unlinkSync(filePath);
         }
 
+        let errorMessage = "Speech recognition failed.";
+        if (err && typeof err === "object" && "message" in err && typeof (err as any).message === "string") {
+          errorMessage = `Speech recognition failed for language ${baseLanguage}: ${(err as any).message}`;
+        } else {
+          errorMessage = `Speech recognition failed for language ${baseLanguage}.`;
+        }
         return NextResponse.json(
           {
-            error: `Speech recognition failed for language ${baseLanguage}: ${err.message}`,
+            error: errorMessage,
           },
           { status: 400 }
         );
-      }
     }
 
     if (!bestTranscription.trim()) {
@@ -382,11 +387,6 @@ export async function POST(req: Request) {
 
     console.log("Final result:", result);
     return NextResponse.json(result);
-  } catch (parseError) {
-    console.error("Error processing request:", parseError);
-
-    // Clean up file in case of error
-    if (filePath && fs.existsSync(filePath)) {
       try {
         fs.unlinkSync(filePath);
       } catch (cleanupError) {
@@ -395,8 +395,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { error: `Processing failed: ${parseError.message}` },
+      { error: `Processing failed` },
       { status: 500 }
     );
-  }
-}
+

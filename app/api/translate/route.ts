@@ -105,23 +105,30 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error("Translation error:", error);
-    console.error("Error details:", error.message);
-    console.error("Error code:", error.code);
-    console.error("Error stack:", error.stack);
-    let errorMessage = "Translation failed";
 
-    if (error.code === "ENOTFOUND") {
+    let errorMessage = "Translation failed";
+    // Safely extract error details if possible
+    if (typeof error === "object" && error !== null) {
+      const err = error as { message?: string; code?: string; stack?: string };
+      if (err.message) console.error("Error details:", err.message);
+      if (err.code) console.error("Error code:", err.code);
+      if (err.stack) console.error("Error stack:", err.stack);
+    }
+
+    // Safely check error properties since 'error' is of type 'unknown'
+    const err = error as { message?: string; code?: string };
+    if (err.code === "ENOTFOUND") {
       errorMessage = "Network error: Cannot reach Google Translate API";
-    } else if (error.code === "ENOENT") {
+    } else if (err.code === "ENOENT") {
       errorMessage = "Authentication error: Service account key file not found";
-    } else if (error.message?.includes("authentication")) {
+    } else if (err.message?.includes("authentication")) {
       errorMessage = "Authentication error: Invalid credentials";
-    } else if (error.message?.includes("quota")) {
+    } else if (err.message?.includes("quota")) {
       errorMessage = "API quota exceeded";
-    } else if (error.message?.includes("permission")) {
+    } else if (err.message?.includes("permission")) {
       errorMessage = "Permission denied: Check API permissions";
-    } else if (error.message) {
-      errorMessage = `Translation failed: ${error.message}`;
+    } else if (err.message) {
+      errorMessage = `Translation failed: ${err.message}`;
     }
 
     return NextResponse.json({ error: errorMessage }, { status: 500 });
