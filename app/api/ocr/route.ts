@@ -11,6 +11,48 @@ export const config = {
   },
 };
 
+// Define types for Google Vision API response
+interface TextAnnotation {
+  description?: string;
+  boundingPoly?: {
+    vertices?: Array<{ x?: number; y?: number }>;
+  };
+}
+
+interface DetectedLanguage {
+  languageCode?: string;
+  confidence?: number;
+}
+
+interface TextProperty {
+  detectedLanguages?: DetectedLanguage[];
+}
+
+interface Block {
+  property?: TextProperty;
+  boundingBox?: {
+    vertices?: Array<{ x?: number; y?: number }>;
+  };
+}
+
+interface Page {
+  property?: TextProperty;
+  width?: number;
+  height?: number;
+  blocks?: Block[];
+  confidence?: number;
+}
+
+interface FullTextAnnotation {
+  pages?: Page[];
+  text?: string;
+}
+
+interface VisionResponse {
+  textAnnotations?: TextAnnotation[];
+  fullTextAnnotation?: FullTextAnnotation;
+}
+
 export async function GET() {
   return NextResponse.json({ message: "OCR API is ready" });
 }
@@ -53,11 +95,14 @@ export async function POST(req: NextRequest) {
 
     // Test Vision client connection first
     try {
-      const [response] = await visionClient.textDetection({
+      const response = await visionClient.textDetection({
         image: { content: imageBytes },
       });
 
-      const detections = response.textAnnotations;
+      // Cast the response to the expected type
+      const visionResponse = response[0] as VisionResponse;
+
+      const detections = visionResponse.textAnnotations;
       const text =
         detections && detections.length > 0
           ? detections[0].description
@@ -65,16 +110,17 @@ export async function POST(req: NextRequest) {
 
       // Additional metadata with null checks
       const metadata = {
-        confidence: response.fullTextAnnotation?.pages?.[0]?.confidence || 0,
+        confidence:
+          visionResponse.fullTextAnnotation?.pages?.[0]?.confidence || 0,
         detectedLanguages:
-          response.fullTextAnnotation?.pages?.[0]?.property
+          visionResponse.fullTextAnnotation?.pages?.[0]?.property
             ?.detectedLanguages || [],
         imageSize: {
-          width: response.fullTextAnnotation?.pages?.[0]?.width || 0,
-          height: response.fullTextAnnotation?.pages?.[0]?.height || 0,
+          width: visionResponse.fullTextAnnotation?.pages?.[0]?.width || 0,
+          height: visionResponse.fullTextAnnotation?.pages?.[0]?.height || 0,
         },
         textBlocks:
-          response.fullTextAnnotation?.pages?.[0]?.blocks?.length || 0,
+          visionResponse.fullTextAnnotation?.pages?.[0]?.blocks?.length || 0,
       };
 
       console.log(`OCR successful: ${text?.substring(0, 100)}...`);
