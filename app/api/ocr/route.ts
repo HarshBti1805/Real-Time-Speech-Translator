@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { visionClient } from "@/lib/googleClient";
 
+// Add this import at the top if not present
+// import vision from '@google-cloud/vision';
+
 export const config = {
   api: {
     bodyParser: false,
@@ -81,55 +84,80 @@ export async function POST(req: NextRequest) {
         metadata,
         success: true,
       });
-    } catch (visionError: any) {
-      console.error("Google Vision API error:", {
-        message: visionError.message,
-        code: visionError.code,
-        details: visionError.details,
-        stack: visionError.stack,
-      });
+    } catch (visionError: unknown) {
+      if (
+        visionError &&
+        typeof visionError === "object" &&
+        "message" in visionError
+      ) {
+        const errorObj = visionError as {
+          message?: string;
+          code?: number;
+          details?: string;
+          stack?: string;
+        };
+        console.error("Google Vision API error:", {
+          message: errorObj.message,
+          code: errorObj.code,
+          details: errorObj.details,
+          stack: errorObj.stack,
+        });
 
-      // Handle specific Vision API errors
-      if (visionError.code === 12) {
-        return NextResponse.json(
-          {
-            error:
-              "Vision API service unavailable. Please check your Google Cloud configuration.",
-            details:
-              process.env.NODE_ENV === "development"
-                ? visionError.message
-                : undefined,
-            success: false,
-          },
-          { status: 503 }
-        );
-      }
+        // Handle specific Vision API errors
+        if (errorObj.code === 12) {
+          return NextResponse.json(
+            {
+              error:
+                "Vision API service unavailable. Please check your Google Cloud configuration.",
+              details:
+                process.env.NODE_ENV === "development"
+                  ? errorObj.message
+                  : undefined,
+              success: false,
+            },
+            { status: 503 }
+          );
+        }
 
-      if (visionError.code === 16) {
-        return NextResponse.json(
-          {
-            error:
-              "Authentication failed. Please check your Google Cloud credentials.",
-            success: false,
-          },
-          { status: 401 }
-        );
+        if (errorObj.code === 16) {
+          return NextResponse.json(
+            {
+              error:
+                "Authentication failed. Please check your Google Cloud credentials.",
+              success: false,
+            },
+            { status: 401 }
+          );
+        }
+      } else {
+        console.error("Unknown error in Vision API:", visionError);
       }
 
       throw visionError; // Re-throw to be caught by outer catch
     }
-  } catch (err: any) {
-    console.error("OCR API error:", {
-      message: err.message,
-      code: err.code,
-      stack: err.stack,
-    });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "message" in err) {
+      const errorObj = err as {
+        message?: string;
+        code?: number;
+        stack?: string;
+      };
+      console.error("OCR API error:", {
+        message: errorObj.message,
+        code: errorObj.code,
+        stack: errorObj.stack,
+      });
+    } else {
+      console.error("Unknown error in OCR API:", err);
+    }
 
     return NextResponse.json(
       {
         error: "Failed to process image",
         details:
-          process.env.NODE_ENV === "development" ? err.message : undefined,
+          process.env.NODE_ENV === "development"
+            ? (err as Error)?.message
+            : undefined,
         success: false,
       },
       { status: 500 }
