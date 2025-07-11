@@ -369,7 +369,9 @@ export async function POST(req: Request) {
           bestTranscription,
           targetLanguage
         );
-        translation = translatedText;
+        translation = Array.isArray(translatedText)
+          ? translatedText[0]
+          : translatedText;
         console.log(`Translation result: "${translation}"`);
       } catch (translateError) {
         console.error("Translation Error:", translateError);
