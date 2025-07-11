@@ -2,6 +2,18 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { languageOptions, baseLanguageOptions } from "@/lib/data";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Mic,
+  Square,
+  RotateCcw,
+  Volume2,
+  Languages,
+  Clock,
+  Zap,
+} from "lucide-react";
 
 // Type definitions
 interface TranslationResult {
@@ -248,164 +260,108 @@ export default function MainPage() {
       }
 
       mediaRecorderRef.current = new MediaRecorder(stream, options);
-      console.log("MediaRecorder created with options:", options);
 
-      mediaRecorderRef.current.ondataavailable = (e: BlobEvent) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        console.log("Recording stopped");
-
         if (!isRealTimeMode) {
-          // Process final audio for non-realtime mode
-          console.log("Processing final audio...");
-          setIsProcessing(true);
-
-          const audioBlob = new Blob(audioChunksRef.current, {
-            type: options.mimeType || "audio/webm",
-          });
-
-          if (audioBlob.size === 0) {
-            console.error("Audio blob is empty");
-            setResult({
-              error: "No audio data captured. Please try again.",
-              transcription: "",
-              detectedLanguage: "",
-              targetLanguage: targetLanguage,
-              wasTranslated: false,
-            });
-            setIsProcessing(false);
-            return;
-          }
-
-          const formData = new FormData();
-          formData.append("audio", audioBlob, "recording.webm");
-          formData.append("targetLanguage", targetLanguage);
-          formData.append("baseLanguage", baseLanguage || "auto");
-
-          try {
-            const res = await fetch("/api/voice", {
-              method: "POST",
-              body: formData,
-            });
-
-            const data: TranslationResult = await res.json();
-            if (res.ok) {
-              setResult(data);
-            } else {
-              setResult({
-                error: data.error || "Unknown error occurred",
-                transcription: "",
-                detectedLanguage: "",
-                targetLanguage: targetLanguage,
-                wasTranslated: false,
-              });
-            }
-          } catch (error: unknown) {
-            console.error("Network Error:", error);
-            setResult({
-              error: "Network error occurred. Please check your connection.",
-              transcription: "",
-              detectedLanguage: "",
-              targetLanguage: targetLanguage,
-              wasTranslated: false,
-            });
-          } finally {
-            setIsProcessing(false);
-          }
+          // Process the complete recording for standard mode
+          await processCompleteRecording();
         }
       };
 
-      mediaRecorderRef.current.onerror = (event: Event) => {
-        // MediaRecorderErrorEvent is not available in all TS libs, so cast to unknown and use type guard
-        const err = (event as unknown as { error?: Error }).error;
-        console.error("MediaRecorder error:", err);
-        setResult({
-          error: "Recording error occurred",
-          transcription: "",
-          detectedLanguage: "",
-          targetLanguage: targetLanguage,
-          wasTranslated: false,
-        });
-        setIsRecording(false);
-        setIsProcessing(false);
-      };
-
-      // Start recording with optimized time slices
-      const recordingInterval = isRealTimeMode ? 1500 : 1000; // 1.5s for real-time to keep chunks small
-      mediaRecorderRef.current.start(recordingInterval);
+      // Start recording
+      mediaRecorderRef.current.start(1000); // Collect data every second
       setIsRecording(true);
 
-      // Set up real-time processing interval (every 3 seconds to avoid overwhelming the API)
+      // Start real-time processing if enabled
       if (isRealTimeMode) {
-        realtimeIntervalRef.current = setInterval(processRealtimeAudio, 3000);
+        realtimeIntervalRef.current = setInterval(processRealtimeAudio, 2000);
       }
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      alert("Failed to start recording. Please check microphone permissions.");
+    }
+  };
 
-      console.log(
-        "Recording started",
-        isRealTimeMode ? "(Real-time mode)" : "(Standard mode)"
-      );
-    } catch (error: unknown) {
-      console.error("Recording Error:", error);
-      let errorMessage = "Could not access microphone.";
+  const processCompleteRecording = async (): Promise<void> => {
+    if (audioChunksRef.current.length === 0) {
+      console.warn("No audio data to process");
+      return;
+    }
 
-      if (error instanceof DOMException) {
-        if (error.name === "NotAllowedError") {
-          errorMessage =
-            "Microphone access denied. Please allow microphone access and try again.";
-        } else if (error.name === "NotFoundError") {
-          errorMessage =
-            "No microphone found. Please check your audio devices.";
-        } else if (error.name === "NotReadableError") {
-          errorMessage = "Microphone is being used by another application.";
-        }
+    setIsProcessing(true);
+
+    try {
+      const audioBlob = new Blob(audioChunksRef.current, {
+        type: "audio/webm;codecs=opus",
+      });
+
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.webm");
+      formData.append("targetLanguage", targetLanguage);
+      formData.append("baseLanguage", baseLanguage || "auto");
+      formData.append("isRealtime", "false");
+
+      const res = await fetch("/api/voice", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data: TranslationResult = await res.json();
+        setResult(data);
+      } else {
+        const errorData = await res.json();
+        setResult({
+          transcription: "",
+          detectedLanguage: "",
+          targetLanguage,
+          wasTranslated: false,
+          error: errorData.error || "Failed to process audio",
+        });
       }
-
-      alert(errorMessage);
+    } catch (error) {
+      console.error("Error processing recording:", error);
       setResult({
-        error: errorMessage,
         transcription: "",
         detectedLanguage: "",
-        targetLanguage: targetLanguage,
+        targetLanguage,
         wasTranslated: false,
+        error: "Network error occurred while processing audio",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const stopRecording = (): void => {
-    console.log("Stopping recording...");
-
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-    }
 
-    // Clear real-time interval
-    if (realtimeIntervalRef.current) {
-      clearInterval(realtimeIntervalRef.current);
-      realtimeIntervalRef.current = null;
-    }
+      // Stop real-time processing
+      if (realtimeIntervalRef.current) {
+        clearInterval(realtimeIntervalRef.current);
+        realtimeIntervalRef.current = null;
+      }
 
-    // Stop all tracks to release the microphone
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => {
-        track.stop();
-        console.log("Track stopped:", track.kind);
-      });
-      streamRef.current = null;
-    }
+      // Stop all tracks
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
 
-    // Clean up audio context
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
+      // Close audio context
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
     }
-
-    analyzerRef.current = null;
-    setAudioLevel(0);
   };
 
   const clearResults = (): void => {
@@ -416,7 +372,9 @@ export default function MainPage() {
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const getLanguageName = (code: string): string => {
@@ -427,299 +385,347 @@ export default function MainPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">
-          🎙️ Real-Time Translation
-        </h1>
+    <div className="p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              🎙️ Real-Time Translation
+            </CardTitle>
+          </CardHeader>
+        </Card>
 
         {/* Mode Selection */}
-        <div className="mb-6 flex justify-center">
-          <div className="bg-gray-800 rounded-lg p-1">
-            <button
-              onClick={() => setIsRealTimeMode(false)}
-              disabled={isRecording}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                !isRealTimeMode
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Standard Mode
-            </button>
-            <button
-              onClick={() => setIsRealTimeMode(true)}
-              disabled={isRecording}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                isRealTimeMode
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Real-Time Mode
-            </button>
-          </div>
-        </div>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-6">
+            <div className="flex justify-center">
+              <div className="bg-white/10 rounded-lg p-1 flex">
+                <Button
+                  onClick={() => setIsRealTimeMode(false)}
+                  disabled={isRecording}
+                  variant={!isRealTimeMode ? "default" : "ghost"}
+                  className={`transition-all duration-200 ${
+                    !isRealTimeMode
+                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  Standard Mode
+                </Button>
+                <Button
+                  onClick={() => setIsRealTimeMode(true)}
+                  disabled={isRecording}
+                  variant={isRealTimeMode ? "default" : "ghost"}
+                  className={`transition-all duration-200 ${
+                    isRealTimeMode
+                      ? "bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Real-Time Mode
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Language Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Translate From:
-            </label>
-            <select
-              value={baseLanguage}
-              onChange={(e) => setBaseLanguage(e.target.value)}
-              className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={isRecording || isProcessing}
-            >
-              {baseLanguageOptions.map((lang: Language) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-white/90">
+                  <Languages className="w-4 h-4 inline mr-2" />
+                  Translate From:
+                </label>
+                <select
+                  value={baseLanguage}
+                  onChange={(e) => setBaseLanguage(e.target.value)}
+                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-white/50"
+                  disabled={isRecording || isProcessing}
+                >
+                  {baseLanguageOptions.map((lang: Language) => (
+                    <option
+                      key={lang.code}
+                      value={lang.code}
+                      className="bg-black text-white"
+                    >
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Translate to:
-            </label>
-            <select
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-              className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={isRecording || isProcessing}
-            >
-              {languageOptions.map((lang: Language) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-white/90">
+                  <Volume2 className="w-4 h-4 inline mr-2" />
+                  Translate to:
+                </label>
+                <select
+                  value={targetLanguage}
+                  onChange={(e) => setTargetLanguage(e.target.value)}
+                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-white/50"
+                  disabled={isRecording || isProcessing}
+                >
+                  {languageOptions.map((lang: Language) => (
+                    <option
+                      key={lang.code}
+                      value={lang.code}
+                      className="bg-black text-white"
+                    >
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Recording Controls */}
-        <div className="text-center mb-8">
-          <div className="space-y-4">
-            {!isRecording ? (
-              <button
-                onClick={startRecording}
-                disabled={isProcessing}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-              >
-                {isProcessing ? "Processing..." : "🎤 Start Recording"}
-              </button>
-            ) : (
-              <button
-                onClick={stopRecording}
-                className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
-              >
-                🛑 Stop Recording
-              </button>
-            )}
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              {!isRecording ? (
+                <Button
+                  onClick={startRecording}
+                  disabled={isProcessing}
+                  size="lg"
+                  className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-5 h-5 mr-2" />
+                      Start Recording
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={stopRecording}
+                  size="lg"
+                  className="px-8 py-4 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <Square className="w-5 h-5 mr-2" />
+                  Stop Recording
+                </Button>
+              )}
 
-            {(result || realtimeTranslation) && (
-              <button
-                onClick={clearResults}
-                disabled={isRecording}
-                className="ml-4 px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 text-white rounded-lg transition-colors"
-              >
-                Clear Results
-              </button>
-            )}
-          </div>
+              {(result || realtimeTranslation) && (
+                <Button
+                  onClick={clearResults}
+                  disabled={isRecording}
+                  variant="outline"
+                  className="ml-4 border-white/20 text-white hover:bg-white/10"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Clear Results
+                </Button>
+              )}
 
-          {/* Recording Status */}
-          {isRecording && (
-            <div className="flex flex-col items-center space-y-2 mt-4">
-              <div className="text-lg font-mono text-green-400">
-                {isRealTimeMode ? "🔴 LIVE" : "Recording"}:{" "}
-                {formatTime(recordingTime)}
-              </div>
+              {/* Recording Status */}
+              {isRecording && (
+                <div className="flex flex-col items-center space-y-4 mt-6">
+                  <div className="flex items-center space-x-2 text-lg font-mono text-green-400">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span>
+                      {isRealTimeMode ? "🔴 LIVE" : "Recording"}:{" "}
+                      {formatTime(recordingTime)}
+                    </span>
+                  </div>
 
-              {/* Audio Level Indicator */}
-              <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 transition-all duration-100"
-                  style={{ width: `${Math.min(audioLevel, 100)}%` }}
-                ></div>
-              </div>
+                  {/* Audio Level Indicator */}
+                  <div className="w-64 h-3 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-100 rounded-full"
+                      style={{ width: `${Math.min(audioLevel, 100)}%` }}
+                    ></div>
+                  </div>
 
-              <div className="text-sm text-gray-400">
-                {audioLevel > 10 ? "🎙️ Audio detected" : "🔇 Speak louder"}
-              </div>
+                  <div className="text-sm text-white/60">
+                    {audioLevel > 10 ? "🎙️ Audio detected" : "🔇 Speak louder"}
+                  </div>
 
-              {isRealTimeMode && (
-                <div className="text-sm text-yellow-400">
-                  {isProcessing
-                    ? "🔄 Processing..."
-                    : "✓ Real-time translation active (updates every 2s)"}
+                  {isRealTimeMode && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-500/20 text-green-400 border-green-500/30"
+                    >
+                      {isProcessing
+                        ? "🔄 Processing..."
+                        : "✓ Real-time translation active (updates every 2s)"}
+                    </Badge>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Processing Status */}
         {isProcessing && !isRecording && (
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center px-4 py-2 bg-yellow-600 rounded-lg">
-              <svg
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Processing audio...
-            </div>
-          </div>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="inline-flex items-center px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-400 mr-3"></div>
+                  <span className="text-yellow-400">Processing audio...</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Real-time Translation Display */}
         {isRealTimeMode &&
           realtimeTranslation &&
           !realtimeTranslation.error && (
-            <div className="mb-6 bg-gray-800 rounded-lg p-6 space-y-4 border-2 border-green-500">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-green-400">
-                  🔴 Live Translation
-                </h2>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-green-400">
+            <Card className="bg-white/5 border-green-500/50 shadow-lg shadow-green-500/25">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-green-400 flex items-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                    Live Translation
+                  </h2>
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-500/20 text-green-400 border-green-500/30"
+                  >
                     Updating every 2s
-                  </span>
+                  </Badge>
                 </div>
-              </div>
 
-              <div className="border-b border-gray-700 pb-4">
-                <h3 className="text-lg font-semibold mb-2 text-gray-300">
-                  Original (
-                  {getLanguageName(realtimeTranslation.detectedLanguage)})
-                </h3>
-                <p className="text-white text-lg bg-gray-700 p-3 rounded transition-all duration-300">
-                  {realtimeTranslation.transcription}
-                </p>
-              </div>
-
-              {realtimeTranslation.wasTranslated && (
-                <div className="border-b border-gray-700 pb-4">
-                  <h3 className="text-lg font-semibold mb-2 text-gray-300">
-                    Translation (
-                    {getLanguageName(realtimeTranslation.targetLanguage)})
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-lg font-semibold mb-2 text-white/80">
+                    Original (
+                    {getLanguageName(realtimeTranslation.detectedLanguage)})
                   </h3>
-                  <p className="text-white text-lg bg-blue-900/30 p-3 rounded transition-all duration-300">
-                    {realtimeTranslation.translation}
-                  </p>
-                </div>
-              )}
-
-              {!realtimeTranslation.wasTranslated && (
-                <div className="text-center text-gray-400 py-4">
-                  <p>✓ Already in target language - no translation needed</p>
-                </div>
-              )}
-
-              <div className="flex justify-between text-sm text-gray-400 pt-4">
-                <span>
-                  Detected:{" "}
-                  {getLanguageName(realtimeTranslation.detectedLanguage)}
-                </span>
-                <span>
-                  Target: {getLanguageName(realtimeTranslation.targetLanguage)}
-                </span>
-                {realtimeTranslation.confidence && (
-                  <span>
-                    Confidence:{" "}
-                    {Math.round(realtimeTranslation.confidence * 100)}%
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-        {/* Standard Mode Results */}
-        {result && !isRealTimeMode && (
-          <div className="bg-gray-800 rounded-lg p-6 space-y-4">
-            {result.error ? (
-              <div className="text-red-400 text-center p-4 bg-red-900/20 rounded-lg">
-                <p className="text-lg font-semibold">❌ Error</p>
-                <p className="mt-2">{result.error}</p>
-              </div>
-            ) : (
-              <>
-                <div className="border-b border-gray-700 pb-4">
-                  <h3 className="text-lg font-semibold mb-2 text-gray-300">
-                    Original ({getLanguageName(result.detectedLanguage)})
-                  </h3>
-                  <p className="text-white text-lg bg-gray-700 p-3 rounded">
-                    {result.transcription}
+                  <p className="text-white text-lg bg-white/5 p-4 rounded-lg border border-white/10 transition-all duration-300">
+                    {realtimeTranslation.transcription}
                   </p>
                 </div>
 
-                {result.wasTranslated && (
-                  <div className="border-b border-gray-700 pb-4">
-                    <h3 className="text-lg font-semibold mb-2 text-gray-300">
-                      Translation ({getLanguageName(result.targetLanguage)})
+                {realtimeTranslation.wasTranslated && (
+                  <div className="border-b border-white/10 pb-4">
+                    <h3 className="text-lg font-semibold mb-2 text-white/80">
+                      Translation (
+                      {getLanguageName(realtimeTranslation.targetLanguage)})
                     </h3>
-                    <p className="text-white text-lg bg-blue-900/30 p-3 rounded">
-                      {result.translation}
+                    <p className="text-white text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20 transition-all duration-300">
+                      {realtimeTranslation.translation}
                     </p>
                   </div>
                 )}
 
-                {!result.wasTranslated && (
-                  <div className="text-center text-gray-400 py-4">
+                {!realtimeTranslation.wasTranslated && (
+                  <div className="text-center text-white/60 py-4">
                     <p>✓ Already in target language - no translation needed</p>
                   </div>
                 )}
 
-                <div className="flex justify-between text-sm text-gray-400 pt-4">
+                <div className="flex justify-between text-sm text-white/60 pt-4">
                   <span>
-                    Detected: {getLanguageName(result.detectedLanguage)}
+                    Detected:{" "}
+                    {getLanguageName(realtimeTranslation.detectedLanguage)}
                   </span>
-                  <span>Target: {getLanguageName(result.targetLanguage)}</span>
-                  {result.confidence && (
+                  <span>
+                    Target:{" "}
+                    {getLanguageName(realtimeTranslation.targetLanguage)}
+                  </span>
+                  {realtimeTranslation.confidence && (
                     <span>
-                      Confidence: {Math.round(result.confidence * 100)}%
+                      Confidence:{" "}
+                      {Math.round(realtimeTranslation.confidence * 100)}%
                     </span>
                   )}
                 </div>
-              </>
-            )}
-          </div>
+              </CardContent>
+            </Card>
+          )}
+
+        {/* Standard Mode Results */}
+        {result && !isRealTimeMode && (
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6 space-y-4">
+              {result.error ? (
+                <div className="text-red-400 text-center p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                  <p className="text-lg font-semibold">❌ Error</p>
+                  <p className="mt-2">{result.error}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="border-b border-white/10 pb-4">
+                    <h3 className="text-lg font-semibold mb-2 text-white/80">
+                      Original ({getLanguageName(result.detectedLanguage)})
+                    </h3>
+                    <p className="text-white text-lg bg-white/5 p-4 rounded-lg border border-white/10">
+                      {result.transcription}
+                    </p>
+                  </div>
+
+                  {result.wasTranslated && (
+                    <div className="border-b border-white/10 pb-4">
+                      <h3 className="text-lg font-semibold mb-2 text-white/80">
+                        Translation ({getLanguageName(result.targetLanguage)})
+                      </h3>
+                      <p className="text-white text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
+                        {result.translation}
+                      </p>
+                    </div>
+                  )}
+
+                  {!result.wasTranslated && (
+                    <div className="text-center text-white/60 py-4">
+                      <p>
+                        ✓ Already in target language - no translation needed
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-sm text-white/60 pt-4">
+                    <span>
+                      Detected: {getLanguageName(result.detectedLanguage)}
+                    </span>
+                    <span>
+                      Target: {getLanguageName(result.targetLanguage)}
+                    </span>
+                    {result.confidence && (
+                      <span>
+                        Confidence: {Math.round(result.confidence * 100)}%
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Instructions */}
-        <div className="mt-8 text-center text-gray-400 text-sm space-y-2">
-          <p>
-            <strong>Standard Mode:</strong> Record, then get translation after
-            stopping
-          </p>
-          <p>
-            <strong>Real-Time Mode:</strong> Live translation updates every 2
-            seconds
-          </p>
-          <p className="text-xs">
-            💡 Real-time mode works best with clear, continuous speech
-          </p>
-        </div>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-6">
+            <div className="text-center text-white/60 text-sm space-y-2">
+              <p>
+                <strong>Standard Mode:</strong> Record, then get translation
+                after stopping
+              </p>
+              <p>
+                <strong>Real-Time Mode:</strong> Live translation updates every
+                2 seconds
+              </p>
+              <p className="text-xs text-white/40">
+                💡 Real-time mode works best with clear, continuous speech
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

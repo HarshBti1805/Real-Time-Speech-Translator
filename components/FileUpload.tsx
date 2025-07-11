@@ -1,25 +1,44 @@
 "use client";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Upload,
+  Copy,
+  FileText,
+  FileAudio,
+  CheckCircle,
+  FileDown,
+} from "lucide-react";
 
 export default function FileUpload() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<string>("mp3");
   const [transcription, setTranscription] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleUpload = async (fileToSend: File) => {
+    setIsProcessing(true);
     const formData = new FormData();
     formData.append("audio", fileToSend);
     formData.append("fileType", fileType);
 
-    const res = await fetch("/api/file", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch("/api/file", {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
-    console.log(data);
-    setTranscription(data.transcription || "Failed to recognize speech.");
+      const data = await res.json();
+      console.log(data);
+      setTranscription(data.transcription || "Failed to recognize speech.");
+    } catch (error) {
+      console.error("Upload error:", error);
+      setTranscription("Error processing file.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const copyToClipboard = async () => {
@@ -52,8 +71,8 @@ export default function FileUpload() {
         <head>
           <title>Transcription</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            body { font-family: 'Product Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; line-height: 1.6; letter-spacing: 0.025em; }
+            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; letter-spacing: 0.05em; }
             .content { margin-top: 20px; white-space: pre-wrap; }
           </style>
         </head>
@@ -94,8 +113,8 @@ export default function FileUpload() {
             </xml>
           <![endif]-->
           <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            body { font-family: 'Product Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; line-height: 1.6; letter-spacing: 0.025em; }
+            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; letter-spacing: 0.05em; }
             .content { margin-top: 20px; white-space: pre-wrap; }
           </style>
         </head>
@@ -134,88 +153,135 @@ export default function FileUpload() {
   };
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Speech to Text (Auto Language)</h1>
+    <div className="space-y-6">
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold text-white flex items-center">
+            <FileAudio className="w-5 h-5 mr-2" />
+            Speech to Text (Auto Language)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* File input */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-white/90">
+              Select Audio File:
+            </label>
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setAudioFile(file);
+                if (file) {
+                  const ext = file.name.split(".").pop()?.toLowerCase();
+                  if (ext) setFileType(ext);
+                }
+              }}
+              className="block w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer"
+            />
+          </div>
 
-      {/* File input */}
-      <input
-        type="file"
-        accept="audio/*"
-        onChange={(e) => {
-          const file = e.target.files?.[0] || null;
-          setAudioFile(file);
-          if (file) {
-            const ext = file.name.split(".").pop()?.toLowerCase();
-            if (ext) setFileType(ext);
-          }
-        }}
-        className="mb-4"
-      />
+          {/* Selected file type input */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-white/90">
+              Detected File Type:
+            </label>
+            <input
+              type="text"
+              value={fileType}
+              readOnly
+              className="w-full bg-white/10 border border-white/20 rounded-lg p-3 text-white"
+            />
+          </div>
 
-      {/* Selected file type input */}
-      <div>
-        <label className="block mb-1 font-medium">Detected File Type:</label>
-        <input
-          type="text"
-          value={fileType}
-          readOnly
-          className="border text-black p-2 mb-4 w-full bg-gray-100"
-        />
-      </div>
-
-      {/* Transcribe uploaded file */}
-      <button
-        disabled={!audioFile}
-        onClick={() => audioFile && handleUpload(audioFile)}
-        className="bg-blue-600 text-white px-4 py-2 rounded mb-4 disabled:opacity-50"
-      >
-        Transcribe Uploaded File
-      </button>
+          {/* Transcribe uploaded file */}
+          <Button
+            disabled={!audioFile || isProcessing}
+            onClick={() => audioFile && handleUpload(audioFile)}
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+          >
+            {isProcessing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Processing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4 mr-2" />
+                Transcribe Uploaded File
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Result */}
       {transcription && (
-        <div className="mt-4">
-          <h2 className="font-semibold mb-2">Transcription:</h2>
-          <div className="bg-gray-50 p-4 rounded border mb-4">
-            <p className="whitespace-pre-wrap text-black">{transcription}</p>
-          </div>
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-white flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Transcription Result
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+              <p className="whitespace-pre-wrap text-white leading-relaxed">
+                {transcription}
+              </p>
+            </div>
 
-          {/* Copy to clipboard button */}
-          <div className="mb-4">
-            <button
+            {/* Copy to clipboard button */}
+            <Button
               onClick={copyToClipboard}
-              className={`px-4 py-2 rounded font-medium transition-colors ${
-                copySuccess
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-600 text-white hover:bg-gray-700"
+              variant="outline"
+              className={`border-white/20 text-white hover:bg-white/10 flex items-center gap-2 ${
+                copySuccess ? "border-green-500/30 text-green-400" : ""
               }`}
             >
-              {copySuccess ? "Copied!" : "Copy to Clipboard"}
-            </button>
-          </div>
+              {copySuccess ? (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copy to Clipboard
+                </>
+              )}
+            </Button>
 
-          {/* Download buttons */}
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={downloadAsText}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-            >
-              Download as TXT
-            </button>
-            <button
-              onClick={downloadAsPDF}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
-            >
-              Download as HTML
-            </button>
-            <button
-              onClick={downloadAsDoc}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-            >
-              Download as DOC
-            </button>
-          </div>
-        </div>
+            {/* Download buttons */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                onClick={downloadAsText}
+                variant="outline"
+                className="border-green-500/30 text-green-400 hover:bg-green-500/20 flex items-center gap-2"
+              >
+                <FileDown className="w-4 h-4" />
+                Download as TXT
+              </Button>
+              <Button
+                onClick={downloadAsPDF}
+                variant="outline"
+                className="border-red-500/30 text-red-400 hover:bg-red-500/20 flex items-center gap-2"
+              >
+                <FileDown className="w-4 h-4" />
+                Download as HTML
+              </Button>
+              <Button
+                onClick={downloadAsDoc}
+                variant="outline"
+                className="border-blue-500/30 text-blue-400 hover:bg-blue-500/20 flex items-center gap-2"
+              >
+                <FileDown className="w-4 h-4" />
+                Download as DOC
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

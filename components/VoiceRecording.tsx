@@ -3,12 +3,16 @@ import { useState, useRef } from "react";
 import {
   Camera,
   Upload,
-  Mic,
   Square,
   Play,
   Image,
   Monitor,
+  RotateCcw,
+  FileText,
+  Volume2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function VoiceRecording() {
   // Voice recording state
@@ -225,180 +229,211 @@ export default function VoiceRecording() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">
-          Voice & Visual Recognition System
-        </h1>
-        <p className="text-gray-600">
-          Record audio, upload images, capture photos, or take screenshots for
-          text recognition
-        </p>
-      </div>
+    <div className="space-y-6">
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center justify-center">
+            <FileText className="w-8 h-8 mr-3" />
+            Voice & Visual Recognition System
+          </CardTitle>
+          <p className="text-white/60">
+            Record audio, upload images, capture photos, or take screenshots for
+            text recognition
+          </p>
+        </CardHeader>
+      </Card>
 
       {/* Voice Recording Section */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Mic className="w-5 h-5" />
-          Voice Recording
-        </h2>
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold flex items-center gap-2 text-white">
+            <Volume2 className="w-5 h-5" />
+            Voice Recording
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            onClick={handleRecord}
+            disabled={processingAudio}
+            size="lg"
+            className={`font-medium transition-all duration-200 flex items-center gap-2 ${
+              recording
+                ? "bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg"
+                : "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-lg"
+            } ${processingAudio ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            {recording ? (
+              <>
+                <Square className="w-4 h-4" />
+                Stop Recording
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" />
+                Start Recording
+              </>
+            )}
+          </Button>
 
-        <button
-          onClick={handleRecord}
-          disabled={processingAudio}
-          className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-            recording
-              ? "bg-red-600 hover:bg-red-700 text-white"
-              : "bg-green-600 hover:bg-green-700 text-white"
-          } ${processingAudio ? "opacity-50 cursor-not-allowed" : ""}`}
-        >
-          {recording ? (
-            <>
-              <Square className="w-4 h-4" />
-              Stop Recording
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4" />
-              Start Recording
-            </>
+          {processingAudio && (
+            <div className="flex items-center text-blue-400">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-2"></div>
+              Processing audio...
+            </div>
           )}
-        </button>
-
-        {processingAudio && (
-          <div className="mt-4 text-blue-600">Processing audio...</div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Image Recognition Section */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Image className="w-5 h-5" />
-          Image Text Recognition
-        </h2>
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold flex items-center gap-2 text-white">
+            <Image className="w-5 h-5" />
+            Image Text Recognition
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={processingImage}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            Upload Image
-          </button>
-
-          <button
-            onClick={cameraActive ? stopCamera : startCamera}
-            disabled={processingImage}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-              cameraActive
-                ? "bg-red-600 hover:bg-red-700 text-white"
-                : "bg-purple-600 hover:bg-purple-700 text-white"
-            }`}
-          >
-            <Camera className="w-4 h-4" />
-            {cameraActive ? "Stop Camera" : "Start Camera"}
-          </button>
-
-          {cameraActive && (
-            <button
-              onClick={capturePhoto}
+            <Button
+              onClick={() => fileInputRef.current?.click()}
               disabled={processingImage}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10 flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Upload Image
+            </Button>
+
+            <Button
+              onClick={cameraActive ? stopCamera : startCamera}
+              disabled={processingImage}
+              variant="outline"
+              className={`border-white/20 text-white hover:bg-white/10 flex items-center gap-2 ${
+                cameraActive
+                  ? "border-red-500/30 text-red-400 hover:bg-red-500/20"
+                  : "border-purple-500/30 text-purple-400 hover:bg-purple-500/20"
+              }`}
             >
               <Camera className="w-4 h-4" />
-              Capture Photo
-            </button>
+              {cameraActive ? "Stop Camera" : "Start Camera"}
+            </Button>
+
+            {cameraActive && (
+              <Button
+                onClick={capturePhoto}
+                disabled={processingImage}
+                variant="outline"
+                className="border-green-500/30 text-green-400 hover:bg-green-500/20 flex items-center gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                Capture Photo
+              </Button>
+            )}
+
+            <Button
+              onClick={captureScreenshot}
+              disabled={processingImage}
+              variant="outline"
+              className="border-orange-500/30 text-orange-400 hover:bg-orange-500/20 flex items-center gap-2"
+            >
+              <Monitor className="w-4 h-4" />
+              Screen Capture
+            </Button>
+          </div>
+
+          {/* Camera Preview */}
+          {cameraActive && (
+            <div className="mt-4">
+              <video
+                ref={videoRef}
+                className="w-full max-w-md mx-auto rounded-lg border border-white/20"
+                autoPlay
+                playsInline
+                muted
+              />
+            </div>
           )}
 
-          <button
-            onClick={captureScreenshot}
-            disabled={processingImage}
-            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center gap-2 transition-colors"
-          >
-            <Monitor className="w-4 h-4" />
-            Screen Capture
-          </button>
-        </div>
+          {/* Hidden canvas for image processing */}
+          <canvas ref={canvasRef} className="hidden" />
 
-        {/* Camera Preview */}
-        {cameraActive && (
-          <div className="mb-4">
-            <video
-              ref={videoRef}
-              className="w-full max-w-md mx-auto rounded-lg"
-              autoPlay
-              playsInline
-              muted
-            />
-          </div>
-        )}
+          {processingImage && (
+            <div className="flex items-center text-blue-400">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-2"></div>
+              Processing image...
+            </div>
+          )}
 
-        {/* Hidden canvas for image processing */}
-        <canvas ref={canvasRef} className="hidden" />
-
-        {processingImage && (
-          <div className="mt-4 text-blue-600">Processing image...</div>
-        )}
-
-        {/* Image Preview */}
-        {imagePreview && (
-          <div className="mt-4">
-            <h3 className="font-semibold mb-2">Selected Image:</h3>
-            <img
-              src={imagePreview}
-              alt="Selected image preview"
-              className="max-w-full max-h-64 rounded-lg border"
-            />
-          </div>
-        )}
-      </div>
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className="mt-4">
+              <h3 className="font-semibold mb-2 text-white/90">
+                Selected Image:
+              </h3>
+              <img
+                src={imagePreview}
+                alt="Selected image preview"
+                className="max-w-full max-h-64 rounded-lg border border-white/20"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Results Section */}
       {(transcription || extractedText) && (
-        <div className="bg-gray-50 rounded-lg shadow-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Results</h2>
-            <button
-              onClick={clearResults}
-              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-            >
-              Clear Results
-            </button>
-          </div>
-
-          {transcription && (
-            <div className="mb-4">
-              <h3 className="font-semibold text-green-700 mb-2">
-                Voice Transcription:
-              </h3>
-              <div className="bg-white p-4 rounded-lg border">
-                <p className="text-gray-800">{transcription}</p>
-              </div>
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-xl font-semibold text-white">
+                Results
+              </CardTitle>
+              <Button
+                onClick={clearResults}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Clear Results
+              </Button>
             </div>
-          )}
-
-          {extractedText && (
-            <div>
-              <h3 className="font-semibold text-blue-700 mb-2">
-                Extracted Text from Image:
-              </h3>
-              <div className="bg-white p-4 rounded-lg border">
-                <p className="text-gray-800 whitespace-pre-wrap">
-                  {extractedText}
-                </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {transcription && (
+              <div>
+                <h3 className="font-semibold text-green-400 mb-2 flex items-center">
+                  <Volume2 className="w-4 h-4 mr-2" />
+                  Voice Transcription:
+                </h3>
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <p className="text-white">{transcription}</p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+
+            {extractedText && (
+              <div>
+                <h3 className="font-semibold text-blue-400 mb-2 flex items-center">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Extracted Text from Image:
+                </h3>
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <p className="text-white whitespace-pre-wrap">
+                    {extractedText}
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -2,6 +2,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { languageOptions } from "@/lib/data";
 import { baseLanguageOptions } from "@/lib/data";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Languages,
+  RotateCcw,
+  Copy,
+  AlertTriangle,
+  CheckCircle,
+  ArrowRightLeft,
+  FileText,
+  Globe,
+} from "lucide-react";
 
 export default function Translate() {
   const [text, setText] = useState("");
@@ -13,7 +26,6 @@ export default function Translate() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState("");
 
-  // Auto-detect and translate function
   const translateText = useCallback(
     async (inputText: string, target: string, source: string) => {
       if (!inputText.trim()) {
@@ -129,227 +141,295 @@ export default function Translate() {
     return text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
   };
 
+  // Copy to clipboard
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // You could add a toast notification here
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
+
   return (
-    <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-2xl mx-auto bg-white p-6 shadow-lg rounded-lg">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-black">
-            🌐 Auto-Detect Translation
-          </h1>
-          <button
-            onClick={clearAll}
-            className="px-4 text-black py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded-md transition-colors"
-          >
-            Clear All
-          </button>
-        </div>
+    <div className="p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center justify-center">
+              <Globe className="w-8 h-8 mr-3" />
+              Auto-Detect Translation
+            </CardTitle>
+          </CardHeader>
+        </Card>
 
         {/* Input Section */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-black">
-              Enter text in any language:
-            </label>
-            <div className="flex items-center space-x-4 text-xs text-gray-500">
-              <span>📝 {getCharacterCount(text)} characters</span>
-              <span>📄 {getWordCount(text)} words</span>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-white/90 flex items-center">
+                <FileText className="w-4 h-4 mr-2" />
+                Enter text in any language:
+              </label>
+              <div className="flex items-center space-x-4 text-xs text-white/60">
+                <span>📝 {getCharacterCount(text)} characters</span>
+                <span>📄 {getWordCount(text)} words</span>
+              </div>
             </div>
-          </div>
-          <textarea
-            className="w-full border text-black border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            rows={4}
-            placeholder="Type or paste text here - language will be automatically detected!"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          {/* Character limit warning */}
-          {getCharacterCount(text) > 5000 && (
-            <div className="mt-2 text-sm text-orange-600 flex items-center">
-              <span className="mr-1">⚠️</span>
-              Large text may take longer to translate and could exceed API
-              limits
-            </div>
-          )}
-        </div>
+            <textarea
+              className="w-full bg-white/10 border border-white/20 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-white placeholder-white/50"
+              rows={4}
+              placeholder="Type or paste text here - language will be automatically detected!"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            {/* Character limit warning */}
+            {getCharacterCount(text) > 5000 && (
+              <div className="mt-3 flex items-center text-sm text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Large text may take longer to translate and could exceed API
+                limits
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Language Selection with Swap */}
-        <div className="mb-6">
-          <div className="flex items-center gap-4">
-            {/* Source Language */}
-            <div className="flex-1">
-              <label className="block text-black text-sm font-medium mb-2">
-                Translate From:
-              </label>
-              <select
-                className="w-full border text-black border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={sourceLang}
-                onChange={(e) => setSourceLang(e.target.value)}
-              >
-                {baseLanguageOptions.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.name} ({lang.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Swap Button */}
-            <div className="flex flex-col items-center justify-end pb-3">
-              <button
-                onClick={swapLanguages}
-                disabled={
-                  !translatedText || (sourceLang === "auto" && !detectedLang)
-                }
-                className="p-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full transition-colors shadow-md hover:shadow-lg"
-                title="Swap languages"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              {/* Source Language */}
+              <div className="flex-1 space-y-2">
+                <label className="block text-white/90 text-sm font-medium flex items-center">
+                  <Languages className="w-4 h-4 mr-2" />
+                  Translate From:
+                </label>
+                <select
+                  className="w-full bg-white/10 border border-white/20 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                  value={sourceLang}
+                  onChange={(e) => setSourceLang(e.target.value)}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                  />
-                </svg>
-              </button>
-            </div>
+                  {baseLanguageOptions.map((lang) => (
+                    <option
+                      key={lang.code}
+                      value={lang.code}
+                      className="bg-black text-white"
+                    >
+                      {lang.name} ({lang.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Target Language */}
-            <div className="flex-1">
-              <label className="block text-black text-sm font-medium mb-2">
-                Translate to:
-              </label>
-              <select
-                className="w-full border text-black border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={targetLang}
-                onChange={(e) => setTargetLang(e.target.value)}
-              >
-                {languageOptions.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.name} ({lang.code})
-                  </option>
-                ))}
-              </select>
+              {/* Swap Button */}
+              <div className="flex flex-col items-center justify-end pb-3">
+                <Button
+                  onClick={swapLanguages}
+                  disabled={
+                    !translatedText || (sourceLang === "auto" && !detectedLang)
+                  }
+                  variant="outline"
+                  size="icon"
+                  className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Swap languages"
+                >
+                  <ArrowRightLeft className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Target Language */}
+              <div className="flex-1 space-y-2">
+                <label className="block text-white/90 text-sm font-medium flex items-center">
+                  <Globe className="w-4 h-4 mr-2" />
+                  Translate to:
+                </label>
+                <select
+                  className="w-full bg-white/10 border border-white/20 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                  value={targetLang}
+                  onChange={(e) => setTargetLang(e.target.value)}
+                >
+                  {languageOptions.map((lang) => (
+                    <option
+                      key={lang.code}
+                      value={lang.code}
+                      className="bg-black text-white"
+                    >
+                      {lang.name} ({lang.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Loading State */}
         {isTranslating && (
-          <div className="mb-4 p-3 text-black bg-blue-50 border border-blue-200 rounded-md">
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-              <span className="text-blue-700">
-                {sourceLang === "auto"
-                  ? "Detecting language and translating..."
-                  : "Translating..."}
-              </span>
-            </div>
-          </div>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400 mr-3"></div>
+                <span className="text-blue-400">
+                  {sourceLang === "auto"
+                    ? "Detecting language and translating..."
+                    : "Translating..."}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Error Display */}
         {error && (
-          <div className="mb-4 p-3 text-black bg-red-50 border border-red-200 rounded-md">
-            <div className="flex items-center">
-              <span className="text-red-600 mr-2">⚠️</span>
-              <span className="text-red-700">{error}</span>
-            </div>
-          </div>
+          <Card className="bg-red-500/10 border-red-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <AlertTriangle className="w-5 h-5 text-red-400 mr-3" />
+                <span className="text-red-400">{error}</span>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Detected Language with Enhanced Confidence Score */}
         {detectedLang &&
           !error &&
           (sourceLang === "auto" || sourceLang === "") && (
-            <div className="mb-4 p-4 text-black bg-blue-50 border border-blue-200 rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="text-blue-800">
-                    <strong>Detected Language:</strong>{" "}
-                    {getLanguageName(detectedLang)}
-                  </span>
-                </div>
-                {confidence > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <div className="flex flex-col items-end">
-                      <span className="text-sm font-medium text-blue-700">
-                        {Math.round(confidence * 100)}% confidence
-                      </span>
-                      <div className="w-24 h-2 bg-blue-200 rounded-full mt-1">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            confidence >= 0.8
-                              ? "bg-green-500"
-                              : confidence >= 0.6
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                          }`}
-                          style={{ width: `${confidence * 100}%` }}
-                        />
+            <Card className="bg-blue-500/10 border-blue-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="text-blue-400 font-medium">
+                      Detected Language: {getLanguageName(detectedLang)}
+                    </span>
+                  </div>
+                  {confidence > 0 && (
+                    <div className="flex items-center space-x-3">
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-medium text-blue-400">
+                          {Math.round(confidence * 100)}% confidence
+                        </span>
+                        <div className="w-24 h-2 bg-blue-500/20 rounded-full mt-1">
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              confidence >= 0.8
+                                ? "bg-green-500"
+                                : confidence >= 0.6
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            }`}
+                            style={{ width: `${confidence * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-xs">
+                        {confidence >= 0.8 && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-green-500/20 text-green-400 border-green-500/30"
+                          >
+                            🟢 High
+                          </Badge>
+                        )}
+                        {confidence >= 0.6 && confidence < 0.8 && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                          >
+                            🟡 Medium
+                          </Badge>
+                        )}
+                        {confidence < 0.6 && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-red-500/20 text-red-400 border-red-500/30"
+                          >
+                            🔴 Low
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                    <div className="text-xs">
-                      {confidence >= 0.8 && (
-                        <span className="text-green-600">🟢 High</span>
-                      )}
-                      {confidence >= 0.6 && confidence < 0.8 && (
-                        <span className="text-yellow-600">🟡 Medium</span>
-                      )}
-                      {confidence < 0.6 && (
-                        <span className="text-red-600">🔴 Low</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
         {/* Translation Result */}
         {translatedText && !error && (
-          <div className="p-4 text-black bg-green-50 border border-green-200 rounded-md">
-            <div className="flex items-start justify-between mb-2">
-              <strong className="text-green-800">Translation:</strong>
-              <button
-                onClick={() => navigator.clipboard.writeText(translatedText)}
-                className="text-xs bg-green-100 hover:bg-green-200 px-2 py-1 rounded transition-colors"
-                title="Copy to clipboard"
-              >
-                📋 Copy
-              </button>
-            </div>
-            <p className="text-gray-800 text-lg leading-relaxed">
-              {translatedText}
-            </p>
-          </div>
+          <Card className="bg-green-500/10 border-green-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center">
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
+                  <strong className="text-green-400">Translation:</strong>
+                </div>
+                <Button
+                  onClick={() => copyToClipboard(translatedText)}
+                  variant="outline"
+                  size="sm"
+                  className="border-green-500/30 text-green-400 hover:bg-green-500/20"
+                  title="Copy to clipboard"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy
+                </Button>
+              </div>
+              <p className="text-white text-lg leading-relaxed bg-white/5 p-4 rounded-lg border border-white/10">
+                {translatedText}
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {/* Instructions */}
-        <div className="mt-6 p-3 text-black bg-gray-50 rounded-md">
-          <h3 className="font-medium text-gray-700 mb-2">How to use:</h3>
-          <ul className="text-sm text-gray-600 space-y-1">
-            <li>• Type or paste text in any language</li>
-            <li>
-              • Select source language (choose `Auto-detect` for automatic
-              detection)
-            </li>
-            <li>• Select your target language from the dropdown</li>
-            <li>
-              • Use the swap button (🔄) to quickly reverse translation
-              direction
-            </li>
-            <li>• Translation happens automatically as you type</li>
-            <li>
-              • Confidence score shows detection accuracy (🟢 High, 🟡 Medium,
-              🔴 Low)
-            </li>
-          </ul>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-6">
+            <h3 className="font-medium text-white/90 mb-4 flex items-center">
+              <Languages className="w-4 h-4 mr-2" />
+              How to use:
+            </h3>
+            <ul className="text-sm text-white/70 space-y-2">
+              <li className="flex items-start">
+                <span className="text-blue-400 mr-2">•</span>
+                Type or paste text in any language
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-400 mr-2">•</span>
+                Select source language (choose `Auto-detect` for automatic
+                detection)
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-400 mr-2">•</span>
+                Select your target language from the dropdown
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-400 mr-2">•</span>
+                Use the swap button to quickly reverse translation direction
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-400 mr-2">•</span>
+                Translation happens automatically as you type
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-400 mr-2">•</span>
+                Confidence score shows detection accuracy (🟢 High, 🟡 Medium,
+                🔴 Low)
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Clear All Button */}
+        <div className="text-center">
+          <Button
+            onClick={clearAll}
+            variant="outline"
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Clear All
+          </Button>
         </div>
       </div>
     </div>
