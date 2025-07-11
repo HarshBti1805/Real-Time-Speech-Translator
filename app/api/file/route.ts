@@ -43,6 +43,18 @@ interface SpeechConfig {
   sampleRateHertz?: number;
 }
 
+// Define the expected response structure from Google Speech API
+interface SpeechRecognitionResult {
+  alternatives?: Array<{
+    transcript?: string;
+    confidence?: number;
+  }>;
+}
+
+interface SpeechRecognitionResponse {
+  results?: SpeechRecognitionResult[];
+}
+
 // 🔁 Convert WAV to Mono using external Node server
 async function convertWavToMono(buffer: Buffer): Promise<Buffer> {
   const res = await fetch("https://ffmpeg-server-ervj.onrender.com/convert", {
@@ -144,10 +156,12 @@ export async function POST(req: NextRequest) {
   try {
     const response = await speechClient.recognize({
       audio: { content: audioBytes },
-      config,
+      config: config as unknown as Record<string, unknown>,
     });
 
-    const transcription = response[0].results
+    const speechResponse = response as [SpeechRecognitionResponse];
+
+    const transcription = speechResponse[0].results
       ?.map((r) => r.alternatives?.[0]?.transcript)
       .join("\n");
 
