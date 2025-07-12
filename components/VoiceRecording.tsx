@@ -230,13 +230,13 @@ export default function VoiceRecording() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-card border-border">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center justify-center">
             <FileText className="w-8 h-8 mr-3" />
             Voice & Visual Recognition System
           </CardTitle>
-          <p className="text-white/60">
+          <p className="text-muted-foreground">
             Record audio, upload images, capture photos, or take screenshots for
             text recognition
           </p>
@@ -244,9 +244,9 @@ export default function VoiceRecording() {
       </Card>
 
       {/* Voice Recording Section */}
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold flex items-center gap-2 text-white">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2 text-foreground">
             <Volume2 className="w-5 h-5" />
             Voice Recording
           </CardTitle>
@@ -285,9 +285,9 @@ export default function VoiceRecording() {
       </Card>
 
       {/* Image Recognition Section */}
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold flex items-center gap-2 text-white">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2 text-foreground">
             <Image className="w-5 h-5" />
             Image Text Recognition
           </CardTitle>
@@ -306,7 +306,7 @@ export default function VoiceRecording() {
               onClick={() => fileInputRef.current?.click()}
               disabled={processingImage}
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 flex items-center gap-2"
+              className="border-border text-foreground hover:bg-accent flex items-center gap-2"
             >
               <Upload className="w-4 h-4" />
               Upload Image
@@ -316,7 +316,7 @@ export default function VoiceRecording() {
               onClick={cameraActive ? stopCamera : startCamera}
               disabled={processingImage}
               variant="outline"
-              className={`border-white/20 text-white hover:bg-white/10 flex items-center gap-2 ${
+              className={`border-border text-foreground hover:bg-accent flex items-center gap-2 ${
                 cameraActive
                   ? "border-red-500/30 text-red-400 hover:bg-red-500/20"
                   : "border-purple-500/30 text-purple-400 hover:bg-purple-500/20"
@@ -354,7 +354,7 @@ export default function VoiceRecording() {
             <div className="mt-4">
               <video
                 ref={videoRef}
-                className="w-full max-w-md mx-auto rounded-lg border border-white/20"
+                className="w-full max-w-md mx-auto rounded-lg border border-border"
                 autoPlay
                 playsInline
                 muted
@@ -375,13 +375,13 @@ export default function VoiceRecording() {
           {/* Image Preview */}
           {imagePreview && (
             <div className="mt-4">
-              <h3 className="font-semibold mb-2 text-white/90">
+              <h3 className="font-semibold mb-2 text-foreground/90">
                 Selected Image:
               </h3>
               <img
                 src={imagePreview}
                 alt="Selected image preview"
-                className="max-w-full max-h-64 rounded-lg border border-white/20"
+                className="max-w-full max-h-64 rounded-lg border border-border"
               />
             </div>
           )}
@@ -390,16 +390,16 @@ export default function VoiceRecording() {
 
       {/* Results Section */}
       {(transcription || extractedText) && (
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="text-xl font-semibold text-white">
+              <CardTitle className="text-xl font-semibold text-foreground">
                 Results
               </CardTitle>
               <Button
                 onClick={clearResults}
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
+                className="border-border text-foreground hover:bg-accent"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Clear Results
@@ -413,8 +413,8 @@ export default function VoiceRecording() {
                   <Volume2 className="w-4 h-4 mr-2" />
                   Voice Transcription:
                 </h3>
-                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                  <p className="text-white">{transcription}</p>
+                <div className="bg-muted p-4 rounded-lg border border-border">
+                  <p className="text-foreground">{transcription}</p>
                 </div>
               </div>
             )}
@@ -425,8 +425,8 @@ export default function VoiceRecording() {
                   <FileText className="w-4 h-4 mr-2" />
                   Extracted Text from Image:
                 </h3>
-                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                  <p className="text-white whitespace-pre-wrap">
+                <div className="bg-muted p-4 rounded-lg border border-border">
+                  <p className="text-foreground whitespace-pre-wrap">
                     {extractedText}
                   </p>
                 </div>

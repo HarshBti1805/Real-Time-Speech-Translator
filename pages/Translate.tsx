@@ -154,7 +154,7 @@ export default function Translate() {
   return (
     <div className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center justify-center">
               <Globe className="w-8 h-8 mr-3" />
@@ -164,20 +164,20 @@ export default function Translate() {
         </Card>
 
         {/* Input Section */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-medium text-white/90 flex items-center">
+              <label className="block text-sm font-medium text-foreground/90 flex items-center">
                 <FileText className="w-4 h-4 mr-2" />
                 Enter text in any language:
               </label>
-              <div className="flex items-center space-x-4 text-xs text-white/60">
+              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                 <span>📝 {getCharacterCount(text)} characters</span>
                 <span>📄 {getWordCount(text)} words</span>
               </div>
             </div>
             <textarea
-              className="w-full bg-white/10 border border-white/20 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-white placeholder-white/50"
+              className="w-full bg-muted border border-border rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-foreground placeholder-muted-foreground"
               rows={4}
               placeholder="Type or paste text here - language will be automatically detected!"
               value={text}
@@ -195,17 +195,17 @@ export default function Translate() {
         </Card>
 
         {/* Language Selection with Swap */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               {/* Source Language */}
               <div className="flex-1 space-y-2">
-                <label className="block text-white/90 text-sm font-medium flex items-center">
+                <label className="block text-foreground/90 text-sm font-medium flex items-center">
                   <Languages className="w-4 h-4 mr-2" />
                   Translate From:
                 </label>
                 <select
-                  className="w-full bg-white/10 border border-white/20 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                  className="w-full bg-muted border border-border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground"
                   value={sourceLang}
                   onChange={(e) => setSourceLang(e.target.value)}
                 >
@@ -213,7 +213,7 @@ export default function Translate() {
                     <option
                       key={lang.code}
                       value={lang.code}
-                      className="bg-black text-white"
+                      className="bg-background text-foreground"
                     >
                       {lang.name} ({lang.code})
                     </option>
@@ -239,12 +239,12 @@ export default function Translate() {
 
               {/* Target Language */}
               <div className="flex-1 space-y-2">
-                <label className="block text-white/90 text-sm font-medium flex items-center">
+                <label className="block text-foreground/90 text-sm font-medium flex items-center">
                   <Globe className="w-4 h-4 mr-2" />
                   Translate to:
                 </label>
                 <select
-                  className="w-full bg-white/10 border border-white/20 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                  className="w-full bg-muted border border-border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground"
                   value={targetLang}
                   onChange={(e) => setTargetLang(e.target.value)}
                 >
@@ -252,7 +252,7 @@ export default function Translate() {
                     <option
                       key={lang.code}
                       value={lang.code}
-                      className="bg-black text-white"
+                      className="bg-background text-foreground"
                     >
                       {lang.name} ({lang.code})
                     </option>
@@ -265,7 +265,7 @@ export default function Translate() {
 
         {/* Loading State */}
         {isTranslating && (
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400 mr-3"></div>
@@ -375,7 +375,7 @@ export default function Translate() {
                   Copy
                 </Button>
               </div>
-              <p className="text-white text-lg leading-relaxed bg-white/5 p-4 rounded-lg border border-white/10">
+              <p className="text-foreground text-lg leading-relaxed bg-muted p-4 rounded-lg border border-border">
                 {translatedText}
               </p>
             </CardContent>
@@ -383,13 +383,13 @@ export default function Translate() {
         )}
 
         {/* Instructions */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
-            <h3 className="font-medium text-white/90 mb-4 flex items-center">
+            <h3 className="font-medium text-foreground/90 mb-4 flex items-center">
               <Languages className="w-4 h-4 mr-2" />
               How to use:
             </h3>
-            <ul className="text-sm text-white/70 space-y-2">
+            <ul className="text-sm text-muted-foreground space-y-2">
               <li className="flex items-start">
                 <span className="text-blue-400 mr-2">•</span>
                 Type or paste text in any language
@@ -425,7 +425,7 @@ export default function Translate() {
           <Button
             onClick={clearAll}
             variant="outline"
-            className="border-white/20 text-white hover:bg-white/10"
+            className="border-border text-foreground hover:bg-accent"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Clear All

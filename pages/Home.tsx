@@ -387,7 +387,7 @@ export default function MainPage() {
   return (
     <div className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               🎙️ Real-Time Translation
@@ -396,10 +396,10 @@ export default function MainPage() {
         </Card>
 
         {/* Mode Selection */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex justify-center">
-              <div className="bg-white/10 rounded-lg p-1 flex">
+              <div className="bg-muted rounded-lg p-1 flex">
                 <Button
                   onClick={() => setIsRealTimeMode(false)}
                   disabled={isRecording}
@@ -407,7 +407,7 @@ export default function MainPage() {
                   className={`transition-all duration-200 ${
                     !isRealTimeMode
                       ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
-                      : "text-white/70 hover:text-white hover:bg-white/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                 >
                   <Clock className="w-4 h-4 mr-2" />
@@ -420,7 +420,7 @@ export default function MainPage() {
                   className={`transition-all duration-200 ${
                     isRealTimeMode
                       ? "bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg"
-                      : "text-white/70 hover:text-white hover:bg-white/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                 >
                   <Zap className="w-4 h-4 mr-2" />
@@ -432,25 +432,25 @@ export default function MainPage() {
         </Card>
 
         {/* Language Selection */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-white/90">
+                <label className="block text-sm font-medium text-foreground/90">
                   <Languages className="w-4 h-4 inline mr-2" />
                   Translate From:
                 </label>
                 <select
                   value={baseLanguage}
                   onChange={(e) => setBaseLanguage(e.target.value)}
-                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-white/50"
+                  className="w-full p-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground"
                   disabled={isRecording || isProcessing}
                 >
                   {baseLanguageOptions.map((lang: Language) => (
                     <option
                       key={lang.code}
                       value={lang.code}
-                      className="bg-black text-white"
+                      className="bg-background text-foreground"
                     >
                       {lang.name}
                     </option>
@@ -459,21 +459,21 @@ export default function MainPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-white/90">
+                <label className="block text-sm font-medium text-foreground/90">
                   <Volume2 className="w-4 h-4 inline mr-2" />
                   Translate to:
                 </label>
                 <select
                   value={targetLanguage}
                   onChange={(e) => setTargetLanguage(e.target.value)}
-                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-white/50"
+                  className="w-full p-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground"
                   disabled={isRecording || isProcessing}
                 >
                   {languageOptions.map((lang: Language) => (
                     <option
                       key={lang.code}
                       value={lang.code}
-                      className="bg-black text-white"
+                      className="bg-background text-foreground"
                     >
                       {lang.name}
                     </option>
@@ -485,7 +485,7 @@ export default function MainPage() {
         </Card>
 
         {/* Recording Controls */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="text-center space-y-4">
               {!isRecording ? (
@@ -523,7 +523,7 @@ export default function MainPage() {
                   onClick={clearResults}
                   disabled={isRecording}
                   variant="outline"
-                  className="ml-4 border-white/20 text-white hover:bg-white/10"
+                  className="ml-4 border-border text-foreground hover:bg-accent"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Clear Results
@@ -542,14 +542,14 @@ export default function MainPage() {
                   </div>
 
                   {/* Audio Level Indicator */}
-                  <div className="w-64 h-3 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-100 rounded-full"
                       style={{ width: `${Math.min(audioLevel, 100)}%` }}
                     ></div>
                   </div>
 
-                  <div className="text-sm text-white/60">
+                  <div className="text-sm text-muted-foreground">
                     {audioLevel > 10 ? "🎙️ Audio detected" : "🔇 Speak louder"}
                   </div>
 
@@ -571,7 +571,7 @@ export default function MainPage() {
 
         {/* Processing Status */}
         {isProcessing && !isRecording && (
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="text-center">
                 <div className="inline-flex items-center px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
@@ -587,7 +587,7 @@ export default function MainPage() {
         {isRealTimeMode &&
           realtimeTranslation &&
           !realtimeTranslation.error && (
-            <Card className="bg-white/5 border-green-500/50 shadow-lg shadow-green-500/25">
+            <Card className="bg-card border-green-500/50 shadow-lg shadow-green-500/25">
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-green-400 flex items-center">
@@ -602,35 +602,35 @@ export default function MainPage() {
                   </Badge>
                 </div>
 
-                <div className="border-b border-white/10 pb-4">
-                  <h3 className="text-lg font-semibold mb-2 text-white/80">
+                <div className="border-b border-border pb-4">
+                  <h3 className="text-lg font-semibold mb-2 text-foreground/80">
                     Original (
                     {getLanguageName(realtimeTranslation.detectedLanguage)})
                   </h3>
-                  <p className="text-white text-lg bg-white/5 p-4 rounded-lg border border-white/10 transition-all duration-300">
+                  <p className="text-foreground text-lg bg-muted p-4 rounded-lg border border-border transition-all duration-300">
                     {realtimeTranslation.transcription}
                   </p>
                 </div>
 
                 {realtimeTranslation.wasTranslated && (
-                  <div className="border-b border-white/10 pb-4">
-                    <h3 className="text-lg font-semibold mb-2 text-white/80">
+                  <div className="border-b border-border pb-4">
+                    <h3 className="text-lg font-semibold mb-2 text-foreground/80">
                       Translation (
                       {getLanguageName(realtimeTranslation.targetLanguage)})
                     </h3>
-                    <p className="text-white text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20 transition-all duration-300">
+                    <p className="text-foreground text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20 transition-all duration-300">
                       {realtimeTranslation.translation}
                     </p>
                   </div>
                 )}
 
                 {!realtimeTranslation.wasTranslated && (
-                  <div className="text-center text-white/60 py-4">
+                  <div className="text-center text-muted-foreground py-4">
                     <p>✓ Already in target language - no translation needed</p>
                   </div>
                 )}
 
-                <div className="flex justify-between text-sm text-white/60 pt-4">
+                <div className="flex justify-between text-sm text-muted-foreground pt-4">
                   <span>
                     Detected:{" "}
                     {getLanguageName(realtimeTranslation.detectedLanguage)}
@@ -652,7 +652,7 @@ export default function MainPage() {
 
         {/* Standard Mode Results */}
         {result && !isRealTimeMode && (
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-card border-border">
             <CardContent className="p-6 space-y-4">
               {result.error ? (
                 <div className="text-red-400 text-center p-4 bg-red-500/10 rounded-lg border border-red-500/20">
@@ -661,35 +661,35 @@ export default function MainPage() {
                 </div>
               ) : (
                 <>
-                  <div className="border-b border-white/10 pb-4">
-                    <h3 className="text-lg font-semibold mb-2 text-white/80">
+                  <div className="border-b border-border pb-4">
+                    <h3 className="text-lg font-semibold mb-2 text-foreground/80">
                       Original ({getLanguageName(result.detectedLanguage)})
                     </h3>
-                    <p className="text-white text-lg bg-white/5 p-4 rounded-lg border border-white/10">
+                    <p className="text-foreground text-lg bg-muted p-4 rounded-lg border border-border">
                       {result.transcription}
                     </p>
                   </div>
 
                   {result.wasTranslated && (
-                    <div className="border-b border-white/10 pb-4">
-                      <h3 className="text-lg font-semibold mb-2 text-white/80">
+                    <div className="border-b border-border pb-4">
+                      <h3 className="text-lg font-semibold mb-2 text-foreground/80">
                         Translation ({getLanguageName(result.targetLanguage)})
                       </h3>
-                      <p className="text-white text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
+                      <p className="text-foreground text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
                         {result.translation}
                       </p>
                     </div>
                   )}
 
                   {!result.wasTranslated && (
-                    <div className="text-center text-white/60 py-4">
+                    <div className="text-center text-muted-foreground py-4">
                       <p>
                         ✓ Already in target language - no translation needed
                       </p>
                     </div>
                   )}
 
-                  <div className="flex justify-between text-sm text-white/60 pt-4">
+                  <div className="flex justify-between text-sm text-muted-foreground pt-4">
                     <span>
                       Detected: {getLanguageName(result.detectedLanguage)}
                     </span>
@@ -709,9 +709,9 @@ export default function MainPage() {
         )}
 
         {/* Instructions */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
-            <div className="text-center text-white/60 text-sm space-y-2">
+            <div className="text-center text-muted-foreground text-sm space-y-2">
               <p>
                 <strong>Standard Mode:</strong> Record, then get translation
                 after stopping
@@ -720,7 +720,7 @@ export default function MainPage() {
                 <strong>Real-Time Mode:</strong> Live translation updates every
                 2 seconds
               </p>
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-muted-foreground/70">
                 💡 Real-time mode works best with clear, continuous speech
               </p>
             </div>

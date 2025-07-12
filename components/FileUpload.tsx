@@ -154,9 +154,9 @@ export default function FileUpload() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-xl font-bold text-white flex items-center">
+          <CardTitle className="text-xl font-bold text-foreground flex items-center">
             <FileAudio className="w-5 h-5 mr-2" />
             Speech to Text (Auto Language)
           </CardTitle>
@@ -164,7 +164,7 @@ export default function FileUpload() {
         <CardContent className="space-y-4">
           {/* File input */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-white/90">
+            <label className="block text-sm font-medium text-foreground/90">
               Select Audio File:
             </label>
             <input
@@ -178,20 +178,20 @@ export default function FileUpload() {
                   if (ext) setFileType(ext);
                 }
               }}
-              className="block w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer"
+              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-muted file:text-foreground hover:file:bg-accent file:cursor-pointer"
             />
           </div>
 
           {/* Selected file type input */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-white/90">
+            <label className="block text-sm font-medium text-foreground/90">
               Detected File Type:
             </label>
             <input
               type="text"
               value={fileType}
               readOnly
-              className="w-full bg-white/10 border border-white/20 rounded-lg p-3 text-white"
+              className="w-full bg-muted border border-border rounded-lg p-3 text-foreground"
             />
           </div>
 
@@ -218,16 +218,16 @@ export default function FileUpload() {
 
       {/* Result */}
       {transcription && (
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-white flex items-center">
+            <CardTitle className="text-xl font-semibold text-foreground flex items-center">
               <FileText className="w-5 h-5 mr-2" />
               Transcription Result
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-              <p className="whitespace-pre-wrap text-white leading-relaxed">
+            <div className="bg-muted p-4 rounded-lg border border-border">
+              <p className="whitespace-pre-wrap text-foreground leading-relaxed">
                 {transcription}
               </p>
             </div>
@@ -236,7 +236,7 @@ export default function FileUpload() {
             <Button
               onClick={copyToClipboard}
               variant="outline"
-              className={`border-white/20 text-white hover:bg-white/10 flex items-center gap-2 ${
+              className={`border-border text-foreground hover:bg-accent flex items-center gap-2 ${
                 copySuccess ? "border-green-500/30 text-green-400" : ""
               }`}
             >
