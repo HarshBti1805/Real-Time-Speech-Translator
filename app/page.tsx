@@ -94,7 +94,7 @@ export default function Home() {
               onClick={toggleTheme}
               variant="ghost"
               size="icon"
-              className="hover:bg-accent transition-colors"
+              className="hover:bg-accent cursor-pointer transition-colors"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? (
@@ -190,7 +190,7 @@ export default function Home() {
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 TranslateHub. Powered by cutting-edge AI translation
+              © 2025 TranslateHub. Powered by cutting-edge AI translation
               technology.
             </p>
             <div className="flex items-center justify-center space-x-4 mt-4">

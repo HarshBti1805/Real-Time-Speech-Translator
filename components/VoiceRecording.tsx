@@ -10,6 +10,7 @@ import {
   RotateCcw,
   FileText,
   Volume2,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -228,6 +229,23 @@ export default function VoiceRecording() {
     }
   };
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // You could add a toast notification here if you have a toast system
+      console.log("Text copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy text to clipboard:", error);
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="bg-card border-border">
@@ -256,7 +274,7 @@ export default function VoiceRecording() {
             onClick={handleRecord}
             disabled={processingAudio}
             size="lg"
-            className={`font-medium transition-all duration-200 flex items-center gap-2 ${
+            className={`font-medium cursor-pointer transition-all duration-200 flex items-center gap-2 ${
               recording
                 ? "bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg"
                 : "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-lg"
@@ -306,7 +324,7 @@ export default function VoiceRecording() {
               onClick={() => fileInputRef.current?.click()}
               disabled={processingImage}
               variant="outline"
-              className="border-border text-foreground hover:bg-accent flex items-center gap-2"
+              className="border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2"
             >
               <Upload className="w-4 h-4" />
               Upload Image
@@ -316,7 +334,7 @@ export default function VoiceRecording() {
               onClick={cameraActive ? stopCamera : startCamera}
               disabled={processingImage}
               variant="outline"
-              className={`border-border text-foreground hover:bg-accent flex items-center gap-2 ${
+              className={`border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2 ${
                 cameraActive
                   ? "border-red-500/30 text-red-400 hover:bg-red-500/20"
                   : "border-purple-500/30 text-purple-400 hover:bg-purple-500/20"
@@ -342,7 +360,7 @@ export default function VoiceRecording() {
               onClick={captureScreenshot}
               disabled={processingImage}
               variant="outline"
-              className="border-orange-500/30 text-orange-400 hover:bg-orange-500/20 flex items-center gap-2"
+              className="border-orange-500/30 cursor-pointer text-orange-400 hover:bg-orange-500/20 flex items-center gap-2"
             >
               <Monitor className="w-4 h-4" />
               Screen Capture
@@ -399,7 +417,7 @@ export default function VoiceRecording() {
               <Button
                 onClick={clearResults}
                 variant="outline"
-                className="border-border text-foreground hover:bg-accent"
+                className="border-border cursor-pointer text-foreground hover:bg-accent"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Clear Results
@@ -421,10 +439,21 @@ export default function VoiceRecording() {
 
             {extractedText && (
               <div>
-                <h3 className="font-semibold text-blue-400 mb-2 flex items-center">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Extracted Text from Image:
-                </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-blue-400 flex items-center">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Extracted Text from Image:
+                  </h3>
+                  <Button
+                    onClick={() => copyToClipboard(extractedText)}
+                    variant="outline"
+                    size="sm"
+                    className="border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy
+                  </Button>
+                </div>
                 <div className="bg-muted p-4 rounded-lg border border-border">
                   <p className="text-foreground whitespace-pre-wrap">
                     {extractedText}

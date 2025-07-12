@@ -368,7 +368,7 @@ export default function Translate() {
                   onClick={() => copyToClipboard(translatedText)}
                   variant="outline"
                   size="sm"
-                  className="border-green-500/30 text-green-400 hover:bg-green-500/20"
+                  className="border-green-500/30 cursor-pointer text-green-400 hover:bg-green-500/20"
                   title="Copy to clipboard"
                 >
                   <Copy className="w-4 h-4 mr-2" />
