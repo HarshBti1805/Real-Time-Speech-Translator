@@ -52,6 +52,7 @@ export default function MainPage() {
   const [isRealTimeMode, setIsRealTimeMode] = useState<boolean>(false);
   const [realtimeTranslation, setRealtimeTranslation] =
     useState<TranslationResult | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null); // For playback
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -61,6 +62,15 @@ export default function MainPage() {
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const realtimeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const chunkCounterRef = useRef<number>(0);
+
+  // Clean up audio URL on unmount or when new audio is set
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
 
   // Audio level monitoring
   useEffect(() => {
@@ -112,21 +122,25 @@ export default function MainPage() {
     };
   }, [isRecording]);
 
+  const isRealtimeRequestInProgress = useRef(false);
+
   // Real-time processing
   const processRealtimeAudio = async (): Promise<void> => {
     if (
       !isRealTimeMode ||
       !mediaRecorderRef.current ||
-      audioChunksRef.current.length === 0
+      audioChunksRef.current.length === 0 ||
+      isRealtimeRequestInProgress.current
     ) {
       return;
     }
 
+    isRealtimeRequestInProgress.current = true;
     setIsProcessing(true);
 
     try {
       // Create blob from only the last few chunks to keep audio short
-      const recentChunks = audioChunksRef.current.slice(-3); // Only last 3 chunks (~6 seconds max)
+      const recentChunks = audioChunksRef.current.slice(-5); // Only last 5 chunks (~10 seconds max)
       const audioBlob = new Blob(recentChunks, {
         type: "audio/webm;codecs=opus",
       });
@@ -150,6 +164,10 @@ export default function MainPage() {
         setIsProcessing(false);
         return;
       }
+
+      // Set audio URL for playback (revoke previous)
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      setAudioUrl(URL.createObjectURL(audioBlob));
 
       const formData = new FormData();
       formData.append(
@@ -206,10 +224,11 @@ export default function MainPage() {
       }
     } finally {
       setIsProcessing(false);
+      isRealtimeRequestInProgress.current = false;
       chunkCounterRef.current++;
 
-      // Clear old chunks to prevent memory buildup
-      if (audioChunksRef.current.length > 10) {
+      // Trim to last 5 chunks only
+      if (audioChunksRef.current.length > 5) {
         audioChunksRef.current = audioChunksRef.current.slice(-5);
       }
     }
@@ -275,12 +294,12 @@ export default function MainPage() {
       };
 
       // Start recording
-      mediaRecorderRef.current.start(1000); // Collect data every second
+      mediaRecorderRef.current.start(2000); // Collect data every 2 seconds
       setIsRecording(true);
 
       // Start real-time processing if enabled
       if (isRealTimeMode) {
-        realtimeIntervalRef.current = setInterval(processRealtimeAudio, 2000);
+        realtimeIntervalRef.current = setInterval(processRealtimeAudio, 4000); // Increased to 4 seconds for stability
       }
     } catch (error) {
       console.error("Error starting recording:", error);
@@ -300,6 +319,10 @@ export default function MainPage() {
       const audioBlob = new Blob(audioChunksRef.current, {
         type: "audio/webm;codecs=opus",
       });
+
+      // Set audio URL for playback (revoke previous)
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      setAudioUrl(URL.createObjectURL(audioBlob));
 
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
@@ -367,6 +390,10 @@ export default function MainPage() {
   const clearResults = (): void => {
     setResult(null);
     setRealtimeTranslation(null);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
   };
 
   const formatTime = (seconds: number): string => {
@@ -646,6 +673,12 @@ export default function MainPage() {
                     </span>
                   )}
                 </div>
+                {/* Audio Player */}
+                {audioUrl && !isRecording && (
+                  <div className="pt-4">
+                    <audio controls src={audioUrl} className="w-full" />
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -703,6 +736,12 @@ export default function MainPage() {
                     )}
                   </div>
                 </>
+              )}
+              {/* Audio Player */}
+              {audioUrl && !isRecording && (
+                <div className="pt-4">
+                  <audio controls src={audioUrl} className="w-full" />
+                </div>
               )}
             </CardContent>
           </Card>

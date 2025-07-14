@@ -4,6 +4,8 @@ import fs from "fs";
 import path from "path";
 import { speechClient, translateClient } from "@/lib/googleClient";
 
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   let filePath = "";
 
@@ -15,6 +17,13 @@ export async function POST(req: Request) {
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Audio file too large" },
+        { status: 400 }
+      );
     }
 
     console.log(
@@ -31,7 +40,7 @@ export async function POST(req: Request) {
     );
 
     // Check if file is too small (likely no audio)
-    if (file.size < 1000) {
+    if (file.size < 500) {
       return NextResponse.json(
         { error: "Audio file too small - please record longer audio" },
         { status: 400 }
@@ -44,10 +53,10 @@ export async function POST(req: Request) {
     // Create unique filename to avoid conflicts
     const timestamp = Date.now();
     const uniqueFileName = `audio_${timestamp}.webm`;
-    filePath = path.join(process.cwd(), "uploads", uniqueFileName);
+    const uploadsDir = "/tmp";
+    filePath = path.join(uploadsDir, uniqueFileName);
 
     // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "uploads");
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
