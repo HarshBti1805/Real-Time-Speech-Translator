@@ -11,9 +11,11 @@ import {
   FileText,
   Volume2,
   Copy,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 
 export default function VoiceRecording() {
   // Voice recording state
@@ -25,14 +27,16 @@ export default function VoiceRecording() {
   // Image/text recognition state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState("");
-  const [cameraActive, setCameraActive] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Processing states
   const [processingAudio, setProcessingAudio] = useState(false);
   const [processingImage, setProcessingImage] = useState(false);
+
+  // Camera modal state
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
   // Voice recording functions
   const handleAudioUpload = async (fileToSend: File) => {
@@ -151,40 +155,53 @@ export default function VoiceRecording() {
     }
   };
 
+  // Refactored startCamera to open modal and start camera
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setCameraActive(true);
-      }
+      setCameraStream(stream);
+      setCameraModalOpen(true);
     } catch (error) {
       console.error("Failed to access camera:", error);
       alert("Failed to access camera. Please check permissions.");
     }
   };
 
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-      setCameraActive(false);
+  // Stop camera and close modal
+  const closeCameraModal = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
     }
+    setCameraModalOpen(false);
   };
 
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      const context = canvas.getContext("2d");
+  // Attach stream to video element when modal opens
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  React.useEffect(() => {
+    if (cameraModalOpen && cameraVideoRef.current && cameraStream) {
+      cameraVideoRef.current.srcObject = cameraStream;
+      cameraVideoRef.current.play();
+    }
+    // Clean up on unmount
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraModalOpen, cameraStream]);
 
+  // Capture photo from modal
+  const capturePhotoFromModal = () => {
+    if (cameraVideoRef.current) {
+      const video = cameraVideoRef.current;
+      const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-
+      const context = canvas.getContext("2d");
       if (context) {
         context.drawImage(video, 0, 0);
         canvas.toBlob(
@@ -201,6 +218,7 @@ export default function VoiceRecording() {
         );
       }
     }
+    closeCameraModal();
   };
 
   const captureScreenshot = async () => {
@@ -351,30 +369,14 @@ export default function VoiceRecording() {
             </Button>
 
             <Button
-              onClick={cameraActive ? stopCamera : startCamera}
+              onClick={startCamera}
               disabled={processingImage}
               variant="outline"
-              className={`border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2 ${
-                cameraActive
-                  ? "border-red-500/30 text-red-400 hover:bg-red-500/20"
-                  : "border-purple-500/30 text-purple-400 hover:bg-purple-500/20"
-              }`}
+              className={`border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2 border-purple-500/30 text-purple-400 hover:bg-purple-500/20`}
             >
               <Camera className="w-4 h-4" />
-              {cameraActive ? "Stop Camera" : "Start Camera"}
+              Start Camera
             </Button>
-
-            {cameraActive && (
-              <Button
-                onClick={capturePhoto}
-                disabled={processingImage}
-                variant="outline"
-                className="border-green-500/30 text-green-400 hover:bg-green-500/20 flex items-center gap-2"
-              >
-                <Camera className="w-4 h-4" />
-                Capture Photo
-              </Button>
-            )}
 
             <Button
               onClick={captureScreenshot}
@@ -386,17 +388,34 @@ export default function VoiceRecording() {
               Screen Capture
             </Button>
           </div>
-
-          {/* Camera Preview */}
-          {cameraActive && (
-            <div className="mt-4">
-              <video
-                ref={videoRef}
-                className="w-full max-w-md mx-auto rounded-lg border border-border"
-                autoPlay
-                playsInline
-                muted
-              />
+          {/* Camera Modal */}
+          {cameraModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+              <div className="bg-card border-border rounded-lg shadow-lg p-6 relative w-full max-w-md mx-auto flex flex-col items-center">
+                <button
+                  onClick={closeCameraModal}
+                  className="absolute top-2 right-2 text-foreground hover:text-red-500"
+                  aria-label="Close camera modal"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <video
+                  ref={cameraVideoRef}
+                  className="w-full rounded-lg border border-border mb-4"
+                  autoPlay
+                  playsInline
+                  muted
+                />
+                <Button
+                  onClick={capturePhotoFromModal}
+                  disabled={processingImage}
+                  variant="outline"
+                  className="border-green-500/30 text-green-400 hover:bg-green-500/20 flex items-center gap-2"
+                >
+                  <Camera className="w-4 h-4" />
+                  Capture Photo
+                </Button>
+              </div>
             </div>
           )}
 
