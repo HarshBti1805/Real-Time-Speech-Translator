@@ -13,7 +13,7 @@ import { compare } from "bcrypt";
 export const authOptions: NextAuthOptions = {
   // eslint-disable-next-line
   adapter: PrismaAdapter(prisma as any),
-  session: { strategy: "jwt" },
+  session: { strategy: "database" },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     Google({
@@ -86,11 +86,9 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   callbacks: {
-    async session({ session, token }) {
-      if (token && session.user) {
-        // Extend the session.user object to include id
-        (session.user as typeof session.user & { id?: string }).id =
-          token.sub as string;
+    async session({ session, user }) {
+      if (user && session.user) {
+        (session.user as typeof user & { id: string }).id = user.id;
       }
       return session;
     },
