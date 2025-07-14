@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // lib/auth.ts
-import { PrismaAdapter } from "@auth/prisma-adapter";
+// import { PrismaAdapter } from "@auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -11,9 +11,9 @@ import prisma from "@/lib/prisma";
 import { compare } from "bcrypt";
 
 export const authOptions: NextAuthOptions = {
-  // eslint-disable-next-line
-  adapter: PrismaAdapter(prisma as any),
-  session: { strategy: "database" },
+  // For JWT strategy, we don't need the adapter for sessions
+  // adapter: PrismaAdapter(prisma as any), // Commented out for JWT strategy
+  session: { strategy: "jwt" }, // Changed from "database" to "jwt"
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     Google({
@@ -86,9 +86,9 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   callbacks: {
-    async session({ session, user }) {
-      if (user && session.user) {
-        (session.user as typeof user & { id: string }).id = user.id;
+    async session({ session, token }) {
+      if (token && session.user) {
+        (session.user as any).id = token.sub;
       }
       return session;
     },
