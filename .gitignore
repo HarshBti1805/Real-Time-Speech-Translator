@@ -42,4 +42,3 @@ next-env.d.ts
 
 gcloud-credentials.json
 
-/lib/generated/prisma
