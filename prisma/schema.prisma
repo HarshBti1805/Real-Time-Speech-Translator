@@ -21,6 +21,7 @@ model User {
   updatedAt      DateTime  @updatedAt
   accounts       Account[]
   sessions       Session[]
+  transcriptions Transcription[]
 
   @@map("users")
 }
@@ -61,6 +62,19 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verificationtokens")
+}
+
+model Transcription {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inputType   String
+  inputValue  String
+  outputValue String
+  createdAt   DateTime @default(now())
+
+  @@map("transcriptions")
+  @@index([userId, createdAt])
 }
 
 enum Role {

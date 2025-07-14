@@ -33,6 +33,16 @@ export default function FileUpload() {
       const data = await res.json();
       console.log(data);
       setTranscription(data.transcription || "Failed to recognize speech.");
+      // Save to transcription history
+      fetch("/api/transcription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inputType: "file",
+          inputValue: fileToSend.name,
+          outputValue: data.transcription,
+        }),
+      });
     } catch (error) {
       console.error("Upload error:", error);
       setTranscription("Error processing file.");

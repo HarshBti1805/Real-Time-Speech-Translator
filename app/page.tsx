@@ -13,10 +13,13 @@ import {
   Languages,
   Volume2,
   Sparkles,
+  Menu,
+  X as CloseIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import TranscriptionHistorySidebar from "@/components/TranscriptionHistorySidebar";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -28,6 +31,7 @@ export default function Home() {
     }
     return "dark";
   });
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
@@ -101,202 +105,227 @@ export default function Home() {
   };
 
   return (
-    <div className="overflow-hidden min-h-screen bg-background text-foreground transition-colors duration-300">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                <Mic className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-2xl font-jetbrains-mono font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  TranslateHub
-                </h1>
-                <Sparkles className="w-5 h-5 text-purple-400" />
-              </div>
-            </div>
-
-            {/* Theme Toggle */}
-            <div className="flex justify-center items-center gap-5">
-              <div className="flex items-center space-x-4 bg-muted/60 border border-border rounded-xl px-4 py-2 shadow-sm">
-                <div className="flex items-center space-x-3">
-                  <div className="relative">
-                    {session.user?.image ? (
-                      <img
-                        className="h-8 w-8 rounded-full border border-border shadow"
-                        src={userImage}
-                        alt={session.user.name || "User"}
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold border border-border shadow">
-                        {session.user?.name?.[0]?.toUpperCase() || "?"}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-sm leading-tight">
-                    <p className="font-medium text-foreground truncate max-w-[120px]">
-                      {session.user?.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {session.user?.email}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="inline-flex items-center gap-2 px-4 py-2 border border-indigo-600 text-sm font-medium rounded-lg text-indigo-700 bg-white hover:bg-indigo-50 hover:text-indigo-900 shadow transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                  title="Sign out of your account"
+    <div className="overflow-hidden min-h-screen bg-background text-foreground transition-colors duration-300 flex">
+      {/* Sidebar */}
+      {sidebarOpen && (
+        <TranscriptionHistorySidebar onClose={() => setSidebarOpen(false)} />
+      )}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center space-x-3">
+                {/* Sidebar toggle button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="mr-2"
+                  onClick={() => setSidebarOpen((open) => !open)}
+                  aria-label={
+                    sidebarOpen
+                      ? "Close history sidebar"
+                      : "Open history sidebar"
+                  }
                 >
-                  <svg
-                    className="w-4 h-4 mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
+                  {sidebarOpen ? (
+                    <CloseIcon className="w-5 h-5" />
+                  ) : (
+                    <Menu className="w-5 h-5" />
+                  )}
+                </Button>
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Mic className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-2xl font-jetbrains-mono font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    TranslateHub
+                  </h1>
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                </div>
+              </div>
+
+              {/* Theme Toggle */}
+              <div className="flex justify-center items-center gap-5">
+                <div className="flex items-center space-x-4 bg-muted/60 border border-border rounded-xl px-4 py-2 shadow-sm">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      {session.user?.image ? (
+                        <img
+                          className="h-8 w-8 rounded-full border border-border shadow"
+                          src={userImage}
+                          alt={session.user.name || "User"}
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold border border-border shadow">
+                          {session.user?.name?.[0]?.toUpperCase() || "?"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm leading-tight">
+                      <p className="font-medium text-foreground truncate max-w-[120px]">
+                        {session.user?.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+                        {session.user?.email}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-indigo-600 text-sm font-medium rounded-lg text-indigo-700 bg-white hover:bg-indigo-50 hover:text-indigo-900 shadow transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    title="Sign out of your account"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"
-                    />
-                  </svg>
-                  Sign Out
-                </button>
-                <div className="relative group">
-                  <Button
-                    onClick={toggleTheme}
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-accent shadow-amber-50 shadow-2xl cursor-pointer transition-colors"
-                    aria-label="Toggle theme"
-                  >
-                    {theme === "dark" ? (
-                      <Sun className="w-5 h-5" />
-                    ) : (
-                      <Moon className="w-5 h-5" />
-                    )}
-                  </Button>
-                  <span className="absolute left-1/2 -translate-x-1/2 mt-2 px-2 py-1 rounded bg-background text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-10 border border-border shadow-lg">
-                    Toggle {theme === "dark" ? "Light" : "Dark"} Mode
-                  </span>
+                    <svg
+                      className="w-4 h-4 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"
+                      />
+                    </svg>
+                    Sign Out
+                  </button>
+                  <div className="relative group">
+                    <Button
+                      onClick={toggleTheme}
+                      variant="ghost"
+                      size="icon"
+                      className="hover:bg-accent shadow-amber-50 shadow-2xl cursor-pointer transition-colors"
+                      aria-label="Toggle theme"
+                    >
+                      {theme === "dark" ? (
+                        <Sun className="w-5 h-5" />
+                      ) : (
+                        <Moon className="w-5 h-5" />
+                      )}
+                    </Button>
+                    <span className="absolute left-1/2 -translate-x-1/2 mt-2 px-2 py-1 rounded bg-background text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-10 border border-border shadow-lg">
+                      Toggle {theme === "dark" ? "Light" : "Dark"} Mode
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Navigation */}
-      <nav className="sticky top-16 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex justify-center items-center mx-auto px-4">
-          <div className="flex space-x-5 py-4">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeComponent === item.id;
-              return (
-                <Card
-                  key={item.id}
-                  className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
-                    isActive
-                      ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-500/50 shadow-lg shadow-blue-500/25"
-                      : "bg-card border-border hover:bg-accent hover:border-accent-foreground/20"
-                  }`}
-                  onClick={() => setActiveComponent(item.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          isActive
-                            ? "bg-gradient-to-br from-blue-500 to-purple-500"
-                            : "bg-muted"
-                        }`}
-                      >
-                        <Icon
-                          className={`w-5 h-5 ${
-                            isActive ? "text-white" : "text-muted-foreground"
-                          }`}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h3
-                            className={`font-semibold text-xl font-jetbrains-mono ${
-                              isActive
-                                ? "text-foreground"
-                                : "text-foreground/90"
-                            }`}
-                          >
-                            {item.label}
-                          </h3>
-                        </div>
-                        <p
-                          className={`text-sm mt-1 font-product-sans ${
+        {/* Navigation */}
+        <nav className="sticky top-16 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex justify-center items-center mx-auto px-4">
+            <div className="flex space-x-5 py-4">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeComponent === item.id;
+                return (
+                  <Card
+                    key={item.id}
+                    className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
+                      isActive
+                        ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-500/50 shadow-lg shadow-blue-500/25"
+                        : "bg-card border-border hover:bg-accent hover:border-accent-foreground/20"
+                    }`}
+                    onClick={() => setActiveComponent(item.id)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`p-2 rounded-lg ${
                             isActive
-                              ? "text-foreground/80"
-                              : "text-muted-foreground"
+                              ? "bg-gradient-to-br from-blue-500 to-purple-500"
+                              : "bg-muted"
                           }`}
                         >
-                          {item.description}
-                        </p>
+                          <Icon
+                            className={`w-5 h-5 ${
+                              isActive ? "text-white" : "text-muted-foreground"
+                            }`}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <h3
+                              className={`font-semibold text-xl font-jetbrains-mono ${
+                                isActive
+                                  ? "text-foreground"
+                                  : "text-foreground/90"
+                              }`}
+                            >
+                              {item.label}
+                            </h3>
+                          </div>
+                          <p
+                            className={`text-sm mt-1 font-product-sans ${
+                              isActive
+                                ? "text-foreground/80"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {item.description}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Card className="bg-card border-border shadow-2xl">
-          <CardContent className="p-0">{renderActiveComponent()}</CardContent>
-        </Card>
-      </main>
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-8">
+          <Card className="bg-card border-border shadow-2xl">
+            <CardContent className="p-0">{renderActiveComponent()}</CardContent>
+          </Card>
+        </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-muted/50 mt-16">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-2 mb-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                <Mic className="w-4 h-4 text-white" />
+        {/* Footer */}
+        <footer className="border-t border-border bg-muted/50 mt-16">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                  <Mic className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-lg font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  TranslateHub
+                </span>
               </div>
-              <span className="text-lg font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                TranslateHub
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              © 2025 TranslateHub. Powered by cutting-edge AI translation
-              technology.
-            </p>
-            <div className="flex items-center justify-center space-x-4 mt-4">
-              <Badge
-                variant="outline"
-                className="text-muted-foreground border-border"
-              >
-                Real-time Translation
-              </Badge>
-              <Badge
-                variant="outline"
-                className="text-muted-foreground border-border"
-              >
-                Multi-language Support
-              </Badge>
-              <Badge
-                variant="outline"
-                className="text-muted-foreground border-border"
-              >
-                AI-Powered
-              </Badge>
+              <p className="text-sm text-muted-foreground">
+                © 2025 TranslateHub. Powered by cutting-edge AI translation
+                technology.
+              </p>
+              <div className="flex items-center justify-center space-x-4 mt-4">
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground border-border"
+                >
+                  Real-time Translation
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground border-border"
+                >
+                  Multi-language Support
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground border-border"
+                >
+                  AI-Powered
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }

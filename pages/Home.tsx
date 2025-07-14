@@ -338,6 +338,16 @@ export default function MainPage() {
       if (res.ok) {
         const data: TranslationResult = await res.json();
         setResult(data);
+        // Save to transcription history
+        fetch("/api/transcription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inputType: "audio",
+            inputValue: "recording.webm",
+            outputValue: data.translation || data.transcription,
+          }),
+        });
       } else {
         const errorData = await res.json();
         setResult({

@@ -62,6 +62,18 @@ export default function Translate() {
           setDetectedLang(data.detectedLang || "");
           setConfidence(data.confidence || 0);
           setError("");
+          // Save to transcription history after a delay
+          setTimeout(() => {
+            fetch("/api/transcription", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                inputType: "text",
+                inputValue: inputText,
+                outputValue: data.translatedText,
+              }),
+            });
+          }, 1000);
         } else {
           setError(data.error || "Translation failed");
           setTranslatedText("");

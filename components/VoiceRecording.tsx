@@ -49,6 +49,16 @@ export default function VoiceRecording() {
       const data = await res.json();
       console.log(data);
       setTranscription(data.transcription || "Failed to recognize speech.");
+      // Save to transcription history
+      fetch("/api/transcription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inputType: "audio",
+          inputValue: "mic-input.webm",
+          outputValue: data.transcription,
+        }),
+      });
     } catch (error) {
       console.error("Audio processing error:", error);
       setTranscription("Error processing audio.");
@@ -116,6 +126,16 @@ export default function VoiceRecording() {
       const data = await res.json();
       console.log(data);
       setExtractedText(data.text || "No text found in image.");
+      // Save to transcription history
+      fetch("/api/transcription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inputType: "image",
+          inputValue: file.name,
+          outputValue: data.text,
+        }),
+      });
     } catch (error) {
       console.error("Image processing error:", error);
       setExtractedText("Error processing image.");
