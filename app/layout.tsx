@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import SessionProviderWrapper from "@/components/SessionProviderWrapper";
+
 import {
   Geist_Mono,
   Jost,
@@ -72,11 +74,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} ${geistMono.variable} ${jost.variable} ${poppins.variable} ${jetbrainsMono.variable} ${productSans.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <SessionProviderWrapper>
+        <body
+          className={`${inter.variable} ${geistMono.variable} ${jost.variable} ${poppins.variable} ${jetbrainsMono.variable} ${productSans.variable} antialiased`}
+        >
+          {children}
+        </body>
+      </SessionProviderWrapper>
     </html>
   );
 }

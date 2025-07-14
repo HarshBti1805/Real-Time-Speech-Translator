@@ -2,6 +2,8 @@
 import MainPage from "@/pages/Home";
 import Speech from "@/pages/Speech";
 import Translate from "@/pages/Translate";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import {
   Moon,
@@ -17,6 +19,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [activeComponent, setActiveComponent] = useState("main");
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
@@ -24,6 +28,14 @@ export default function Home() {
     }
     return "dark";
   });
+
+  useEffect(() => {
+    if (status === "loading") return; // Still loading
+    if (!session) {
+      router.push("/login");
+      return;
+    }
+  }, [session, status, router]);
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
@@ -34,6 +46,23 @@ export default function Home() {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null; // Will redirect to login
+  }
+  const userImage =
+    session.user?.image ||
+    "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.stefanjudis.com%2Fblog%2Fapis-to-generate-random-user-avatars%2F&psig=AOvVaw1uRLpcWiZ2k_IeA-6N0TGv&ust=1752514205973000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCLiM56-uuo4DFQAAAAAdAAAAABAE";
   const navItems = [
     {
       id: "main",
@@ -72,7 +101,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div className="overflow-hidden min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
@@ -90,19 +119,71 @@ export default function Home() {
             </div>
 
             {/* Theme Toggle */}
-            <Button
-              onClick={toggleTheme}
-              variant="ghost"
-              size="icon"
-              className="hover:bg-accent cursor-pointer transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? (
-                <Sun className="w-5 h-5" />
-              ) : (
-                <Moon className="w-5 h-5" />
-              )}
-            </Button>
+            <div className="flex justify-center items-center gap-5">
+              <div className="flex items-center space-x-4 bg-muted/60 border border-border rounded-xl px-4 py-2 shadow-sm">
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    {session.user?.image ? (
+                      <img
+                        className="h-8 w-8 rounded-full border border-border shadow"
+                        src={userImage}
+                        alt={session.user.name || "User"}
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold border border-border shadow">
+                        {session.user?.name?.[0]?.toUpperCase() || "?"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm leading-tight">
+                    <p className="font-medium text-foreground truncate max-w-[120px]">
+                      {session.user?.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+                      {session.user?.email}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-indigo-600 text-sm font-medium rounded-lg text-indigo-700 bg-white hover:bg-indigo-50 hover:text-indigo-900 shadow transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  title="Sign out of your account"
+                >
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"
+                    />
+                  </svg>
+                  Sign Out
+                </button>
+                <div className="relative group">
+                  <Button
+                    onClick={toggleTheme}
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-accent shadow-amber-50 shadow-2xl cursor-pointer transition-colors"
+                    aria-label="Toggle theme"
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="w-5 h-5" />
+                    ) : (
+                      <Moon className="w-5 h-5" />
+                    )}
+                  </Button>
+                  <span className="absolute left-1/2 -translate-x-1/2 mt-2 px-2 py-1 rounded bg-background text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-10 border border-border shadow-lg">
+                    Toggle {theme === "dark" ? "Light" : "Dark"} Mode
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
