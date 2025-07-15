@@ -6,6 +6,8 @@ import {
   Type,
   Trash2,
   Loader2,
+  Copy as CopyIcon,
+  Check as CheckIcon,
 } from "lucide-react";
 
 interface Transcription {
@@ -43,6 +45,7 @@ const TranscriptionHistorySidebar: React.FC<
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -81,6 +84,17 @@ const TranscriptionHistorySidebar: React.FC<
     }
   };
 
+  // Copy to clipboard handler
+  const handleCopy = async (id: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1200);
+    } catch {
+      // Optionally handle error
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
   }, []);
@@ -91,15 +105,16 @@ const TranscriptionHistorySidebar: React.FC<
       style={{ height }}
     >
       <div className="flex items-center justify-between px-4 py-4 border-b border-border bg-background/80 sticky top-0 z-10">
-        <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+        <h2 className="text-xl font-mono  font-bold tracking-tight flex items-center gap-2">
           <Volume2 className="w-5 h-5 text-blue-500" />
           History
         </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchHistory}
-            className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent-foreground/10 border border-border flex items-center gap-1"
+            className="text-xs font-mono px-2 py-1 rounded bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:from-blue-500 hover:to-blue-700 border border-border flex items-center gap-1 text-white shadow-sm transition-colors duration-200"
             title="Refresh history"
+            style={{ minWidth: 80 }}
           >
             <Loader2
               className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`}
@@ -186,9 +201,28 @@ const TranscriptionHistorySidebar: React.FC<
               title={item.outputValue}
             >
               {expandedId === item.id ? (
-                <span className="block cursor-text whitespace-pre-line bg-muted/60 rounded p-2 mt-1 text-sm text-foreground border border-border">
-                  {item.outputValue}
-                </span>
+                <div
+                  className="relative"
+                  onClick={(e) => e.stopPropagation()} // Prevent collapse when clicking inside
+                >
+                  <span
+                    className="block cursor-text whitespace-pre-line bg-muted/60 rounded p-2 mt-1 text-sm text-foreground border border-border pr-8 select-text"
+                    style={{ userSelect: "text" }}
+                  >
+                    {item.outputValue}
+                  </span>
+                  <button
+                    className="absolute cursor-pointer top-2 right-2 p-1 rounded hover:bg-accent transition-colors text-muted-foreground hover:text-blue-600 focus:outline-none"
+                    title="Copy to clipboard"
+                    onClick={() => handleCopy(item.id, item.outputValue)}
+                  >
+                    {copiedId === item.id ? (
+                      <CheckIcon className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <CopyIcon className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               ) : item.outputValue.length > 60 ? (
                 item.outputValue.slice(0, 60) + "..."
               ) : (
@@ -197,7 +231,7 @@ const TranscriptionHistorySidebar: React.FC<
             </div>
             {expandedId === item.id && (
               <div className="text-right mt-2">
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs cursor-pointer text-muted-foreground hover:text-primary font-medium transition-colors duration-200">
                   Click to collapse
                 </span>
               </div>

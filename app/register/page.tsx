@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mic, Sparkles, Moon, Sun } from "lucide-react";
+import { Mic, Sparkles, Moon, Sun, Eye, EyeOff } from "lucide-react";
 
 const RegisterPage = () => {
   const [currentStep, setCurrentStep] = useState(1); // 1: Registration form, 2: OTP verification
@@ -27,6 +27,15 @@ const RegisterPage = () => {
       return localStorage.getItem("theme") || "dark";
     }
     return "dark";
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    uppercase: false,
+    digit: false,
+    special: false,
   });
   const router = useRouter();
   const { status } = useSession();
@@ -58,6 +67,20 @@ const RegisterPage = () => {
       router.push("/");
     }
   }, [status, router]);
+
+  // Password validation helper
+  const checkPasswordStrength = (password: string) => {
+    return {
+      length: password.length >= 8 && password.length <= 20,
+      uppercase: /[A-Z]/.test(password),
+      digit: /[0-9]/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    };
+  };
+
+  useEffect(() => {
+    setPasswordStrength(checkPasswordStrength(formData.password));
+  }, [formData.password]);
 
   // Show loading state while checking authentication
   if (status === "loading") {
@@ -126,8 +149,23 @@ const RegisterPage = () => {
       setError("Password is required");
       return false;
     }
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    const { length, uppercase, digit, special } = checkPasswordStrength(
+      formData.password
+    );
+    if (!length) {
+      setError("Password must be 8-20 characters long");
+      return false;
+    }
+    if (!uppercase) {
+      setError("Password must contain at least one uppercase letter");
+      return false;
+    }
+    if (!digit) {
+      setError("Password must contain at least one digit");
+      return false;
+    }
+    if (!special) {
+      setError("Password must contain at least one special character");
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -404,16 +442,78 @@ const RegisterPage = () => {
                     >
                       Password
                     </label>
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-3 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground"
-                      placeholder="Create a password"
-                    />
+                    <div className="relative">
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        onFocus={() => setPasswordTouched(true)}
+                        required
+                        className="w-full px-3 py-3 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground pr-10"
+                        placeholder="Create a password"
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground focus:outline-none"
+                        onClick={() => setShowPassword((v) => !v)}
+                        tabIndex={-1}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+                    {passwordTouched && (
+                      <ul className="mt-2 text-xs space-y-1">
+                        <li
+                          className={
+                            passwordStrength.length
+                              ? "text-green-600"
+                              : "text-red-500"
+                          }
+                        >
+                          {passwordStrength.length ? "✓" : "✗"} 8-20 characters
+                        </li>
+                        <li
+                          className={
+                            passwordStrength.uppercase
+                              ? "text-green-600"
+                              : "text-red-500"
+                          }
+                        >
+                          {passwordStrength.uppercase ? "✓" : "✗"} At least one
+                          uppercase letter
+                        </li>
+                        <li
+                          className={
+                            passwordStrength.digit
+                              ? "text-green-600"
+                              : "text-red-500"
+                          }
+                        >
+                          {passwordStrength.digit ? "✓" : "✗"} At least one
+                          digit
+                        </li>
+                        <li
+                          className={
+                            passwordStrength.special
+                              ? "text-green-600"
+                              : "text-red-500"
+                          }
+                        >
+                          {passwordStrength.special ? "✓" : "✗"} At least one
+                          special character
+                        </li>
+                      </ul>
+                    )}
                   </div>
                   <div>
                     <label
@@ -422,16 +522,36 @@ const RegisterPage = () => {
                     >
                       Confirm Password
                     </label>
-                    <input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-3 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground"
-                      placeholder="Confirm your password"
-                    />
+                    <div className="relative">
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-3 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground pr-10"
+                        placeholder="Confirm your password"
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground focus:outline-none"
+                        onClick={() => setShowConfirmPassword((v) => !v)}
+                        tabIndex={-1}
+                        aria-label={
+                          showConfirmPassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
