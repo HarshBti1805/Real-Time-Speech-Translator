@@ -16,10 +16,6 @@ interface Transcription {
   createdAt: string;
 }
 
-interface SidebarProps {
-  onClose?: () => void;
-}
-
 const typeIcon = (type: string) => {
   switch (type) {
     case "audio":
@@ -35,7 +31,14 @@ const typeIcon = (type: string) => {
   }
 };
 
-const TranscriptionHistorySidebar: React.FC<SidebarProps> = ({ onClose }) => {
+type TranscriptionHistorySidebarProps = {
+  height?: string | number; // e.g., '400px', '100%', 400
+  onClose?: () => void;
+};
+
+const TranscriptionHistorySidebar: React.FC<
+  TranscriptionHistorySidebarProps
+> = ({ height = "100%", onClose }) => {
   const [history, setHistory] = useState<Transcription[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +86,10 @@ const TranscriptionHistorySidebar: React.FC<SidebarProps> = ({ onClose }) => {
   }, []);
 
   return (
-    <aside className="w-80 max-w-full h-full bg-gradient-to-b from-background to-muted/60 border-r border-border p-0 overflow-y-auto flex flex-col shadow-2xl">
+    <aside
+      className="sidebar-scroll w-80 max-w-full bg-gradient-to-b from-background to-muted/60 border-r border-border p-0 overflow-y-auto flex flex-col shadow-2xl"
+      style={{ height }}
+    >
       <div className="flex items-center justify-between px-4 py-4 border-b border-border bg-background/80 sticky top-0 z-10">
         <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
           <Volume2 className="w-5 h-5 text-blue-500" />
@@ -138,7 +144,7 @@ const TranscriptionHistorySidebar: React.FC<SidebarProps> = ({ onClose }) => {
         {history.map((item) => (
           <div
             key={item.id}
-            className={`group relative bg-white/80 dark:bg-card border border-border rounded-xl shadow-sm px-4 py-3 transition-all duration-200 hover:shadow-lg cursor-pointer ${
+            className={`group relative bg-white/80 dark:bg-card border border-border rounded-xl shadow-sm px-4 py-3 transition-all duration-200 hover:shadow-lg cursor-pointer  ${
               expandedId === item.id ? "ring-2 ring-blue-400" : ""
             }`}
             onClick={() =>
@@ -169,7 +175,7 @@ const TranscriptionHistorySidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   e.stopPropagation();
                   handleDelete(item.id);
                 }}
-                className="ml-auto text-muted-foreground hover:text-red-500 p-1 rounded transition-colors opacity-70 hover:opacity-100"
+                className="ml-auto cursor-pointer text-muted-foreground hover:text-red-500 p-1 rounded transition-colors opacity-70 hover:opacity-100"
                 title="Delete transcription"
               >
                 <Trash2 className="w-4 h-4" />

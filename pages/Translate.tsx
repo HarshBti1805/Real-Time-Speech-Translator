@@ -15,10 +15,11 @@ import {
   FileText,
   Globe,
 } from "lucide-react";
+import { TTSListenButton } from "@/components/ui/TTSListenButton";
 
 export default function Translate() {
   const [text, setText] = useState("");
-  const [sourceLang, setSourceLang] = useState("auto"); // Default to auto-detect
+  const [sourceLang, setSourceLang] = useState("auto");
   const [targetLang, setTargetLang] = useState("en");
   const [translatedText, setTranslatedText] = useState("");
   const [detectedLang, setDetectedLang] = useState("");
@@ -39,7 +40,6 @@ export default function Translate() {
       setError("");
 
       try {
-        // Determine if we should auto-detect based on source language selection
         const shouldAutoDetect = source === "auto" || source === "";
 
         const res = await fetch("/api/translate", {
@@ -48,14 +48,12 @@ export default function Translate() {
           body: JSON.stringify({
             text: inputText,
             targetLang: target,
-            sourceLang: shouldAutoDetect ? null : source, // Send null for auto-detect
+            sourceLang: shouldAutoDetect ? null : source,
             autoDetect: shouldAutoDetect,
           }),
         });
 
         const data = await res.json();
-
-        console.log(data);
 
         if (res.ok) {
           setTranslatedText(data.translatedText);
@@ -96,7 +94,6 @@ export default function Translate() {
     []
   );
 
-  // Debounce effect for real-time translation
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (text.trim() && targetLang) {
@@ -107,32 +104,24 @@ export default function Translate() {
     return () => clearTimeout(timeoutId);
   }, [text, targetLang, sourceLang, translateText]);
 
-  // Swap source and target languages
   const swapLanguages = () => {
-    // Only swap if we have a detected language or explicit source language
     if (sourceLang === "auto" && detectedLang) {
-      // If auto-detecting, use the detected language as new target
       setTargetLang(detectedLang);
       setSourceLang(targetLang);
     } else if (sourceLang !== "auto") {
-      // Normal swap when source is explicitly set
       const newTarget = sourceLang;
       const newSource = targetLang;
       setSourceLang(newSource);
       setTargetLang(newTarget);
     }
 
-    // Swap the text content
     setText(translatedText);
     setTranslatedText(text);
-
-    // Clear detection info since we're changing languages
     setDetectedLang("");
     setConfidence(0);
     setError("");
   };
 
-  // Clear all fields
   const clearAll = () => {
     setText("");
     setTranslatedText("");
@@ -141,23 +130,19 @@ export default function Translate() {
     setError("");
   };
 
-  // Get language name from code
   const getLanguageName = (code: string) => {
     const lang = languageOptions.find((l) => l.code === code);
     return lang ? lang.name : code;
   };
 
-  // Character and word count utilities
   const getCharacterCount = (text: string): number => text.length;
   const getWordCount = (text: string): number => {
     return text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
   };
 
-  // Copy to clipboard
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      // You could add a toast notification here
     } catch (err) {
       console.error("Failed to copy text: ", err);
     }
@@ -183,9 +168,18 @@ export default function Translate() {
                 <FileText className="w-4 h-4 mr-2" />
                 Enter text in any language:
               </label>
-              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+              <div className="flex items-center space-x-4 text-s text-muted-foreground">
                 <span>📝 {getCharacterCount(text)} characters</span>
                 <span>📄 {getWordCount(text)} words</span>
+                <TTSListenButton
+                  text={text}
+                  languageCode={
+                    sourceLang === "auto" && detectedLang
+                      ? detectedLang
+                      : sourceLang
+                  }
+                  disabled={!text.trim()}
+                />
               </div>
             </div>
             <textarea
@@ -195,7 +189,7 @@ export default function Translate() {
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            {/* Character limit warning */}
+
             {getCharacterCount(text) > 5000 && (
               <div className="mt-3 flex items-center text-sm text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
                 <AlertTriangle className="w-4 h-4 mr-2" />
@@ -210,7 +204,6 @@ export default function Translate() {
         <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              {/* Source Language */}
               <div className="flex-1 space-y-2">
                 <label className="block text-foreground/90 text-sm font-medium flex items-center">
                   <Languages className="w-4 h-4 mr-2" />
@@ -233,7 +226,6 @@ export default function Translate() {
                 </select>
               </div>
 
-              {/* Swap Button */}
               <div className="flex flex-col items-center justify-end pb-3">
                 <Button
                   onClick={swapLanguages}
@@ -249,9 +241,8 @@ export default function Translate() {
                 </Button>
               </div>
 
-              {/* Target Language */}
               <div className="flex-1 space-y-2">
-                <label className="block text-foreground/90 text-sm font-medium flex items-center">
+                <label className="text-foreground/90 text-sm font-medium flex items-center">
                   <Globe className="w-4 h-4 mr-2" />
                   Translate to:
                 </label>
@@ -303,7 +294,40 @@ export default function Translate() {
           </Card>
         )}
 
-        {/* Detected Language with Enhanced Confidence Score */}
+        {/* Translation Result */}
+        {translatedText && !error && (
+          <Card className="bg-green-500/10 border-green-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center">
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
+                  <strong className="text-green-400">Translation:</strong>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => copyToClipboard(translatedText)}
+                    variant="outline"
+                    size="sm"
+                    className="border-green-500/30 cursor-pointer text-green-400 hover:bg-green-500/20"
+                    title="Copy to clipboard"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy
+                  </Button>
+                  <TTSListenButton
+                    text={translatedText}
+                    languageCode={targetLang}
+                  />
+                </div>
+              </div>
+              <p className="text-foreground text-lg leading-relaxed bg-muted p-4 rounded-lg border border-border">
+                {translatedText}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Detected Language */}
         {detectedLang &&
           !error &&
           (sourceLang === "auto" || sourceLang === "") && (
@@ -367,33 +391,6 @@ export default function Translate() {
             </Card>
           )}
 
-        {/* Translation Result */}
-        {translatedText && !error && (
-          <Card className="bg-green-500/10 border-green-500/20">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
-                  <strong className="text-green-400">Translation:</strong>
-                </div>
-                <Button
-                  onClick={() => copyToClipboard(translatedText)}
-                  variant="outline"
-                  size="sm"
-                  className="border-green-500/30 cursor-pointer text-green-400 hover:bg-green-500/20"
-                  title="Copy to clipboard"
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy
-                </Button>
-              </div>
-              <p className="text-foreground text-lg leading-relaxed bg-muted p-4 rounded-lg border border-border">
-                {translatedText}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Instructions */}
         <Card className="bg-card border-border">
           <CardContent className="p-6">
@@ -425,14 +422,13 @@ export default function Translate() {
               </li>
               <li className="flex items-start">
                 <span className="text-blue-400 mr-2">•</span>
-                Confidence score shows detection accuracy (🟢 High, 🟡 Medium,
-                🔴 Low)
+                Click &quot;Listen&quot; to hear the translation (when
+                available)
               </li>
             </ul>
           </CardContent>
         </Card>
 
-        {/* Clear All Button */}
         <div className="text-center">
           <Button
             onClick={clearAll}

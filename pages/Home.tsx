@@ -14,6 +14,7 @@ import {
   Clock,
   Zap,
 } from "lucide-react";
+import { TTSListenButton } from "@/components/ui/TTSListenButton";
 
 // Type definitions
 interface TranslationResult {
@@ -644,9 +645,15 @@ export default function MainPage() {
                     Original (
                     {getLanguageName(realtimeTranslation.detectedLanguage)})
                   </h3>
-                  <p className="text-foreground text-lg bg-muted p-4 rounded-lg border border-border transition-all duration-300">
-                    {realtimeTranslation.transcription}
-                  </p>
+                  <div className="text-foreground text-lg bg-muted p-4 rounded-lg border border-border transition-all duration-300 flex items-center justify-between gap-4">
+                    <span>{realtimeTranslation.transcription}</span>
+                    {realtimeTranslation.transcription && (
+                      <TTSListenButton
+                        text={realtimeTranslation.transcription}
+                        languageCode={realtimeTranslation.detectedLanguage}
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {realtimeTranslation.wasTranslated && (
@@ -655,9 +662,15 @@ export default function MainPage() {
                       Translation (
                       {getLanguageName(realtimeTranslation.targetLanguage)})
                     </h3>
-                    <p className="text-foreground text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20 transition-all duration-300">
-                      {realtimeTranslation.translation}
-                    </p>
+                    <div className="text-foreground text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20 transition-all duration-300 flex items-center justify-between gap-4">
+                      <span>{realtimeTranslation.translation}</span>
+                      {realtimeTranslation.translation && (
+                        <TTSListenButton
+                          text={realtimeTranslation.translation}
+                          languageCode={realtimeTranslation.targetLanguage}
+                        />
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -708,9 +721,15 @@ export default function MainPage() {
                     <h3 className="text-lg font-semibold mb-2 text-foreground/80">
                       Original ({getLanguageName(result.detectedLanguage)})
                     </h3>
-                    <p className="text-foreground text-lg bg-muted p-4 rounded-lg border border-border">
-                      {result.transcription}
-                    </p>
+                    <div className="text-foreground text-lg bg-muted p-4 rounded-lg border border-border flex items-center justify-between gap-4">
+                      <span>{result.transcription}</span>
+                      {result.transcription && (
+                        <TTSListenButton
+                          text={result.transcription}
+                          languageCode={result.detectedLanguage}
+                        />
+                      )}
+                    </div>
                   </div>
 
                   {result.wasTranslated && (
@@ -718,9 +737,15 @@ export default function MainPage() {
                       <h3 className="text-lg font-semibold mb-2 text-foreground/80">
                         Translation ({getLanguageName(result.targetLanguage)})
                       </h3>
-                      <p className="text-foreground text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
-                        {result.translation}
-                      </p>
+                      <div className="text-foreground text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-500/20 flex items-center justify-between gap-4">
+                        <span>{result.translation}</span>
+                        {result.translation && (
+                          <TTSListenButton
+                            text={result.translation}
+                            languageCode={result.targetLanguage}
+                          />
+                        )}
+                      </div>
                     </div>
                   )}
 

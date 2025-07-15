@@ -104,11 +104,24 @@ export default function Home() {
     }
   };
 
+  const getSidebarHeight = () => {
+    switch (activeComponent) {
+      case "main":
+        return "970px";
+      case "translate":
+        return "1187px";
+      case "speech":
+        return "1116px";
+      default:
+        return "100px";
+    }
+  };
+
   return (
     <div className="overflow-hidden min-h-screen bg-background text-foreground transition-colors duration-300 flex">
       {/* Sidebar */}
       {sidebarOpen && (
-        <TranscriptionHistorySidebar onClose={() => setSidebarOpen(false)} />
+        <TranscriptionHistorySidebar height={getSidebarHeight()} />
       )}
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
