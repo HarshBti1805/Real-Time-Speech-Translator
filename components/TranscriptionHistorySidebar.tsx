@@ -144,7 +144,7 @@ const TranscriptionHistorySidebar: React.FC<
         {history.map((item) => (
           <div
             key={item.id}
-            className={`group relative bg-white/80 dark:bg-card border border-border rounded-xl shadow-sm px-4 py-3 transition-all duration-200 hover:shadow-lg cursor-pointer  ${
+            className={`group relative bg-white/80 dark:bg-card border border-border rounded-xl shadow-sm px-4 py-3 transition-all duration-200 hover:shadow-lg   ${
               expandedId === item.id ? "ring-2 ring-blue-400" : ""
             }`}
             onClick={() =>
@@ -186,7 +186,7 @@ const TranscriptionHistorySidebar: React.FC<
               title={item.outputValue}
             >
               {expandedId === item.id ? (
-                <span className="block whitespace-pre-line bg-muted/60 rounded p-2 mt-1 text-sm text-foreground border border-border">
+                <span className="block cursor-text whitespace-pre-line bg-muted/60 rounded p-2 mt-1 text-sm text-foreground border border-border">
                   {item.outputValue}
                 </span>
               ) : item.outputValue.length > 60 ? (
