@@ -111,7 +111,7 @@ export default function Home() {
       case "translate":
         return "1187px";
       case "speech":
-        return "1116px";
+        return "1084px";
       default:
         return "100px";
     }
