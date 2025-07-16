@@ -89,8 +89,8 @@ export default function Home() {
           };
         }
       ).documentPictureInPicture.requestWindow({
-        width: 819,
-        height: 94,
+        width: 950,
+        height: 150,
       });
       const pipDocument = newPipWindow.document;
       pipDocument.head.innerHTML = `
