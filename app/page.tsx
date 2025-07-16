@@ -89,8 +89,8 @@ export default function Home() {
           };
         }
       ).documentPictureInPicture.requestWindow({
-        width: 600,
-        height: 115,
+        width: 819,
+        height: 94,
       });
       const pipDocument = newPipWindow.document;
       pipDocument.head.innerHTML = `
@@ -455,6 +455,27 @@ export default function Home() {
                 <option value="ja">Japanese</option>
                 <option value="ko">Korean</option>
                 <option value="zh">Chinese</option>
+                <option value="ar">Arabic</option>
+                <option value="hi">Hindi</option>
+                <option value="tr">Turkish</option>
+                <option value="nl">Dutch</option>
+                <option value="el">Greek</option>
+                <option value="he">Hebrew</option>
+                <option value="pl">Polish</option>
+                <option value="sv">Swedish</option>
+                <option value="th">Thai</option>
+                <option value="vi">Vietnamese</option>
+                <option value="id">Indonesian</option>
+                <option value="uk">Ukrainian</option>
+                <option value="cs">Czech</option>
+                <option value="fi">Finnish</option>
+                <option value="hu">Hungarian</option>
+                <option value="ro">Romanian</option>
+                <option value="sk">Slovak</option>
+                <option value="bg">Bulgarian</option>
+                <option value="hr">Croatian</option>
+                <option value="da">Danish</option>
+                <option value="no">Norwegian</option>
               </select>
             </div>
             <button class="pip-swap" id="swapBtn" title="Swap languages">
@@ -475,6 +496,27 @@ export default function Home() {
                 <option value="ja">Japanese</option>
                 <option value="ko">Korean</option>
                 <option value="zh">Chinese</option>
+                <option value="ar">Arabic</option>
+                <option value="hi">Hindi</option>
+                <option value="tr">Turkish</option>
+                <option value="nl">Dutch</option>
+                <option value="el">Greek</option>
+                <option value="he">Hebrew</option>
+                <option value="pl">Polish</option>
+                <option value="sv">Swedish</option>
+                <option value="th">Thai</option>
+                <option value="vi">Vietnamese</option>
+                <option value="id">Indonesian</option>
+                <option value="uk">Ukrainian</option>
+                <option value="cs">Czech</option>
+                <option value="fi">Finnish</option>
+                <option value="hu">Hungarian</option>
+                <option value="ro">Romanian</option>
+                <option value="sk">Slovak</option>
+                <option value="bg">Bulgarian</option>
+                <option value="hr">Croatian</option>
+                <option value="da">Danish</option>
+                <option value="no">Norwegian</option>
               </select>
               <span class="pip-translated" id="translatedText">${currentTranslation.translated}</span>
             </div>
