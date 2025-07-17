@@ -11,11 +11,11 @@ import {
   FileText,
   Volume2,
   Copy,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import React from "react";
+import Cropper, { Area } from "react-easy-crop";
 
 export default function VoiceRecording() {
   // Voice recording state
@@ -37,6 +37,115 @@ export default function VoiceRecording() {
   // Camera modal state
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+
+  // --- SNIPPING TOOL STATE ---
+  const [snippingModalOpen, setSnippingModalOpen] = useState(false);
+  const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(
+    null
+  );
+  const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [cropShape, setCropShape] = useState<"rect" | "round">("rect");
+
+  // --- SNIPPING TOOL LOGIC ---
+  const startSnipping = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      video.play();
+      video.onloadedmetadata = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext("2d");
+        if (context) {
+          context.drawImage(video, 0, 0);
+          const dataUrl = canvas.toDataURL("image/png");
+          setScreenshotDataUrl(dataUrl);
+          setSnippingModalOpen(true);
+          setCrop({ x: 0, y: 0 });
+          setZoom(1);
+          setCroppedAreaPixels(null);
+        }
+        stream.getTracks().forEach((track) => track.stop());
+      };
+    } catch (error) {
+      console.error("Failed to start snipping tool:", error);
+      alert("Failed to start snipping tool. Please check permissions.");
+    }
+  };
+
+  const onCropComplete = (_croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleCancelSnip = () => {
+    setSnippingModalOpen(false);
+    setScreenshotDataUrl(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+  };
+
+  async function getCroppedImg(
+    imageSrc: string,
+    pixelCrop: Area
+  ): Promise<Blob | null> {
+    return new Promise((resolve) => {
+      const image = new window.Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = pixelCrop.width;
+        canvas.height = pixelCrop.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(null);
+        ctx.drawImage(
+          image,
+          pixelCrop.x,
+          pixelCrop.y,
+          pixelCrop.width,
+          pixelCrop.height,
+          0,
+          0,
+          pixelCrop.width,
+          pixelCrop.height
+        );
+        canvas.toBlob((blob) => {
+          resolve(blob);
+        }, "image/png");
+      };
+      image.src = imageSrc;
+    });
+  }
+
+  const handleConfirmSnip = async () => {
+    if (!screenshotDataUrl || !croppedAreaPixels) return;
+    const blob = await getCroppedImg(screenshotDataUrl, croppedAreaPixels);
+    if (blob) {
+      const file = new File([blob], "snip.png", { type: "image/png" });
+      await handleImageUpload(file);
+    }
+    setSnippingModalOpen(false);
+    setScreenshotDataUrl(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+  };
+
+  React.useEffect(() => {
+    if (!snippingModalOpen) return;
+    const handleMouseUp = () => {
+      // No longer needed as isSelecting is removed
+    };
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [snippingModalOpen]);
 
   // Voice recording functions
   const handleAudioUpload = async (fileToSend: File) => {
@@ -169,15 +278,6 @@ export default function VoiceRecording() {
     }
   };
 
-  // Stop camera and close modal
-  const closeCameraModal = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop());
-      setCameraStream(null);
-    }
-    setCameraModalOpen(false);
-  };
-
   // Attach stream to video element when modal opens
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   React.useEffect(() => {
@@ -193,33 +293,6 @@ export default function VoiceRecording() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraModalOpen, cameraStream]);
-
-  // Capture photo from modal
-  const capturePhotoFromModal = () => {
-    if (cameraVideoRef.current) {
-      const video = cameraVideoRef.current;
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext("2d");
-      if (context) {
-        context.drawImage(video, 0, 0);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const file = new File([blob], "camera-capture.jpg", {
-                type: "image/jpeg",
-              });
-              handleImageUpload(file);
-            }
-          },
-          "image/jpeg",
-          0.8
-        );
-      }
-    }
-    closeCameraModal();
-  };
 
   const captureScreenshot = async () => {
     try {
@@ -349,7 +422,7 @@ export default function VoiceRecording() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <input
               ref={fileInputRef}
               type="file"
@@ -357,7 +430,6 @@ export default function VoiceRecording() {
               onChange={handleFileSelect}
               className="hidden"
             />
-
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={processingImage}
@@ -367,7 +439,6 @@ export default function VoiceRecording() {
               <Upload className="w-4 h-4" />
               Upload Image
             </Button>
-
             <Button
               onClick={startCamera}
               disabled={processingImage}
@@ -377,7 +448,6 @@ export default function VoiceRecording() {
               <Camera className="w-4 h-4" />
               Start Camera
             </Button>
-
             <Button
               onClick={captureScreenshot}
               disabled={processingImage}
@@ -387,34 +457,61 @@ export default function VoiceRecording() {
               <Monitor className="w-4 h-4" />
               Screen Capture
             </Button>
+            <Button
+              onClick={startSnipping}
+              disabled={processingImage}
+              variant="outline"
+              className="border-pink-500/30 cursor-pointer text-pink-400 hover:bg-pink-500/20 flex items-center gap-2"
+            >
+              <Image className="w-4 h-4" />
+              Snip Image
+            </Button>
           </div>
-          {/* Camera Modal */}
-          {cameraModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-              <div className="bg-card border-border rounded-lg shadow-lg p-6 relative w-full max-w-md mx-auto flex flex-col items-center">
-                <button
-                  onClick={closeCameraModal}
-                  className="absolute top-2 right-2 text-foreground hover:text-red-500"
-                  aria-label="Close camera modal"
+          {/* Snipping Tool Modal */}
+          {snippingModalOpen && screenshotDataUrl && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+              <div className="relative bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
+                <div
+                  style={{
+                    position: "relative",
+                    width: "80vw",
+                    height: "60vh",
+                    background: "#222",
+                  }}
                 >
-                  <X className="w-6 h-6" />
-                </button>
-                <video
-                  ref={cameraVideoRef}
-                  className="w-full rounded-lg border border-border mb-4"
-                  autoPlay
-                  playsInline
-                  muted
-                />
-                <Button
-                  onClick={capturePhotoFromModal}
-                  disabled={processingImage}
-                  variant="outline"
-                  className="border-green-500/30 text-green-400 hover:bg-green-500/20 flex items-center gap-2"
-                >
-                  <Camera className="w-4 h-4" />
-                  Capture Photo
-                </Button>
+                  <Cropper
+                    image={screenshotDataUrl}
+                    crop={crop}
+                    zoom={zoom}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropComplete}
+                    cropShape={cropShape}
+                    showGrid={true}
+                  />
+                </div>
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    onClick={() => setCropShape("rect")}
+                    variant={cropShape === "rect" ? "default" : "outline"}
+                  >
+                    Rectangle
+                  </Button>
+                  <Button
+                    onClick={() => setCropShape("round")}
+                    variant={cropShape === "round" ? "default" : "outline"}
+                  >
+                    Circle
+                  </Button>
+                </div>
+                <div className="flex gap-2 mt-4 justify-center">
+                  <Button onClick={handleConfirmSnip} variant="outline">
+                    Confirm Snip
+                  </Button>
+                  <Button onClick={handleCancelSnip} variant="outline">
+                    Cancel
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -493,15 +590,77 @@ export default function VoiceRecording() {
                     Copy
                   </Button>
                 </div>
-                <div className="bg-muted p-4 rounded-lg border border-border">
-                  <p className="text-foreground whitespace-pre-wrap">
+                <div className="bg-muted p-4 rounded-lg border border-border overflow-x-auto">
+                  <pre className="text-foreground whitespace-pre-wrap font-mono text-sm leading-relaxed">
                     {extractedText}
-                  </p>
+                  </pre>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
+      )}
+
+      {cameraModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+          <div className="bg-card border-border rounded-lg shadow-lg p-6 relative w-full max-w-md mx-auto flex flex-col items-center">
+            <button
+              onClick={() => {
+                if (cameraStream) {
+                  cameraStream.getTracks().forEach((track) => track.stop());
+                  setCameraStream(null);
+                }
+                setCameraModalOpen(false);
+              }}
+              className="absolute top-2 right-2 text-foreground hover:text-red-500"
+              aria-label="Close camera modal"
+            >
+              ×
+            </button>
+            <video
+              ref={cameraVideoRef}
+              className="w-full rounded-lg border border-border mb-4"
+              autoPlay
+              playsInline
+              muted
+            />
+            <Button
+              onClick={async () => {
+                if (cameraVideoRef.current) {
+                  const video = cameraVideoRef.current;
+                  const canvas = document.createElement("canvas");
+                  canvas.width = video.videoWidth;
+                  canvas.height = video.videoHeight;
+                  const context = canvas.getContext("2d");
+                  if (context) {
+                    context.drawImage(video, 0, 0);
+                    canvas.toBlob(
+                      (blob) => {
+                        if (blob) {
+                          const file = new File([blob], "camera-capture.jpg", {
+                            type: "image/jpeg",
+                          });
+                          handleImageUpload(file);
+                        }
+                      },
+                      "image/jpeg",
+                      0.8
+                    );
+                  }
+                }
+                if (cameraStream) {
+                  cameraStream.getTracks().forEach((track) => track.stop());
+                  setCameraStream(null);
+                }
+                setCameraModalOpen(false);
+              }}
+              className="border-green-500/30 text-green-400 hover:bg-green-500/20 flex items-center gap-2 mt-2"
+              variant="outline"
+            >
+              Capture Photo
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
