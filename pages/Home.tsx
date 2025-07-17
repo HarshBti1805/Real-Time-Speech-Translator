@@ -681,7 +681,7 @@ export default function MainPage() {
         </Card>
 
         {/* Processing Status */}
-        {isProcessing && !isRecording && (
+        {/* {isProcessing && !isRecording && (
           <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="text-center">
@@ -692,7 +692,7 @@ export default function MainPage() {
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
 
         {/* Real-time Translation Display */}
         {isRealTimeMode &&
