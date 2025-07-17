@@ -93,11 +93,15 @@ async function convertOggToOpus(buffer: Buffer): Promise<Buffer> {
 }
 
 export async function POST(req: NextRequest) {
+  console.log("[API/file] POST called");
   const formData = await req.formData();
   const file = formData.get("audio") as File;
   const fileTypeRaw = formData.get("fileType");
+  console.log("[API/file] Received file:", file);
+  console.log("[API/file] Received fileTypeRaw:", fileTypeRaw);
 
   if (!file) {
+    console.error("[API/file] No audio file uploaded");
     return NextResponse.json(
       { error: "No audio file uploaded" },
       { status: 400 }
@@ -105,6 +109,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!fileTypeRaw || typeof fileTypeRaw !== "string") {
+    console.error("[API/file] Missing or invalid fileType");
     return NextResponse.json(
       { error: "Missing or invalid fileType" },
       { status: 400 }
@@ -114,8 +119,17 @@ export async function POST(req: NextRequest) {
   const fileType = fileTypeRaw.toLowerCase();
   const encoding = fileEncodingMap[fileType];
   const sampleRate = sampleRateMap[fileType];
+  console.log(
+    "[API/file] fileType:",
+    fileType,
+    "encoding:",
+    encoding,
+    "sampleRate:",
+    sampleRate
+  );
 
   if (encoding === undefined && fileType !== "wav") {
+    console.error("[API/file] Unsupported file type:", fileType);
     return NextResponse.json(
       { error: `Unsupported file type: ${fileType}` },
       { status: 400 }
@@ -124,17 +138,28 @@ export async function POST(req: NextRequest) {
 
   const arrayBuffer = await file.arrayBuffer();
   let buffer = Buffer.from(arrayBuffer);
+  console.log("[API/file] Buffer length:", buffer.length);
 
   try {
     if (fileType === "wav") {
+      console.log("[API/file] Converting WAV to mono");
       const convertedBuffer = await convertWavToMono(buffer);
       buffer = Buffer.from(convertedBuffer);
+      console.log(
+        "[API/file] WAV conversion complete, new buffer length:",
+        buffer.length
+      );
     } else if (fileType === "ogg") {
+      console.log("[API/file] Converting OGG to Opus");
       const convertedBuffer = await convertOggToOpus(buffer);
       buffer = Buffer.from(convertedBuffer);
+      console.log(
+        "[API/file] OGG conversion complete, new buffer length:",
+        buffer.length
+      );
     }
   } catch (err) {
-    console.error("Conversion error:", err);
+    console.error("[API/file] Conversion error:", err);
     return NextResponse.json(
       { error: "Audio conversion failed" },
       { status: 500 }
@@ -142,8 +167,8 @@ export async function POST(req: NextRequest) {
   }
 
   const audioBytes = buffer.toString("base64");
+  console.log("[API/file] audioBytes length:", audioBytes.length);
 
-  // Use proper typing instead of 'any'
   const config: SpeechConfig = {
     languageCode: "en-US",
     alternativeLanguageCodes: ["hi-IN", "es-ES", "fr-FR"],
@@ -152,22 +177,25 @@ export async function POST(req: NextRequest) {
 
   if (encoding) config.encoding = encoding;
   if (sampleRate) config.sampleRateHertz = sampleRate;
+  console.log("[API/file] Speech config:", config);
 
   try {
     const response = await speechClient.recognize({
       audio: { content: audioBytes },
       config: config as unknown as Record<string, unknown>,
     });
+    console.log("[API/file] Google Speech API response:", response);
 
     const speechResponse = response as [SpeechRecognitionResponse];
 
     const transcription = speechResponse[0].results
       ?.map((r) => r.alternatives?.[0]?.transcript)
       .join("\n");
+    console.log("[API/file] Final transcription:", transcription);
 
     return NextResponse.json({ transcription });
   } catch (err) {
-    console.error("Speech API error:", err);
+    console.error("[API/file] Speech API error:", err);
     return NextResponse.json(
       { error: "Failed to process audio" },
       { status: 500 }

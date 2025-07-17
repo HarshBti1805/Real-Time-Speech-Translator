@@ -20,6 +20,7 @@ export default function FileUpload() {
 
   const handleUpload = async (fileToSend: File) => {
     setIsProcessing(true);
+    console.log("[FileUpload] handleUpload called with file:", fileToSend);
     const formData = new FormData();
     formData.append("audio", fileToSend);
     formData.append("fileType", fileType);
@@ -29,9 +30,9 @@ export default function FileUpload() {
         method: "POST",
         body: formData,
       });
-
+      console.log("[FileUpload] /api/file response status:", res.status);
       const data = await res.json();
-      console.log(data);
+      console.log("[FileUpload] /api/file response data:", data);
       setTranscription(data.transcription || "Failed to recognize speech.");
       // Save to transcription history
       fetch("/api/transcription", {
@@ -42,9 +43,22 @@ export default function FileUpload() {
           inputValue: fileToSend.name,
           outputValue: data.transcription,
         }),
-      });
+      })
+        .then((res) => {
+          console.log(
+            "[FileUpload] /api/transcription response status:",
+            res.status
+          );
+          return res.json();
+        })
+        .then((data) => {
+          console.log("[FileUpload] /api/transcription response data:", data);
+        })
+        .catch((err) => {
+          console.error("[FileUpload] /api/transcription error:", err);
+        });
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("[FileUpload] Upload error:", error);
       setTranscription("Error processing file.");
     } finally {
       setIsProcessing(false);
@@ -183,9 +197,11 @@ export default function FileUpload() {
               onChange={(e) => {
                 const file = e.target.files?.[0] || null;
                 setAudioFile(file);
+                console.log("[FileUpload] File selected:", file);
                 if (file) {
                   const ext = file.name.split(".").pop()?.toLowerCase();
                   if (ext) setFileType(ext);
+                  console.log("[FileUpload] Detected file extension:", ext);
                 }
               }}
               className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-muted file:text-foreground hover:file:bg-accent file:cursor-pointer"
