@@ -761,7 +761,21 @@ export function useTranslatePiP() {
           ).textContent = "";
         }
       };
-      // --- TTS logic for PiP window ---
+      // --- TTS logic for PiP window (improved, robust, TTSListenButton-style) ---
+      // State for TTS audio and playback
+      let ttsAudioOriginal: HTMLAudioElement | null = null;
+      let ttsAudioTranslated: HTMLAudioElement | null = null;
+      let ttsUrlOriginal: string | null = null;
+      let ttsUrlTranslated: string | null = null;
+      let ttsStateOriginal: "playing" | "paused" | "stopped" | "loading" =
+        "stopped";
+      let ttsStateTranslated: "playing" | "paused" | "stopped" | "loading" =
+        "stopped";
+      let ttsTextOriginal: string | null = null;
+      let ttsLangOriginal: string | null = null;
+      let ttsTextTranslated: string | null = null;
+      let ttsLangTranslated: string | null = null;
+
       // Language code to TTS config mapping (copied from TTSListenButton)
       function getTTSVoiceConfig(langCode: string) {
         const voiceMap: {
@@ -813,61 +827,240 @@ export function useTranslatePiP() {
           }
         );
       }
-      async function playTTS(text: string, langCode: string) {
-        if (!text || !langCode) return;
-        const config = getTTSVoiceConfig(langCode);
-        try {
-          const res = await fetch("https://flask-tts-server.onrender.com/tts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              text,
-              languageCode: config.languageCode,
-              voiceName: config.voiceName,
-            }),
-          });
-          if (!res.ok) throw new Error("TTS API error");
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const audio = new newPipWindow.window.Audio(url);
-          audio.play();
-        } catch (e) {
-          if (e && typeof e === "object" && "message" in e) {
-            alert("TTS failed: " + (e as { message: string }).message);
-          } else {
-            alert("TTS failed: Unknown error");
-          }
+
+      // Helper: set button icon and tooltip
+      function setTTSBtnState(
+        btn: HTMLElement,
+        state: "playing" | "paused" | "stopped" | "loading"
+      ) {
+        if (!btn) return;
+        if (state === "loading") {
+          btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-opacity=".3"/><path d="M12 2a10 10 0 0 1 10 10" class="animate-spin"/></svg><span class="pip-tts-tooltip">Loading...</span>`;
+        } else if (state === "playing") {
+          btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg><span class="pip-tts-tooltip">Pause</span>`;
+        } else if (state === "paused") {
+          btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="pip-tts-tooltip">Resume</span>`;
+        } else {
+          btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="pip-tts-tooltip">Listen</span>`;
         }
       }
+
+      // Helper: fetch TTS audio URL
+      async function fetchTTSUrl(
+        text: string,
+        langCode: string
+      ): Promise<string> {
+        const config = getTTSVoiceConfig(langCode);
+        const res = await fetch("https://flask-tts-server.onrender.com/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            languageCode: config.languageCode,
+            voiceName: config.voiceName,
+          }),
+        });
+        if (!res.ok) throw new Error("TTS API error");
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+
+      // Helper: stop and cleanup audio
+      function stopAndCleanupAudio(which: "original" | "translated") {
+        if (which === "original") {
+          if (ttsAudioOriginal) {
+            ttsAudioOriginal.pause();
+            ttsAudioOriginal.currentTime = 0;
+            ttsAudioOriginal = null;
+          }
+          if (ttsUrlOriginal) {
+            URL.revokeObjectURL(ttsUrlOriginal);
+            ttsUrlOriginal = null;
+          }
+          ttsStateOriginal = "stopped";
+        } else {
+          if (ttsAudioTranslated) {
+            ttsAudioTranslated.pause();
+            ttsAudioTranslated.currentTime = 0;
+            ttsAudioTranslated = null;
+          }
+          if (ttsUrlTranslated) {
+            URL.revokeObjectURL(ttsUrlTranslated);
+            ttsUrlTranslated = null;
+          }
+          ttsStateTranslated = "stopped";
+        }
+      }
+
+      // Main handler for TTS button
+      async function handleTTSBtn(which: "original" | "translated") {
+        let btn: HTMLElement | null,
+          text: string,
+          lang: string,
+          ttsAudio: HTMLAudioElement | null,
+          ttsUrl: string | null,
+          ttsState: typeof ttsStateOriginal,
+          ttsText: string | null,
+          ttsLang: string | null;
+        if (which === "original") {
+          btn = pipDocument.getElementById("ttsOriginalBtn");
+          text = (
+            pipDocument.getElementById("originalText")?.textContent || ""
+          ).trim();
+          lang =
+            (pipDocument.getElementById("fromLang") as HTMLSelectElement)
+              ?.value || "en";
+          ttsAudio = ttsAudioOriginal;
+          ttsUrl = ttsUrlOriginal;
+          ttsState = ttsStateOriginal;
+          ttsText = ttsTextOriginal;
+          ttsLang = ttsLangOriginal;
+        } else {
+          btn = pipDocument.getElementById("ttsTranslatedBtn");
+          text = (
+            pipDocument.getElementById("translatedText")?.textContent || ""
+          ).trim();
+          lang =
+            (pipDocument.getElementById("toLang") as HTMLSelectElement)
+              ?.value || "es";
+          ttsAudio = ttsAudioTranslated;
+          ttsUrl = ttsUrlTranslated;
+          ttsState = ttsStateTranslated;
+          ttsText = ttsTextTranslated;
+          ttsLang = ttsLangTranslated;
+        }
+        if (!btn || !text) return;
+        // If loading, ignore
+        if (ttsState === "loading") return;
+        // If playing, pause
+        if (ttsAudio && ttsState === "playing") {
+          ttsAudio.pause();
+          if (which === "original") ttsStateOriginal = "paused";
+          else ttsStateTranslated = "paused";
+          setTTSBtnState(btn, "paused");
+          return;
+        }
+        // If paused, resume
+        if (ttsAudio && ttsState === "paused") {
+          ttsAudio.play();
+          if (which === "original") ttsStateOriginal = "playing";
+          else ttsStateTranslated = "playing";
+          setTTSBtnState(btn, "playing");
+          return;
+        }
+        // If text/lang changed or stopped, fetch new audio
+        setTTSBtnState(btn, "loading");
+        if (which === "original") ttsStateOriginal = "loading";
+        else ttsStateTranslated = "loading";
+        // Always stop previous audio and cleanup
+        stopAndCleanupAudio(which);
+        try {
+          const url =
+            !ttsUrl || ttsText !== text || ttsLang !== lang
+              ? await fetchTTSUrl(text, lang)
+              : ttsUrl;
+          const audio = new newPipWindow.window.Audio(url);
+          // Attach event listeners to keep button state in sync
+          audio.onended = () => {
+            setTTSBtnState(btn!, "stopped");
+            if (which === "original") ttsStateOriginal = "stopped";
+            else ttsStateTranslated = "stopped";
+          };
+          audio.onpause = () => {
+            setTTSBtnState(btn!, "paused");
+            if (which === "original") ttsStateOriginal = "paused";
+            else ttsStateTranslated = "paused";
+          };
+          audio.onplay = () => {
+            setTTSBtnState(btn!, "playing");
+            if (which === "original") ttsStateOriginal = "playing";
+            else ttsStateTranslated = "playing";
+          };
+          if (which === "original") {
+            ttsAudioOriginal = audio;
+            ttsUrlOriginal = url;
+            ttsTextOriginal = text;
+            ttsLangOriginal = lang;
+            ttsStateOriginal = "playing";
+          } else {
+            ttsAudioTranslated = audio;
+            ttsUrlTranslated = url;
+            ttsTextTranslated = text;
+            ttsLangTranslated = lang;
+            ttsStateTranslated = "playing";
+          }
+          audio.play();
+          setTTSBtnState(btn, "playing");
+        } catch (e) {
+          setTTSBtnState(btn, "stopped");
+          if (which === "original") ttsStateOriginal = "stopped";
+          else ttsStateTranslated = "stopped";
+          const errMsg =
+            typeof e === "object" && e && "message" in e
+              ? (e as { message: string }).message
+              : "Unknown error";
+          alert("TTS failed: " + errMsg);
+        }
+      }
+
       // Listen button for original text
       const ttsOriginalBtn = pipDocument.getElementById("ttsOriginalBtn");
       if (ttsOriginalBtn) {
+        setTTSBtnState(ttsOriginalBtn, "stopped");
         ttsOriginalBtn.addEventListener("click", function () {
-          const originalTextElem = pipDocument.getElementById("originalText");
-          const fromLangElem = pipDocument.getElementById(
-            "fromLang"
-          ) as HTMLSelectElement | null;
-          const text = originalTextElem
-            ? originalTextElem.textContent || ""
-            : "";
-          const lang = fromLangElem ? fromLangElem.value : "en";
-          playTTS(text, lang);
+          handleTTSBtn("original");
         });
       }
       // Listen button for translated text
       const ttsTranslatedBtn = pipDocument.getElementById("ttsTranslatedBtn");
       if (ttsTranslatedBtn) {
+        setTTSBtnState(ttsTranslatedBtn, "stopped");
         ttsTranslatedBtn.addEventListener("click", function () {
-          const translatedTextElem =
-            pipDocument.getElementById("translatedText");
-          const toLangElem = pipDocument.getElementById(
-            "toLang"
-          ) as HTMLSelectElement | null;
-          const text = translatedTextElem
-            ? translatedTextElem.textContent || ""
-            : "";
-          const lang = toLangElem ? toLangElem.value : "es";
-          playTTS(text, lang);
+          handleTTSBtn("translated");
+        });
+      }
+      // Reset TTS state on text/lang change (quick input, swap, clear, etc)
+      const quickInput = pipDocument.getElementById(
+        "quickInput"
+      ) as HTMLInputElement | null;
+      if (quickInput) {
+        quickInput.addEventListener("input", () => {
+          stopAndCleanupAudio("original");
+          stopAndCleanupAudio("translated");
+          if (ttsOriginalBtn) setTTSBtnState(ttsOriginalBtn, "stopped");
+          if (ttsTranslatedBtn) setTTSBtnState(ttsTranslatedBtn, "stopped");
+        });
+      }
+      const fromLangSel = pipDocument.getElementById(
+        "fromLang"
+      ) as HTMLSelectElement | null;
+      const toLangSel = pipDocument.getElementById(
+        "toLang"
+      ) as HTMLSelectElement | null;
+      if (fromLangSel) {
+        fromLangSel.addEventListener("change", () => {
+          stopAndCleanupAudio("original");
+          stopAndCleanupAudio("translated");
+          if (ttsOriginalBtn) setTTSBtnState(ttsOriginalBtn, "stopped");
+          if (ttsTranslatedBtn) setTTSBtnState(ttsTranslatedBtn, "stopped");
+        });
+      }
+      if (toLangSel) {
+        toLangSel.addEventListener("change", () => {
+          stopAndCleanupAudio("original");
+          stopAndCleanupAudio("translated");
+          if (ttsOriginalBtn) setTTSBtnState(ttsOriginalBtn, "stopped");
+          if (ttsTranslatedBtn) setTTSBtnState(ttsTranslatedBtn, "stopped");
+        });
+      }
+      // Also reset on clear
+      const clearBtn = pipDocument.getElementById("clearBtn");
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          stopAndCleanupAudio("original");
+          stopAndCleanupAudio("translated");
+          if (ttsOriginalBtn) setTTSBtnState(ttsOriginalBtn, "stopped");
+          if (ttsTranslatedBtn) setTTSBtnState(ttsTranslatedBtn, "stopped");
         });
       }
       newPipWindow.addEventListener("beforeunload", () => {

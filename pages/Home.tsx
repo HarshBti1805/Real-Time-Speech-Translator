@@ -55,6 +55,7 @@ export default function MainPage() {
   const [realtimeTranslation, setRealtimeTranslation] =
     useState<TranslationResult | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null); // For playback
+  const [lastAudioBlob, setLastAudioBlob] = useState<Blob | null>(null); // Store last audio for retranslation
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -322,6 +323,9 @@ export default function MainPage() {
         type: "audio/webm;codecs=opus",
       });
 
+      setLastAudioBlob(audioBlob); // Store the blob for retranslation
+      console.log("[DEBUG] lastAudioBlob set:", audioBlob);
+
       // Set audio URL for playback (revoke previous)
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       setAudioUrl(URL.createObjectURL(audioBlob));
@@ -399,9 +403,77 @@ export default function MainPage() {
     }
   };
 
+  // Retranslate audio when targetLanguage changes (Standard Mode only)
+  useEffect(() => {
+    const retranslateAudioWithNewTargetLanguage = async () => {
+      console.log("[DEBUG] Retranslate useEffect triggered", {
+        lastAudioBlob,
+        result,
+        isRealTimeMode,
+        isRecording,
+        targetLanguage,
+      });
+      if (!lastAudioBlob || !result || isRealTimeMode || isRecording) return;
+      setIsProcessing(true);
+      try {
+        const formData = new FormData();
+        formData.append("audio", lastAudioBlob, "recording.webm");
+        formData.append("targetLanguage", targetLanguage);
+        formData.append("baseLanguage", baseLanguage || "auto");
+        formData.append("isRealtime", "false");
+
+        const res = await fetch("/api/voice", {
+          method: "POST",
+          body: formData,
+        });
+        console.log("[DEBUG] /api/voice response status:", res.status);
+
+        if (res.ok) {
+          const data: TranslationResult = await res.json();
+          console.log("[DEBUG] /api/voice response data:", data);
+          setResult(data);
+          // Save to transcription history
+          fetch("/api/transcription", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              inputType: "audio",
+              inputValue: "recording.webm",
+              outputValue: data.translation || data.transcription,
+            }),
+          });
+        } else {
+          const errorData = await res.json();
+          console.log("[DEBUG] /api/voice error data:", errorData);
+          setResult({
+            transcription: "",
+            detectedLanguage: "",
+            targetLanguage,
+            wasTranslated: false,
+            error: errorData.error || "Failed to process audio",
+          });
+        }
+      } catch (error) {
+        console.error("Error re-translating audio:", error);
+        setResult({
+          transcription: "",
+          detectedLanguage: "",
+          targetLanguage,
+          wasTranslated: false,
+          error: "Network error occurred while re-translating audio",
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+    retranslateAudioWithNewTargetLanguage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetLanguage]);
+
   const clearResults = (): void => {
     setResult(null);
     setRealtimeTranslation(null);
+    setLastAudioBlob(null); // Clear last audio blob as well
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
       setAudioUrl(null);
@@ -650,6 +722,10 @@ export default function MainPage() {
                     <span>{realtimeTranslation.transcription}</span>
                     {realtimeTranslation.transcription && (
                       <TTSListenButton
+                        key={
+                          realtimeTranslation.transcription +
+                          realtimeTranslation.detectedLanguage
+                        }
                         text={realtimeTranslation.transcription}
                         languageCode={realtimeTranslation.detectedLanguage}
                       />
@@ -667,6 +743,10 @@ export default function MainPage() {
                       <span>{realtimeTranslation.translation}</span>
                       {realtimeTranslation.translation && (
                         <TTSListenButton
+                          key={
+                            realtimeTranslation.translation +
+                            realtimeTranslation.targetLanguage
+                          }
                           text={realtimeTranslation.translation}
                           languageCode={realtimeTranslation.targetLanguage}
                         />
@@ -726,6 +806,7 @@ export default function MainPage() {
                       <span>{result.transcription}</span>
                       {result.transcription && (
                         <TTSListenButton
+                          key={result.transcription + result.detectedLanguage}
                           text={result.transcription}
                           languageCode={result.detectedLanguage}
                         />
@@ -742,6 +823,7 @@ export default function MainPage() {
                         <span>{result.translation}</span>
                         {result.translation && (
                           <TTSListenButton
+                            key={result.translation + result.targetLanguage}
                             text={result.translation}
                             languageCode={result.targetLanguage}
                           />
