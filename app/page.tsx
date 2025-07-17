@@ -5,8 +5,8 @@ import Translate from "@/pages/Translate";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
-import { useTranslatePiP } from "@/pages/TranslatePiP";
-import { useHomePiP } from "@/pages/HomePiP";
+import { useTranslatePiP } from "@/components/PiP/TranslatePiP";
+import { useHomePiP } from "@/components/PiP/HomePiP";
 import {
   Moon,
   Sun,
