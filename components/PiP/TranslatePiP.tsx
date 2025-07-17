@@ -384,6 +384,62 @@ export function useTranslatePiP() {
             width: 0 !important;
             background: transparent !important;
           }
+          .pip-tts-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(90deg, #6366f1 0%, #a21caf 100%);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            margin-left: 6px;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+            box-shadow: 0 2px 8px #6366f133;
+            color: #fff;
+            position: relative;
+          }
+          .pip-tts-btn:hover {
+            background: linear-gradient(90deg, #818cf8 0%, #c026d3 100%);
+            transform: scale(1.08);
+            box-shadow: 0 4px 18px #818cf888;
+          }
+          .pip-tts-btn svg {
+            width: 22px;
+            height: 22px;
+            pointer-events: none;
+          }
+          .pip-tts-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            background: #232334;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 4px 10px;
+            position: absolute;
+            z-index: 10;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+            pointer-events: none;
+          }
+          .pip-tts-btn:hover .pip-tts-tooltip {
+            visibility: visible;
+            opacity: 1;
+          }
+          body.light .pip-tts-btn {
+            background: linear-gradient(90deg, #818cf8 0%, #c026d3 100%);
+            color: #fff;
+          }
+          body.light .pip-tts-tooltip {
+            background: #e0e7ff;
+            color: #222;
+          }
         </style>
       `;
       pipDocument.body.innerHTML = `
@@ -471,9 +527,28 @@ export function useTranslatePiP() {
           <div class="pip-row" style="justify-content: center;">
             <div id="pip-lower-row" class="pip-quick" style="margin: 0 auto; display: flex; justify-content: center; align-items: center; gap: 10px;">
               <button class="pip-theme" id="themeBtn" title="Toggle dark/light mode">🌙</button>
+              <button class="pip-tts-btn" id="ttsOriginalBtn" title="Listen to original">
+                <svg viewBox="2 2 21 21" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                  <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+                <span class="pip-tts-tooltip">Listen to original</span>
+              </button>
+
               <button class="pip-copy" id="copySourceBtn" title="Copy source">📋</button>
               <input type="text" id="quickInput" placeholder="Type to translate...">
               <button class="pip-copy" id="copyBtn" title="Copy translation">📋</button>
+              <button class="pip-tts-btn" id="ttsTranslatedBtn" title="Listen to translation">
+                <svg viewBox="2 2 21 21" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                  <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+                <span class="pip-tts-tooltip">Listen to translation</span>
+              </button>
               <button class="pip-clear" id="clearBtn" title="Clear input">✖</button>
             </div>
             <div class="pip-status">
@@ -686,6 +761,115 @@ export function useTranslatePiP() {
           ).textContent = "";
         }
       };
+      // --- TTS logic for PiP window ---
+      // Language code to TTS config mapping (copied from TTSListenButton)
+      function getTTSVoiceConfig(langCode: string) {
+        const voiceMap: {
+          [key: string]: { languageCode: string; voiceName: string };
+        } = {
+          en: { languageCode: "en-US", voiceName: "en-US-Wavenet-D" },
+          hi: { languageCode: "hi-IN", voiceName: "hi-IN-Wavenet-A" },
+          es: { languageCode: "es-ES", voiceName: "es-ES-Wavenet-B" },
+          fr: { languageCode: "fr-FR", voiceName: "fr-FR-Wavenet-B" },
+          de: { languageCode: "de-DE", voiceName: "de-DE-Wavenet-B" },
+          it: { languageCode: "it-IT", voiceName: "it-IT-Wavenet-B" },
+          pt: { languageCode: "pt-PT", voiceName: "pt-PT-Wavenet-B" },
+          ru: { languageCode: "ru-RU", voiceName: "ru-RU-Wavenet-B" },
+          ja: { languageCode: "ja-JP", voiceName: "ja-JP-Wavenet-B" },
+          ko: { languageCode: "ko-KR", voiceName: "ko-KR-Wavenet-B" },
+          "zh-CN": { languageCode: "cmn-CN", voiceName: "cmn-CN-Wavenet-B" },
+          "zh-TW": { languageCode: "cmn-TW", voiceName: "cmn-TW-Wavenet-A" },
+          ar: { languageCode: "ar-XA", voiceName: "ar-XA-Wavenet-B" },
+          bn: { languageCode: "bn-IN", voiceName: "bn-IN-Standard-A" },
+          pa: { languageCode: "pa-IN", voiceName: "pa-IN-Standard-A" },
+          gu: { languageCode: "gu-IN", voiceName: "gu-IN-Standard-A" },
+          ta: { languageCode: "ta-IN", voiceName: "ta-IN-Wavenet-A" },
+          te: { languageCode: "te-IN", voiceName: "te-IN-Standard-A" },
+          ml: { languageCode: "ml-IN", voiceName: "ml-IN-Standard-A" },
+          mr: { languageCode: "mr-IN", voiceName: "mr-IN-Standard-A" },
+          ur: { languageCode: "ur-IN", voiceName: "ur-IN-Standard-A" },
+          tr: { languageCode: "tr-TR", voiceName: "tr-TR-Wavenet-B" },
+          vi: { languageCode: "vi-VN", voiceName: "vi-VN-Wavenet-B" },
+          id: { languageCode: "id-ID", voiceName: "id-ID-Wavenet-B" },
+          th: { languageCode: "th-TH", voiceName: "th-TH-Wavenet-B" },
+          pl: { languageCode: "pl-PL", voiceName: "pl-PL-Wavenet-B" },
+          uk: { languageCode: "uk-UA", voiceName: "uk-UA-Wavenet-B" },
+          ro: { languageCode: "ro-RO", voiceName: "ro-RO-Wavenet-B" },
+          nl: { languageCode: "nl-NL", voiceName: "nl-NL-Wavenet-B" },
+          sv: { languageCode: "sv-SE", voiceName: "sv-SE-Wavenet-B" },
+          fi: { languageCode: "fi-FI", voiceName: "fi-FI-Wavenet-B" },
+          no: { languageCode: "nb-NO", voiceName: "nb-NO-Wavenet-B" },
+          da: { languageCode: "da-DK", voiceName: "da-DK-Wavenet-B" },
+          cs: { languageCode: "cs-CZ", voiceName: "cs-CZ-Wavenet-B" },
+          el: { languageCode: "el-GR", voiceName: "el-GR-Wavenet-B" },
+          he: { languageCode: "he-IL", voiceName: "he-IL-Wavenet-B" },
+          hu: { languageCode: "hu-HU", voiceName: "hu-HU-Wavenet-B" },
+          uz: { languageCode: "uz-UZ", voiceName: "uz-UZ-Standard-A" },
+        };
+        return (
+          voiceMap[langCode] || {
+            languageCode: "en-US",
+            voiceName: "en-US-Wavenet-D",
+          }
+        );
+      }
+      async function playTTS(text: string, langCode: string) {
+        if (!text || !langCode) return;
+        const config = getTTSVoiceConfig(langCode);
+        try {
+          const res = await fetch("https://flask-tts-server.onrender.com/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text,
+              languageCode: config.languageCode,
+              voiceName: config.voiceName,
+            }),
+          });
+          if (!res.ok) throw new Error("TTS API error");
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const audio = new newPipWindow.window.Audio(url);
+          audio.play();
+        } catch (e) {
+          if (e && typeof e === "object" && "message" in e) {
+            alert("TTS failed: " + (e as { message: string }).message);
+          } else {
+            alert("TTS failed: Unknown error");
+          }
+        }
+      }
+      // Listen button for original text
+      const ttsOriginalBtn = pipDocument.getElementById("ttsOriginalBtn");
+      if (ttsOriginalBtn) {
+        ttsOriginalBtn.addEventListener("click", function () {
+          const originalTextElem = pipDocument.getElementById("originalText");
+          const fromLangElem = pipDocument.getElementById(
+            "fromLang"
+          ) as HTMLSelectElement | null;
+          const text = originalTextElem
+            ? originalTextElem.textContent || ""
+            : "";
+          const lang = fromLangElem ? fromLangElem.value : "en";
+          playTTS(text, lang);
+        });
+      }
+      // Listen button for translated text
+      const ttsTranslatedBtn = pipDocument.getElementById("ttsTranslatedBtn");
+      if (ttsTranslatedBtn) {
+        ttsTranslatedBtn.addEventListener("click", function () {
+          const translatedTextElem =
+            pipDocument.getElementById("translatedText");
+          const toLangElem = pipDocument.getElementById(
+            "toLang"
+          ) as HTMLSelectElement | null;
+          const text = translatedTextElem
+            ? translatedTextElem.textContent || ""
+            : "";
+          const lang = toLangElem ? toLangElem.value : "es";
+          playTTS(text, lang);
+        });
+      }
       newPipWindow.addEventListener("beforeunload", () => {
         setPipWindow(null);
       });

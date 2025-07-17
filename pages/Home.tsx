@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { TTSListenButton } from "@/components/ui/TTSListenButton";
+import { CustomAudioPlayer } from "@/components/ui/CustomAudioPlayer";
 
 // Type definitions
 interface TranslationResult {
@@ -774,9 +775,10 @@ export default function MainPage() {
               )}
               {/* Audio Player */}
               {audioUrl && !isRecording && (
-                <div className="pt-4">
-                  <audio controls src={audioUrl} className="w-full" />
-                </div>
+                <CustomAudioPlayer
+                  audioUrl={audioUrl}
+                  isRecording={isRecording}
+                />
               )}
             </CardContent>
           </Card>

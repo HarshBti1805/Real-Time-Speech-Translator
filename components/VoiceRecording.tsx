@@ -73,7 +73,19 @@ export default function VoiceRecording() {
         }
         stream.getTracks().forEach((track) => track.stop());
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      // Gracefully handle user cancellation
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        (error as { name?: string }).name &&
+        ((error as { name: string }).name === "NotAllowedError" ||
+          (error as { name: string }).name === "AbortError")
+      ) {
+        // User cancelled screen capture, do nothing
+        return;
+      }
       console.error("Failed to start snipping tool:", error);
       alert("Failed to start snipping tool. Please check permissions.");
     }
@@ -209,7 +221,19 @@ export default function VoiceRecording() {
 
         mediaRecorder.start();
         setRecording(true);
-      } catch (error) {
+      } catch (error: unknown) {
+        // Gracefully handle user cancellation
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "name" in error &&
+          (error as { name?: string }).name &&
+          ((error as { name: string }).name === "NotAllowedError" ||
+            (error as { name: string }).name === "AbortError")
+        ) {
+          // User cancelled mic access, do nothing
+          return;
+        }
         console.error("Failed to access microphone:", error);
         alert("Failed to access microphone. Please check permissions.");
       }
@@ -272,7 +296,19 @@ export default function VoiceRecording() {
       });
       setCameraStream(stream);
       setCameraModalOpen(true);
-    } catch (error) {
+    } catch (error: unknown) {
+      // Gracefully handle user cancellation
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        (error as { name?: string }).name &&
+        ((error as { name: string }).name === "NotAllowedError" ||
+          (error as { name: string }).name === "AbortError")
+      ) {
+        // User cancelled camera access, do nothing
+        return;
+      }
       console.error("Failed to access camera:", error);
       alert("Failed to access camera. Please check permissions.");
     }
@@ -325,7 +361,19 @@ export default function VoiceRecording() {
         // Stop screen capture
         stream.getTracks().forEach((track) => track.stop());
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      // Gracefully handle user cancellation
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        (error as { name?: string }).name &&
+        ((error as { name: string }).name === "NotAllowedError" ||
+          (error as { name: string }).name === "AbortError")
+      ) {
+        // User cancelled screen capture, do nothing
+        return;
+      }
       console.error("Failed to capture screenshot:", error);
       alert("Failed to capture screenshot. Please check permissions.");
     }
@@ -421,8 +469,8 @@ export default function VoiceRecording() {
             Image Text Recognition
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <CardContent className="space-y-4 ">
+          <div className="flex gap-10 items-center justify-center">
             <input
               ref={fileInputRef}
               type="file"
@@ -434,39 +482,64 @@ export default function VoiceRecording() {
               onClick={() => fileInputRef.current?.click()}
               disabled={processingImage}
               variant="outline"
-              className="border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2"
+              className="border-2 border-blue-500/30 cursor-pointer text-blue-400 hover:bg-blue-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-blue-400 rounded-xl backdrop-blur-sm p-4"
             >
-              <Upload className="w-4 h-4" />
-              Upload Image
+              <Upload className="w-8 h-8 mb-1" />
+              <span className="font-jetbrains-mono font-semibold">
+                Upload Image
+              </span>
+              <span className="text-xs text-muted-foreground font-product-sans mt-1 text-center text-wrap  max-w-[13rem] break-words block leading-relaxed">
+                Select an image file from your device for text extraction.
+              </span>
             </Button>
+
             <Button
               onClick={startCamera}
               disabled={processingImage}
               variant="outline"
-              className={`border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2 border-purple-500/30 text-purple-400 hover:bg-purple-500/20`}
+              className="border-2 border-purple-500/30 cursor-pointer text-purple-400 hover:bg-purple-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-purple-400 rounded-xl backdrop-blur-sm p-4"
             >
-              <Camera className="w-4 h-4" />
-              Start Camera
+              <Camera className="w-8 h-8 mb-1" />
+              <span className="font-jetbrains-mono font-semibold">
+                Start Camera
+              </span>
+              <span className="text-xs text-muted-foreground font-product-sans mt-1 text-center text-wrap max-w-[13rem] break-words block leading-relaxed">
+                Use your camera to take a photo and extract text instantly.
+              </span>
             </Button>
+
             <Button
               onClick={captureScreenshot}
               disabled={processingImage}
               variant="outline"
-              className="border-orange-500/30 cursor-pointer text-orange-400 hover:bg-orange-500/20 flex items-center gap-2"
+              className="border-2 border-orange-500/30 cursor-pointer text-orange-400 hover:bg-orange-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-orange-400 rounded-xl backdrop-blur-sm p-4"
             >
-              <Monitor className="w-4 h-4" />
-              Screen Capture
+              <Monitor className="w-8 h-8 mb-1" />
+              <span className="font-jetbrains-mono font-semibold">
+                Screen Capture
+              </span>
+              <div className="text-xs text-muted-foreground font-product-sans mt-1 text-center text-wrap  max-w-[13rem] break-words block leading-relaxed">
+                Capture your screen and extract any visible text from it.
+              </div>
             </Button>
+
             <Button
               onClick={startSnipping}
               disabled={processingImage}
               variant="outline"
-              className="border-pink-500/30 cursor-pointer text-pink-400 hover:bg-pink-500/20 flex items-center gap-2"
+              className="border-2 border-pink-500/30 cursor-pointer text-pink-400 hover:bg-pink-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-pink-400 rounded-xl backdrop-blur-sm p-4"
             >
-              <Image className="w-4 h-4" />
-              Snip Image
+              <Image className="w-8 h-8 mb-1" />
+              <span className="font-jetbrains-mono font-semibold">
+                Snip Image
+              </span>
+              <span className="text-xs text-muted-foreground font-product-sans mt-1 text-center text-wrap  max-w-[13rem] break-words block leading-relaxed">
+                Crop a region of your screen to extract text from just that
+                area.
+              </span>
             </Button>
           </div>
+
           {/* Snipping Tool Modal */}
           {snippingModalOpen && screenshotDataUrl && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
