@@ -25,6 +25,50 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import TranscriptionHistorySidebar from "@/components/TranscriptionHistorySidebar";
 import MiniBar from "@/components/MiniBar";
+import Head from "next/head";
+
+export const metadata = {
+  title: "TranslateHub | Real-time AI Speech & Text Translator",
+  description:
+    "TranslateHub is an AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more.",
+  keywords: [
+    "AI translation",
+    "speech to text",
+    "real-time translation",
+    "multi-language",
+    "audio translator",
+    "text translator",
+    "OCR",
+    "file to text",
+    "Next.js",
+  ],
+  openGraph: {
+    title: "TranslateHub | Real-time AI Speech & Text Translator",
+    description:
+      "AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more.",
+    url: "https://real-time-speech-translator-izn8.vercel.app/",
+    siteName: "TranslateHub",
+    images: [
+      {
+        url: "/public/globe.svg",
+        width: 1200,
+        height: 630,
+        alt: "TranslateHub Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TranslateHub | Real-time AI Speech & Text Translator",
+    description:
+      "AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more.",
+    site: "@translatehub",
+    creator: "@translatehub",
+    images: ["/public/globe.svg"],
+  },
+};
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -131,6 +175,62 @@ export default function Home() {
 
   return (
     <>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="theme-color"
+          content={theme === "dark" ? "#18181b" : "#fff"}
+        />
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:title"
+          content="TranslateHub | Real-time AI Speech & Text Translator"
+        />
+        <meta
+          property="og:description"
+          content="AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more."
+        />
+        <meta property="og:image" content="/globe.svg" />
+        <meta
+          property="og:url"
+          content="https://real-time-speech-translator-izn8.vercel.app/"
+        />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content="TranslateHub | Real-time AI Speech & Text Translator"
+        />
+        <meta
+          name="twitter:description"
+          content="AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more."
+        />
+        <meta name="twitter:image" content="/globe.svg" />
+        <link
+          rel="canonical"
+          href="https://real-time-speech-translator-izn8.vercel.app/"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "TranslateHub",
+              url: "https://real-time-speech-translator-izn8.vercel.app/",
+              description:
+                "AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more.",
+              publisher: {
+                "@type": "Organization",
+                name: "TranslateHub",
+                logo: {
+                  "@type": "ImageObject",
+                  url: "/globe.svg",
+                },
+              },
+            }),
+          }}
+        />
+      </Head>
       <MiniBar
         minimized={showMiniBar}
         setMinimized={setShowMiniBar}
@@ -138,7 +238,7 @@ export default function Home() {
           setActiveComponent(id);
         }}
       />
-      <div className="overflow-hidden min-h-screen bg-background text-foreground transition-colors duration-300 flex">
+      <main className="overflow-hidden min-h-screen bg-background text-foreground transition-colors duration-300 flex">
         {/* Sidebar */}
         {sidebarOpen && (
           <TranscriptionHistorySidebar height={getSidebarHeight()} />
@@ -410,7 +510,7 @@ export default function Home() {
             </div>
           </footer>
         </div>
-      </div>
+      </main>
     </>
   );
 }

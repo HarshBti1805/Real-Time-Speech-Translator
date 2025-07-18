@@ -5,7 +5,7 @@ import {
   Image as ImageIcon,
   Type,
   Trash2,
-  Loader2,
+  // Loader2,
   Copy as CopyIcon,
   Check as CheckIcon,
 } from "lucide-react";
@@ -36,11 +36,12 @@ const typeIcon = (type: string) => {
 type TranscriptionHistorySidebarProps = {
   height?: string | number; // e.g., '400px', '100%', 400
   onClose?: () => void;
+  open?: boolean; // new prop to control open/close
 };
 
 const TranscriptionHistorySidebar: React.FC<
   TranscriptionHistorySidebarProps
-> = ({ height = "100%", onClose }) => {
+> = ({ height = "100%", onClose, open = true }) => {
   const [history, setHistory] = useState<Transcription[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,13 +96,26 @@ const TranscriptionHistorySidebar: React.FC<
     }
   };
 
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     fetchHistory();
+  //   }, 10000);
+  //   return () => clearInterval(interval);
+  // }, []);
+
   useEffect(() => {
     fetchHistory();
   }, []);
 
   return (
     <aside
-      className="sidebar-scroll w-80 max-w-full bg-gradient-to-b from-background to-muted/60 border-r border-border p-0 overflow-y-auto flex flex-col shadow-2xl"
+      className={`sidebar-scroll w-80 max-w-full bg-gradient-to-b from-background to-muted/60 border-r border-border p-0 overflow-y-auto flex flex-col shadow-2xl transition-all duration-500 ease-in-out
+        ${
+          open
+            ? "opacity-100 translate-x-0"
+            : "opacity-0 -translate-x-full pointer-events-none"
+        }
+      `}
       style={{ height }}
     >
       <div className="flex items-center justify-between px-4 py-4 border-b border-border bg-background/80 sticky top-0 z-10">
@@ -116,9 +130,9 @@ const TranscriptionHistorySidebar: React.FC<
             title="Refresh history"
             style={{ minWidth: 80 }}
           >
-            <Loader2
+            {/* <Loader2
               className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`}
-            />
+            /> */}
             Refresh
           </button>
           {onClose && (
@@ -145,11 +159,6 @@ const TranscriptionHistorySidebar: React.FC<
         </div>
       </div>
       <div className="flex-1 px-2 py-2 space-y-3">
-        {loading && (
-          <div className="flex items-center justify-center text-muted-foreground py-8">
-            <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...
-          </div>
-        )}
         {error && <div className="text-sm text-red-500 px-2">{error}</div>}
         {history.length === 0 && !loading && !error && (
           <div className="text-sm text-muted-foreground text-center py-8">

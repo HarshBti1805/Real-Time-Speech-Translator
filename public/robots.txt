@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://real-time-speech-translator-izn8.vercel.app/sitemap.xml 
