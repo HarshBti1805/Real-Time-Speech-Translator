@@ -23,9 +23,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import TranscriptionHistorySidebar from "@/components/TranscriptionHistorySidebar";
-import MiniBar from "@/components/MiniBar";
+import dynamic from "next/dynamic";
 import Head from "next/head";
+import Image from "next/image";
+
+const MiniBar = dynamic(() => import("@/components/MiniBar"), { ssr: false });
+const TranscriptionHistorySidebar = dynamic(
+  () => import("@/components/TranscriptionHistorySidebar")
+);
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -39,6 +44,8 @@ export default function Home() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showMiniBar, setShowMiniBar] = useState(false);
+  // Remove all pipHooks, pipHooksLoaded, and related dynamic import logic
+  // Use hooks as originally:
   const { isPipSupported, pipWindow, openPictureInPicture } = useTranslatePiP();
   const {
     isPipSupported: isHomePipSupported,
@@ -50,6 +57,16 @@ export default function Home() {
     localStorage.setItem("theme", theme);
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  // Remove all pipHooks, pipHooksLoaded, and related dynamic import logic
+  // Use hooks as originally:
+  // const { useTranslatePiP, useHomePiP } = pipHooks;
+  // const { isPipSupported, pipWindow, openPictureInPicture } = useTranslatePiP();
+  // const {
+  //   isPipSupported: isHomePipSupported,
+  //   pipWindow: homePipWindow,
+  //   openHomePiP,
+  // } = useHomePiP();
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -240,10 +257,13 @@ export default function Home() {
                   <div className="flex items-center bg-muted/60 border border-border rounded-xl px-4 py-2 shadow-sm gap-4">
                     {/* Avatar and user info */}
                     {userImage ? (
-                      <img
+                      <Image
                         className="h-8 w-8 rounded-full border border-border shadow"
                         src={userImage}
                         alt={userName}
+                        width={32}
+                        height={32}
+                        priority={true}
                       />
                     ) : (
                       <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold border border-border shadow">
@@ -330,15 +350,21 @@ export default function Home() {
                         className="hover:bg-green-100 border-green-500 text-green-700 ml-2 shadow-green-200 shadow cursor-pointer transition-colors"
                         title={
                           homePipWindow &&
-                          !(homePipWindow as Window & { closed?: boolean })
-                            .closed
+                          !(
+                            homePipWindow as Window & {
+                              closed?: boolean;
+                            }
+                          ).closed
                             ? "Close Audio PiP"
                             : "Open Audio PiP"
                         }
                         aria-label={
                           homePipWindow &&
-                          !(homePipWindow as Window & { closed?: boolean })
-                            .closed
+                          !(
+                            homePipWindow as Window & {
+                              closed?: boolean;
+                            }
+                          ).closed
                             ? "Close Audio PiP"
                             : "Open Audio PiP"
                         }

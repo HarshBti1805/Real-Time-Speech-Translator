@@ -5,7 +5,7 @@ import {
   Upload,
   Square,
   Play,
-  Image,
+  Image as LucideImage,
   Monitor,
   RotateCcw,
   FileText,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import React from "react";
 import Cropper, { Area } from "react-easy-crop";
+import NextImage from "next/image";
 
 export default function VoiceRecording() {
   // Voice recording state
@@ -327,7 +328,6 @@ export default function VoiceRecording() {
         cameraStream.getTracks().forEach((track) => track.stop());
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraModalOpen, cameraStream]);
 
   const captureScreenshot = async () => {
@@ -465,11 +465,11 @@ export default function VoiceRecording() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-xl font-semibold flex items-center gap-2 text-foreground">
-            <Image className="w-5 h-5" />
+            <LucideImage className="w-5 h-5" />
             Image Text Recognition
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 ">
+        <CardContent className="space-y-4">
           <div className="flex gap-10 items-center justify-center">
             <input
               ref={fileInputRef}
@@ -529,7 +529,7 @@ export default function VoiceRecording() {
               variant="outline"
               className="border-2 border-pink-500/30 cursor-pointer text-pink-400 hover:bg-pink-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-pink-400 rounded-xl backdrop-blur-sm p-4"
             >
-              <Image className="w-8 h-8 mb-1" />
+              <LucideImage className="w-8 h-8 mb-1" />
               <span className="font-jetbrains-mono font-semibold">
                 Snip Image
               </span>
@@ -605,10 +605,13 @@ export default function VoiceRecording() {
               <h3 className="font-semibold mb-2 text-foreground/90">
                 Selected Image:
               </h3>
-              <img
+              <NextImage
                 src={imagePreview}
                 alt="Selected image preview"
                 className="max-w-full max-h-64 rounded-lg border border-border"
+                width={512}
+                height={256}
+                style={{ objectFit: "contain" }}
               />
             </div>
           )}

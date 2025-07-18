@@ -2,6 +2,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import Image from "next/image";
 
 const Dashboard = () => {
   const { data: session, status } = useSession();
@@ -64,10 +65,13 @@ const Dashboard = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 {session.user?.image && (
-                  <img
+                  <Image
                     className="h-8 w-8 rounded-full"
                     src={session.user.image}
                     alt={session.user.name || "User"}
+                    width={32}
+                    height={32}
+                    priority={true}
                   />
                 )}
                 <div className="text-sm">
