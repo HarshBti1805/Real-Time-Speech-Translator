@@ -27,49 +27,6 @@ import TranscriptionHistorySidebar from "@/components/TranscriptionHistorySideba
 import MiniBar from "@/components/MiniBar";
 import Head from "next/head";
 
-export const metadata = {
-  title: "TranslateHub | Real-time AI Speech & Text Translator",
-  description:
-    "TranslateHub is an AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more.",
-  keywords: [
-    "AI translation",
-    "speech to text",
-    "real-time translation",
-    "multi-language",
-    "audio translator",
-    "text translator",
-    "OCR",
-    "file to text",
-    "Next.js",
-  ],
-  openGraph: {
-    title: "TranslateHub | Real-time AI Speech & Text Translator",
-    description:
-      "AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more.",
-    url: "https://real-time-speech-translator-izn8.vercel.app/",
-    siteName: "TranslateHub",
-    images: [
-      {
-        url: "/public/globe.svg",
-        width: 1200,
-        height: 630,
-        alt: "TranslateHub Logo",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "TranslateHub | Real-time AI Speech & Text Translator",
-    description:
-      "AI-powered platform for real-time speech and text translation. Supports multiple languages, file-to-text, and more.",
-    site: "@translatehub",
-    creator: "@translatehub",
-    images: ["/public/globe.svg"],
-  },
-};
-
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
