@@ -97,7 +97,6 @@ export default function Home() {
   const userName = session.user?.name || "?";
   const userEmail = session.user?.email || "";
   const userImage = session.user?.image || null;
-  const defaultUserImage = "/globe.svg";
   const navItems = [
     {
       id: "main",
@@ -257,14 +256,21 @@ export default function Home() {
                 <div className="flex items-center justify-end w-full">
                   <div className="flex items-center bg-muted/60 border border-border rounded-xl px-4 py-2 shadow-sm gap-4">
                     {/* Avatar and user info */}
-                    <Image
-                      className="h-8 w-8 rounded-full border border-border shadow"
-                      src={userImage || defaultUserImage}
-                      alt={userName}
-                      width={32}
-                      height={32}
-                      priority={true}
-                    />
+                    {userImage ? (
+                      <Image
+                        src={userImage}
+                        alt={userName}
+                        className="h-8 w-8 rounded-full border border-border shadow object-cover"
+                        width={32}
+                        height={32}
+                        priority={true}
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="h-8 w-8 font-mono rounded-full shadow flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white font-bold text-lg">
+                        {session.user?.name?.[0]?.toUpperCase() || "U"}
+                      </div>
+                    )}
                     <div className="flex flex-col justify-center mr-2">
                       <span className="font-medium text-foreground leading-tight truncate max-w-[140px]">
                         {userName}
