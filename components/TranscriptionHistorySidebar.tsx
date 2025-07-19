@@ -48,6 +48,10 @@ const TranscriptionHistorySidebar: React.FC<
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [sseConnected, setSseConnected] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -57,6 +61,7 @@ const TranscriptionHistorySidebar: React.FC<
       if (!res.ok) throw new Error("Failed to fetch history");
       const data = await res.json();
       setHistory(data);
+      setLastUpdateTime(new Date());
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -65,6 +70,47 @@ const TranscriptionHistorySidebar: React.FC<
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Efficient polling fallback for production environments
+  const startPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const since = lastUpdateTime?.toISOString();
+        const url = since
+          ? `/api/transcription/check-updates?since=${encodeURIComponent(
+              since
+            )}`
+          : "/api/transcription/check-updates";
+
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+
+          if (data.hasUpdates && data.transcriptions.length > 0) {
+            // Only fetch full history if there are updates
+            fetchHistory();
+          }
+        }
+      } catch (error) {
+        console.error("Polling error:", error);
+        // Fall back to full fetch on error
+        fetchHistory();
+      }
+    }, 15000); // Poll every 15 seconds
+
+    setPollingInterval(interval);
+  };
+
+  const stopPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
     }
   };
 
@@ -104,9 +150,17 @@ const TranscriptionHistorySidebar: React.FC<
   //   return () => clearInterval(interval);
   // }, []);
 
-  // SSE connection setup
+  // SSE connection setup with production fallback
   useEffect(() => {
     let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 3;
+
+    // Detect if we're in production (Vercel)
+    const isProduction =
+      process.env.NODE_ENV === "production" ||
+      window.location.hostname.includes("vercel.app");
 
     const connectSSE = () => {
       try {
@@ -115,6 +169,8 @@ const TranscriptionHistorySidebar: React.FC<
         eventSource.onopen = () => {
           console.log("SSE connection established");
           setSseConnected(true);
+          reconnectAttempts = 0;
+          stopPolling(); // Stop polling when SSE is working
         };
 
         eventSource.onmessage = (event) => {
@@ -128,12 +184,14 @@ const TranscriptionHistorySidebar: React.FC<
               case "new_transcription":
                 console.log("New transcription received:", data.data);
                 setHistory((prev) => [data.data, ...prev]);
+                setLastUpdateTime(new Date());
                 break;
               case "transcription_deleted":
                 console.log("Transcription deleted:", data.data.id);
                 setHistory((prev) =>
                   prev.filter((item) => item.id !== data.data.id)
                 );
+                setLastUpdateTime(new Date());
                 break;
               default:
                 console.log("Unknown SSE event type:", data.type);
@@ -146,29 +204,61 @@ const TranscriptionHistorySidebar: React.FC<
         eventSource.onerror = (error) => {
           console.error("SSE connection error:", error);
           setSseConnected(false);
-          // Attempt to reconnect after 5 seconds
-          setTimeout(() => {
-            if (eventSource) {
-              eventSource.close();
-              connectSSE();
-            }
-          }, 5000);
+
+          // Clear any existing reconnect timeout
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+          }
+
+          // Attempt to reconnect with exponential backoff
+          if (reconnectAttempts < maxReconnectAttempts) {
+            const delay = Math.pow(2, reconnectAttempts) * 1000; // 1s, 2s, 4s
+            reconnectTimeout = setTimeout(() => {
+              reconnectAttempts++;
+              if (eventSource) {
+                eventSource.close();
+                connectSSE();
+              }
+            }, delay);
+          } else {
+            // Fall back to polling after max attempts
+            console.log(
+              "SSE failed after max attempts, falling back to polling"
+            );
+            startPolling();
+          }
         };
       } catch (error) {
         console.error("Failed to establish SSE connection:", error);
         setSseConnected(false);
+        // Fall back to polling immediately on connection failure
+        startPolling();
       }
     };
 
-    // Initial fetch and SSE connection
+    // Initial fetch and connection strategy
     fetchHistory();
-    connectSSE();
+
+    // Use different strategies based on environment
+    if (isProduction) {
+      // In production, start with polling and try SSE as backup
+      startPolling();
+      // Still try SSE but with lower expectations
+      setTimeout(() => connectSSE(), 1000);
+    } else {
+      // In development, prefer SSE
+      connectSSE();
+    }
 
     // Cleanup on unmount
     return () => {
       if (eventSource) {
         eventSource.close();
       }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      stopPolling();
     };
   }, []);
 
@@ -197,6 +287,11 @@ const TranscriptionHistorySidebar: React.FC<
                 : "Real-time updates disconnected"
             }
           />
+          {lastUpdateTime && (
+            <span className="text-xs text-muted-foreground ml-2">
+              Last: {lastUpdateTime.toLocaleTimeString()}
+            </span>
+          )}
         </h2>
         <div className="flex items-center gap-2">
           <button
