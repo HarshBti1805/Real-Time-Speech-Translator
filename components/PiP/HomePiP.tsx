@@ -75,7 +75,7 @@ export function useHomePiP() {
       }
       const newPipWindow = await (
         window as unknown as DocumentPiP
-      ).documentPictureInPicture.requestWindow({ width: 700, height: 200 });
+      ).documentPictureInPicture.requestWindow({ width: 800, height: 196 });
       const pipDocument = newPipWindow.document;
       pipDocument.head.innerHTML = `
         <style>
@@ -256,24 +256,25 @@ export function useHomePiP() {
             border: 1.5px solid #818cf8;
           }
           body.light .pip-select {
-            background: linear-gradient(135deg, #f3f4f6 60%, #e0e7ff 100%);
-            color: #222;
-            border: 1.5px solid #a5b4fc;
-            box-shadow: 0 1px 4px #a5b4fc22;
-            background-color: #f3f4f6;
+            background: linear-gradient(135deg, #ffffff 60%, #f8fafc 100%);
+            color: #1f2937;
+            border: 1.5px solid #d1d5db;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
             color-scheme: light;
           }
           body.light .pip-select option {
-            background: #f3f4f6;
-            color: #222;
+            background: #ffffff;
+            color: #1f2937;
           }
           body.light .pip-select:focus {
             border: 1.5px solid #6366f1;
-            box-shadow: 0 0 0 1.5px #6366f144;
-            background: linear-gradient(135deg, #e0e7ff 60%, #a5b4fc 100%);
+            box-shadow: 0 0 0 1.5px rgba(99, 102, 241, 0.2);
+            background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
           }
           body.light .pip-select:hover {
             border: 1.5px solid #6366f1;
+            background: linear-gradient(135deg, #f8fafc 60%, #f1f5f9 100%);
           }
           .pip-record-controls {
             display: flex;
@@ -369,34 +370,38 @@ export function useHomePiP() {
             color: #22d3ee;
             border: 1px solid #2563eb44;
           }
+          body.light .pip-result {
+            background: linear-gradient(90deg, #ffffff 60%, #f8fafc 100%);
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+          }
+          body.light .pip-translation {
+            background: linear-gradient(90deg, #dbeafe 60%, #bfdbfe 100%);
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+          }
           .pip-copy-btn {
-            background: linear-gradient(90deg, #ec38bc 0%, #7303c0 100%);
+            background: linear-gradient(90deg, #6366f1 0%, #a21caf 100%);
             border: none;
-            color: #fff;
-            cursor: pointer;
-            font-size: 0.95em;
-            margin-left: 2px;
-            transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.12s;
             border-radius: 8px;
-            padding: 6px 16px;
-            min-height: 24px;
-            box-shadow: 0 1px 4px #7303c033;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 15px;
+            color: #fff;
+            font-family: 'JetBrains Mono', sans-serif;
             font-weight: 600;
-            outline: none;
+            box-shadow: 0 2px 8px #6366f133;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
             display: flex;
             align-items: center;
             gap: 10px;
           }
           .pip-copy-btn:hover {
-            background: linear-gradient(90deg, #fd5e53 0%, #ec38bc 100%);
-            color: #fff;
-            box-shadow: 0 2px 8px #ec38bc44;
+            background: linear-gradient(90deg, #818cf8 0%, #c026d3 100%);
             transform: scale(1.04);
+            box-shadow: 0 4px 18px #818cf888;
           }
           .pip-copy-btn:active {
-            background: linear-gradient(90deg, #7303c0 0%, #ec38bc 100%);
-            color: #fff;
-            box-shadow: 0 1px 2px #7303c033;
             transform: scale(0.97);
           }
           .pip-footer {
@@ -582,15 +587,16 @@ export function useHomePiP() {
             justify-content: center;
             background: linear-gradient(90deg, #6366f1 0%, #a21caf 100%);
             border: none;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            margin-left: 8px;
+            border-radius: 8px;
+            padding: 6px 12px;
+            margin-left: 6px;
             cursor: pointer;
             transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
             box-shadow: 0 2px 8px #6366f133;
             color: #fff;
             position: relative;
+            font-family: 'JetBrains Mono', sans-serif;
+            font-weight: 600;
           }
           .pip-tts-btn:hover {
             background: linear-gradient(90deg, #818cf8 0%, #c026d3 100%);
