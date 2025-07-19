@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import {
+  notifyNewTranscription,
+  notifyTranscriptionDeleted,
+} from "./stream/route";
 
 // NOTE: The Transcription model requires a successful migration and client generation.th
 
@@ -50,6 +54,10 @@ export async function POST(req: NextRequest) {
       outputValue,
     },
   });
+
+  // Notify connected clients about the new transcription
+  notifyNewTranscription(user.id, transcription);
+
   return NextResponse.json(transcription, { status: 201 });
 }
 
@@ -80,5 +88,9 @@ export async function DELETE(req: NextRequest) {
       { status: 404 }
     );
   }
+
+  // Notify connected clients about the deleted transcription
+  notifyTranscriptionDeleted(user.id, id);
+
   return NextResponse.json({ success: true });
 }

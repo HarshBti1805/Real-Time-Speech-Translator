@@ -47,6 +47,7 @@ const TranscriptionHistorySidebar: React.FC<
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sseConnected, setSseConnected] = useState(false);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -103,8 +104,72 @@ const TranscriptionHistorySidebar: React.FC<
   //   return () => clearInterval(interval);
   // }, []);
 
+  // SSE connection setup
   useEffect(() => {
+    let eventSource: EventSource | null = null;
+
+    const connectSSE = () => {
+      try {
+        eventSource = new EventSource("/api/transcription/stream");
+
+        eventSource.onopen = () => {
+          console.log("SSE connection established");
+          setSseConnected(true);
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            switch (data.type) {
+              case "connected":
+                console.log("SSE connected:", data.message);
+                break;
+              case "new_transcription":
+                console.log("New transcription received:", data.data);
+                setHistory((prev) => [data.data, ...prev]);
+                break;
+              case "transcription_deleted":
+                console.log("Transcription deleted:", data.data.id);
+                setHistory((prev) =>
+                  prev.filter((item) => item.id !== data.data.id)
+                );
+                break;
+              default:
+                console.log("Unknown SSE event type:", data.type);
+            }
+          } catch (error) {
+            console.error("Error parsing SSE message:", error);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error("SSE connection error:", error);
+          setSseConnected(false);
+          // Attempt to reconnect after 5 seconds
+          setTimeout(() => {
+            if (eventSource) {
+              eventSource.close();
+              connectSSE();
+            }
+          }, 5000);
+        };
+      } catch (error) {
+        console.error("Failed to establish SSE connection:", error);
+        setSseConnected(false);
+      }
+    };
+
+    // Initial fetch and SSE connection
     fetchHistory();
+    connectSSE();
+
+    // Cleanup on unmount
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, []);
 
   return (
@@ -122,6 +187,16 @@ const TranscriptionHistorySidebar: React.FC<
         <h2 className="text-xl font-mono  font-bold tracking-tight flex items-center gap-2">
           <Volume2 className="w-5 h-5 text-blue-500" />
           History
+          <div
+            className={`w-2 h-2 rounded-full ${
+              sseConnected ? "bg-green-500" : "bg-red-500"
+            }`}
+            title={
+              sseConnected
+                ? "Real-time updates connected"
+                : "Real-time updates disconnected"
+            }
+          />
         </h2>
         <div className="flex items-center gap-2">
           <button
