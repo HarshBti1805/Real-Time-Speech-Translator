@@ -43,6 +43,8 @@ interface WindowWithWebkitAudioContext extends Window {
   webkitAudioContext?: typeof AudioContext;
 }
 
+// IMPROVEMENT OF REAL TIME AUDIO TRANSTALION
+
 export default function MainPage() {
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [baseLanguage, setBaseLanguage] = useState<string>("");
