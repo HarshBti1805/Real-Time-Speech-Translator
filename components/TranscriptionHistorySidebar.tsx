@@ -75,7 +75,7 @@ const TranscriptionHistorySidebar: React.FC<
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [sseConnected, setSseConnected] = useState(false);
+
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
     null
@@ -206,7 +206,6 @@ const TranscriptionHistorySidebar: React.FC<
 
         eventSource.onopen = () => {
           console.log("SSE connection established");
-          setSseConnected(true);
           reconnectAttempts = 0;
           stopPolling();
           toast.success("Real-time updates connected!", {
@@ -251,7 +250,6 @@ const TranscriptionHistorySidebar: React.FC<
 
         eventSource.onerror = (error) => {
           console.error("SSE connection error:", error);
-          setSseConnected(false);
 
           if (reconnectTimeout) {
             clearTimeout(reconnectTimeout);
@@ -280,7 +278,6 @@ const TranscriptionHistorySidebar: React.FC<
         };
       } catch (error) {
         console.error("Failed to establish SSE connection:", error);
-        setSseConnected(false);
         startPolling();
       }
     };
@@ -367,39 +364,20 @@ const TranscriptionHistorySidebar: React.FC<
               <span className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 bg-clip-text font-mono text-transparent">
                 History
               </span>
-              <motion.div
-                className={`w-3 h-3 rounded-full ${
-                  sseConnected ? "bg-green-500" : "bg-red-500"
-                }`}
-                animate={{
-                  scale: sseConnected ? [1, 1.3, 1] : 1,
-                  opacity: sseConnected ? [0.7, 1, 0.7] : 0.7,
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: sseConnected ? Infinity : 0,
-                  ease: "easeInOut",
-                }}
-                title={
-                  sseConnected
-                    ? "Real-time updates connected"
-                    : "Real-time updates disconnected"
-                }
-              />
             </motion.h2>
             <div className="flex items-center gap-3">
               <motion.button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="text-xs font-medium px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-500/30 flex items-center gap-2 text-cyan-600 dark:text-cyan-400 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs font-mono font-medium px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 dark:from-cyan-400/20 dark:via-blue-400/20 dark:to-purple-400/20 hover:from-cyan-500/20 hover:via-blue-500/20 hover:to-purple-500/20 dark:hover:from-cyan-400/30 dark:hover:via-blue-400/30 dark:hover:to-purple-400/30 border border-cyan-500/30 dark:border-cyan-400/40 flex items-center gap-2 text-cyan-600 dark:text-cyan-400 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 whileHover={{
                   scale: isRefreshing ? 1 : 1.05,
                   boxShadow: isRefreshing
-                    ? "0 0 0 rgba(59, 130, 246, 0)"
-                    : "0 10px 25px rgba(59, 130, 246, 0.3)",
+                    ? "0 0 0 rgba(6, 182, 212, 0)"
+                    : "0 10px 25px rgba(6, 182, 212, 0.2)",
                 }}
                 whileTap={{ scale: 0.95 }}
-                style={{ minWidth: 100 }}
+                style={{ minWidth: 90 }}
               >
                 <motion.div
                   animate={{ rotate: isRefreshing ? 360 : 0 }}
@@ -408,10 +386,27 @@ const TranscriptionHistorySidebar: React.FC<
                     repeat: isRefreshing ? Infinity : 0,
                     ease: "linear",
                   }}
+                  className="relative"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                  {isRefreshing && (
+                    <motion.div
+                      className="absolute inset-0 w-4 h-4 bg-cyan-400/20 rounded-full blur-sm"
+                      animate={{
+                        scale: [1, 1.5, 1],
+                        opacity: [0.5, 0.8, 0.5],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    />
+                  )}
                 </motion.div>
-                {isRefreshing ? "Refreshing..." : "Refresh"}
+                <span className="font-mono font-semibold">
+                  {isRefreshing ? "..." : "Refresh"}
+                </span>
               </motion.button>
               {onClose && (
                 <motion.button
