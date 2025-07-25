@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
 import Head from "next/head";
 import Image from "next/image";
+import { AnimatePresence } from "framer-motion";
 
 const MiniBar = dynamic(() => import("@/components/MiniBar"), { ssr: false });
 const TranscriptionHistorySidebar = dynamic(
@@ -214,9 +215,15 @@ export default function Home() {
       />
       <main className="overflow-hidden min-h-screen bg-background text-foreground transition-colors duration-300 flex">
         {/* Sidebar */}
-        {sidebarOpen && (
-          <TranscriptionHistorySidebar height={getSidebarHeight()} />
-        )}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <TranscriptionHistorySidebar
+              key="sidebar"
+              height={getSidebarHeight()}
+              open={sidebarOpen}
+            />
+          )}
+        </AnimatePresence>
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}

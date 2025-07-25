@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
+import { Toaster } from "react-hot-toast";
 
 import {
   Geist_Mono,
@@ -79,6 +80,34 @@ export default function RootLayout({
           className={`${inter.variable} ${geistMono.variable} ${jost.variable} ${poppins.variable} ${jetbrainsMono.variable} ${productSans.variable} antialiased`}
         >
           {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: "hsl(var(--card))",
+                color: "hsl(var(--card-foreground))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "12px",
+                padding: "16px",
+                fontSize: "14px",
+                backdropFilter: "blur(10px)",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+              },
+              success: {
+                iconTheme: {
+                  primary: "#10b981",
+                  secondary: "#fff",
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: "#ef4444",
+                  secondary: "#fff",
+                },
+              },
+            }}
+          />
         </body>
       </SessionProviderWrapper>
     </html>
