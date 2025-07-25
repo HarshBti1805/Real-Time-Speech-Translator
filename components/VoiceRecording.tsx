@@ -1,16 +1,13 @@
 "use client";
 import { useState, useRef } from "react";
 import {
-  Camera,
   Upload,
-  Square,
-  Play,
   Image as LucideImage,
   Monitor,
   RotateCcw,
   FileText,
-  Volume2,
   Copy,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,12 +16,6 @@ import Cropper, { Area } from "react-easy-crop";
 import NextImage from "next/image";
 
 export default function VoiceRecording() {
-  // Voice recording state
-  const [transcription, setTranscription] = useState("");
-  const [recording, setRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunks = useRef<Blob[]>([]);
-
   // Image/text recognition state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState("");
@@ -32,7 +23,6 @@ export default function VoiceRecording() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Processing states
-  const [processingAudio, setProcessingAudio] = useState(false);
   const [processingImage, setProcessingImage] = useState(false);
 
   // Camera modal state
@@ -160,87 +150,6 @@ export default function VoiceRecording() {
     };
   }, [snippingModalOpen]);
 
-  // Voice recording functions
-  const handleAudioUpload = async (fileToSend: File) => {
-    setProcessingAudio(true);
-    const formData = new FormData();
-    formData.append("audio", fileToSend);
-
-    try {
-      const res = await fetch("/api/speech", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      console.log(data);
-      setTranscription(data.transcription || "Failed to recognize speech.");
-      // Save to transcription history
-      fetch("/api/transcription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inputType: "audio",
-          inputValue: "mic-input.webm",
-          outputValue: data.transcription,
-        }),
-      });
-    } catch (error) {
-      console.error("Audio processing error:", error);
-      setTranscription("Error processing audio.");
-    } finally {
-      setProcessingAudio(false);
-    }
-  };
-
-  const handleRecord = async () => {
-    if (recording) {
-      mediaRecorderRef.current?.stop();
-      setRecording(false);
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-
-        audioChunks.current = [];
-        mediaRecorder.ondataavailable = (e) => {
-          audioChunks.current.push(e.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks.current, {
-            type: "audio/webm",
-          });
-          const audioFile = new File([audioBlob], "mic-input.webm", {
-            type: "audio/webm",
-          });
-          await handleAudioUpload(audioFile);
-        };
-
-        mediaRecorder.start();
-        setRecording(true);
-      } catch (error: unknown) {
-        // Gracefully handle user cancellation
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "name" in error &&
-          (error as { name?: string }).name &&
-          ((error as { name: string }).name === "NotAllowedError" ||
-            (error as { name: string }).name === "AbortError")
-        ) {
-          // User cancelled mic access, do nothing
-          return;
-        }
-        console.error("Failed to access microphone:", error);
-        alert("Failed to access microphone. Please check permissions.");
-      }
-    }
-  };
-
   // Image processing functions
   const handleImageUpload = async (file: File) => {
     setProcessingImage(true);
@@ -261,22 +170,45 @@ export default function VoiceRecording() {
         body: formData,
       });
 
+      if (!res.ok) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: "Unknown error" }));
+        throw new Error(
+          errorData.error || `HTTP ${res.status}: ${res.statusText}`
+        );
+      }
+
       const data = await res.json();
-      console.log(data);
-      setExtractedText(data.text || "No text found in image.");
-      // Save to transcription history
-      fetch("/api/transcription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inputType: "image",
-          inputValue: file.name,
-          outputValue: data.text,
-        }),
-      });
+      console.log("OCR API response:", data);
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const extractedTextContent = data.text || "No text found in image.";
+      setExtractedText(extractedTextContent);
+
+      // Save to transcription history (don't await to avoid blocking)
+      try {
+        await fetch("/api/transcription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inputType: "image",
+            inputValue: file.name,
+            outputValue: extractedTextContent,
+          }),
+        });
+      } catch (historyError) {
+        console.warn("Failed to save to transcription history:", historyError);
+        // Don't throw - this shouldn't break the main functionality
+      }
     } catch (error) {
       console.error("Image processing error:", error);
-      setExtractedText("Error processing image.");
+      setExtractedText(
+        error instanceof Error ? error.message : "Error processing image."
+      );
     } finally {
       setProcessingImage(false);
     }
@@ -380,7 +312,6 @@ export default function VoiceRecording() {
   };
 
   const clearResults = () => {
-    setTranscription("");
     setExtractedText("");
     setImagePreview(null);
     if (fileInputRef.current) {
@@ -411,66 +342,20 @@ export default function VoiceRecording() {
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center justify-center">
             <FileText className="w-8 h-8 mr-3" />
-            Voice & Visual Recognition System
+            Visual Text Recognition System
           </CardTitle>
           <p className="text-muted-foreground">
-            Record audio, upload images, capture photos, or take screenshots for
-            text recognition
+            Upload images, capture photos, or take screenshots for text
+            recognition
           </p>
         </CardHeader>
       </Card>
 
-      {/* Voice Recording Section */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold flex items-center gap-2 text-foreground">
-            <Volume2 className="w-5 h-5" />
-            Voice Recording
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button
-            onClick={handleRecord}
-            disabled={processingAudio}
-            size="lg"
-            className={`font-medium cursor-pointer transition-all duration-200 flex items-center gap-2 ${
-              recording
-                ? "bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg"
-                : "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-lg"
-            } ${processingAudio ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            {recording ? (
-              <>
-                <Square className="w-4 h-4" />
-                Stop Recording
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4" />
-                Start Recording
-              </>
-            )}
-          </Button>
-
-          {processingAudio && (
-            <div className="flex items-center text-blue-400">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-2"></div>
-              Processing audio...
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Image Recognition Section */}
       <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold flex items-center gap-2 text-foreground">
-            <LucideImage className="w-5 h-5" />
-            Image Text Recognition
-          </CardTitle>
-        </CardHeader>
+        <CardHeader></CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-10 items-center justify-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <input
               ref={fileInputRef}
               type="file"
@@ -482,14 +367,15 @@ export default function VoiceRecording() {
               onClick={() => fileInputRef.current?.click()}
               disabled={processingImage}
               variant="outline"
-              className="border-2 border-blue-500/30 cursor-pointer text-blue-400 hover:bg-blue-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-blue-400 rounded-xl backdrop-blur-sm p-4"
+              className="border-2 text-wrap border-blue-500/30 cursor-pointer text-blue-400 hover:bg-blue-500/10 flex flex-col items-center gap-2 h-[170px] w-full justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-blue-400 rounded-xl backdrop-blur-sm p-4"
             >
               <Upload className="w-8 h-8 mb-1" />
-              <span className="font-jetbrains-mono font-semibold">
+              <span className="font-jetbrains-mono font-semibold text-center">
                 Upload Image
               </span>
-              <span className="text-xs text-muted-foreground font-product-sans mt-1 text-center text-wrap  max-w-[13rem] break-words block leading-relaxed">
-                Select an image file from your device for text extraction.
+              <span className="text-xs text-wrap text-muted-foreground font-product-sans mt-1 text-center break-words block leading-relaxed">
+                Select an image file from your device for text recognition and
+                extraction.
               </span>
             </Button>
 
@@ -497,13 +383,13 @@ export default function VoiceRecording() {
               onClick={startCamera}
               disabled={processingImage}
               variant="outline"
-              className="border-2 border-purple-500/30 cursor-pointer text-purple-400 hover:bg-purple-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-purple-400 rounded-xl backdrop-blur-sm p-4"
+              className="border-2 border-purple-500/30 cursor-pointer text-purple-400 hover:bg-purple-500/10 flex flex-col items-center gap-2  h-[170px]  w-full justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-purple-400 rounded-xl backdrop-blur-sm p-4"
             >
               <Camera className="w-8 h-8 mb-1" />
-              <span className="font-jetbrains-mono font-semibold">
+              <span className="font-jetbrains-mono font-semibold text-center">
                 Start Camera
               </span>
-              <span className="text-xs text-muted-foreground font-product-sans mt-1 text-center text-wrap max-w-[13rem] break-words block leading-relaxed">
+              <span className="text-xs text-wrap  text-muted-foreground font-product-sans mt-1 text-center break-words block leading-relaxed">
                 Use your camera to take a photo and extract text instantly.
               </span>
             </Button>
@@ -512,13 +398,13 @@ export default function VoiceRecording() {
               onClick={captureScreenshot}
               disabled={processingImage}
               variant="outline"
-              className="border-2 border-orange-500/30 cursor-pointer text-orange-400 hover:bg-orange-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-orange-400 rounded-xl backdrop-blur-sm p-4"
+              className="border-2 border-orange-500/30 cursor-pointer text-orange-400 hover:bg-orange-500/10 flex flex-col items-center gap-2  h-[170px]  w-full justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-orange-400 rounded-xl backdrop-blur-sm p-4"
             >
               <Monitor className="w-8 h-8 mb-1" />
-              <span className="font-jetbrains-mono font-semibold">
+              <span className="font-jetbrains-mono font-semibold text-center">
                 Screen Capture
               </span>
-              <div className="text-xs text-muted-foreground font-product-sans mt-1 text-center text-wrap  max-w-[13rem] break-words block leading-relaxed">
+              <div className="text-xs text-wrap  text-muted-foreground font-product-sans mt-1 text-center break-words block leading-relaxed">
                 Capture your screen and extract any visible text from it.
               </div>
             </Button>
@@ -527,13 +413,13 @@ export default function VoiceRecording() {
               onClick={startSnipping}
               disabled={processingImage}
               variant="outline"
-              className="border-2 border-pink-500/30 cursor-pointer text-pink-400 hover:bg-pink-500/10 flex flex-col items-center gap-2 h-32 w-60 justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-pink-400 rounded-xl backdrop-blur-sm p-4"
+              className="border-2 border-pink-500/30 cursor-pointer text-pink-400 hover:bg-pink-500/10 flex flex-col items-center gap-2 h-[170px]  w-full justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-pink-400 rounded-xl backdrop-blur-sm p-4"
             >
               <LucideImage className="w-8 h-8 mb-1" />
-              <span className="font-jetbrains-mono font-semibold">
+              <span className="font-jetbrains-mono font-semibold text-center">
                 Snip Image
               </span>
-              <span className="text-xs text-muted-foreground font-product-sans mt-1 text-center text-wrap  max-w-[13rem] break-words block leading-relaxed">
+              <span className="text-xs text-wrap  text-muted-foreground font-product-sans mt-1 text-center break-words block leading-relaxed">
                 Crop a region of your screen to extract text from just that
                 area.
               </span>
@@ -619,7 +505,7 @@ export default function VoiceRecording() {
       </Card>
 
       {/* Results Section */}
-      {(transcription || extractedText) && (
+      {extractedText && (
         <Card className="bg-card border-border">
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -637,42 +523,28 @@ export default function VoiceRecording() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {transcription && (
-              <div>
-                <h3 className="font-semibold text-green-400 mb-2 flex items-center">
-                  <Volume2 className="w-4 h-4 mr-2" />
-                  Voice Transcription:
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-blue-400 flex items-center">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Extracted Text from Image:
                 </h3>
-                <div className="bg-muted p-4 rounded-lg border border-border">
-                  <p className="text-foreground">{transcription}</p>
-                </div>
+                <Button
+                  onClick={() => copyToClipboard(extractedText)}
+                  variant="outline"
+                  size="sm"
+                  className="border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy
+                </Button>
               </div>
-            )}
-
-            {extractedText && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-blue-400 flex items-center">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Extracted Text from Image:
-                  </h3>
-                  <Button
-                    onClick={() => copyToClipboard(extractedText)}
-                    variant="outline"
-                    size="sm"
-                    className="border-border cursor-pointer text-foreground hover:bg-accent flex items-center gap-2"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copy
-                  </Button>
-                </div>
-                <div className="bg-muted p-4 rounded-lg border border-border overflow-x-auto">
-                  <pre className="text-foreground whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                    {extractedText}
-                  </pre>
-                </div>
+              <div className="bg-muted p-4 rounded-lg border border-border overflow-x-auto">
+                <pre className="text-foreground whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                  {extractedText}
+                </pre>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       )}
