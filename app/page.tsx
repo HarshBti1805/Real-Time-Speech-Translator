@@ -2,6 +2,7 @@
 import MainPage from "@/pages/Home";
 import Speech from "@/pages/Speech";
 import Translate from "@/pages/Translate";
+import EnhancedChatBot from "@/components/EnhancedChatBot";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
@@ -774,6 +775,14 @@ export default function Home() {
             </div>
           </footer>
         </div>
+
+        {/* AI Chatbot - Enhanced with better context awareness */}
+        <EnhancedChatBot
+          currentMode={activeComponent}
+          currentTranslation={undefined}
+          sourceLanguage={undefined}
+          targetLanguage={undefined}
+        />
       </main>
     </>
   );

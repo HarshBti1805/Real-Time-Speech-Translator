@@ -58,10 +58,10 @@ export async function GET(req: NextRequest) {
     }, 0);
 
     // Get most used languages
-    const languageStats = translationHistory.reduce((acc, item) => {
-      // This is a simplified version - you might want to store language info in the transcription
-      return acc;
-    }, {} as Record<string, number>);
+    // const languageStats = translationHistory.reduce((acc, item) => {
+    //   // This is a simplified version - you might want to store language info in the transcription
+    //   return acc;
+    // }, {} as Record<string, number>);
 
     const summary = {
       totalTranslations,
