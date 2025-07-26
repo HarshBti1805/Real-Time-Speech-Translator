@@ -11,7 +11,6 @@ import {
   X,
   Sparkles,
   Clock,
-  Zap,
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
@@ -98,7 +97,6 @@ const TranscriptionHistorySidebar: React.FC<
       const data = await res.json();
       setHistory(data);
       setLastUpdateTime(new Date());
-      toast.success("History refreshed successfully!");
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -208,11 +206,6 @@ const TranscriptionHistorySidebar: React.FC<
           console.log("SSE connection established");
           reconnectAttempts = 0;
           stopPolling();
-          toast.success("Real-time updates connected!", {
-            icon: (
-              <Zap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
-            ),
-          });
         };
 
         eventSource.onmessage = (event) => {
@@ -313,7 +306,7 @@ const TranscriptionHistorySidebar: React.FC<
     <>
       {open && (
         <motion.aside
-          initial={{ opacity: 0, x: -320 }}
+          initial={{ opacity: 0, x: -280 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{
             type: "spring",
@@ -321,7 +314,7 @@ const TranscriptionHistorySidebar: React.FC<
             damping: 35,
             duration: 0.3,
           }}
-          className="sidebar-scroll w-80 max-w-full bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 p-0 overflow-y-auto flex flex-col shadow-2xl transition-all duration-500 ease-in-out relative"
+          className="sidebar-scroll w-full max-w-full bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 p-0 overflow-y-auto flex flex-col shadow-2xl transition-all duration-500 ease-in-out relative"
           style={{ height }}
           onMouseMove={handleMouseMove}
         >
