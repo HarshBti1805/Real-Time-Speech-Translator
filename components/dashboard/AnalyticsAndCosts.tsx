@@ -78,10 +78,8 @@ interface AnalyticsAndCostsProps {
 // Enhanced bar chart component with better interactivity
 const UsageBarChart = ({
   data,
-  color,
 }: {
   data: { date: string; value: number }[];
-  color: string;
 }) => {
   if (!data || data.length === 0) {
     return (
@@ -106,7 +104,7 @@ const UsageBarChart = ({
       <div className="flex items-center justify-between bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100/50 dark:border-blue-800/30">
         <div className="flex items-center space-x-6">
           <div className="text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono uppercase tracking-wide">
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-product-sans uppercase tracking-wide">
               Peak Day
             </p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
@@ -115,7 +113,7 @@ const UsageBarChart = ({
           </div>
           <div className="w-px h-10 bg-gray-300 dark:bg-gray-600"></div>
           <div className="text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono uppercase tracking-wide">
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-product-sans uppercase tracking-wide">
               Daily Avg
             </p>
             <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">
@@ -124,7 +122,7 @@ const UsageBarChart = ({
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-500 dark:text-gray-400 font-mono uppercase tracking-wide mb-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-product-sans uppercase tracking-wide mb-1">
             Trend
           </p>
           <div className="flex items-center space-x-1">
@@ -155,7 +153,7 @@ const UsageBarChart = ({
 
       {/* Chart Container */}
       <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-        <div className="relative h-48">
+        <div className="relative h-56">
           {/* Y-axis */}
           <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 font-mono">
             {[...Array(5)].map((_, i) => (
@@ -176,28 +174,29 @@ const UsageBarChart = ({
           </div>
 
           {/* Bars */}
-          <div className="absolute left-12 right-0 bottom-8 top-0 flex items-end justify-between px-2">
+          <div className="absolute left-12 right-0 bottom-8 top-4 flex items-end justify-between px-2 gap-1">
             {data.map((item, index) => {
               const heightPercent =
-                maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+                maxValue > 0 ? Math.max(10, (item.value / maxValue) * 90) : 10;
+              const heightPx = Math.max(16, (heightPercent / 100) * 160); // Convert to pixels
               const isToday = item.date === "Today";
               const isPeak = item.value === maxValue;
 
               return (
                 <div
                   key={index}
-                  className="flex-1 flex flex-col items-center group px-1"
+                  className="flex-1 flex flex-col items-center group"
                 >
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: `${heightPercent}%`, opacity: 1 }}
+                    animate={{ height: heightPx, opacity: 1 }}
                     transition={{
                       delay: index * 0.15,
                       duration: 0.8,
                       type: "spring",
                       stiffness: 80,
                     }}
-                    className={`w-full max-w-12 bg-gradient-to-t ${color} rounded-t-xl min-h-[8px] relative transition-all duration-300 hover:shadow-lg cursor-pointer ${
+                    className={`w-full max-w-16 bg-gradient-to-t from-blue-500 via-blue-400 to-cyan-400 rounded-t-xl relative transition-all duration-300 hover:shadow-lg cursor-pointer shadow-sm border border-blue-300/20 ${
                       isToday
                         ? "ring-2 ring-blue-400/60 dark:ring-blue-500/60 shadow-blue-200/50 dark:shadow-blue-800/50 shadow-lg"
                         : ""
@@ -206,20 +205,32 @@ const UsageBarChart = ({
                         ? "ring-2 ring-yellow-400/60 dark:ring-yellow-500/60"
                         : ""
                     }`}
+                    style={{
+                      height: `${heightPx}px`,
+                      minHeight: "16px",
+                    }}
                     whileHover={{
                       scale: 1.05,
                       y: -4,
                     }}
                   >
+                    {/* Value display on bar */}
+                    {item.value > 0 && (
+                      <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-mono font-bold text-gray-700 dark:text-gray-300">
+                        {item.value}
+                      </div>
+                    )}
+
                     {/* Hover tooltip */}
                     <motion.div
                       initial={{ opacity: 0, y: 10, scale: 0.8 }}
                       whileHover={{ opacity: 1, y: 0, scale: 1 }}
-                      className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-gray-900/95 dark:bg-gray-100/95 text-white dark:text-gray-900 text-xs px-4 py-3 rounded-xl shadow-xl font-mono whitespace-nowrap z-20 backdrop-blur-sm"
+                      className="absolute -top-20 left-1/2 transform -translate-x-1/2 bg-gray-900/95 dark:bg-gray-100/95 text-white dark:text-gray-900 text-xs px-4 py-3 rounded-xl shadow-xl font-product-sans whitespace-nowrap z-20 backdrop-blur-sm"
                     >
                       <div className="text-center">
                         <div className="font-bold text-sm">
-                          {item.value} translations
+                          <span className="font-mono">{item.value}</span>{" "}
+                          translations
                         </div>
                         <div className="text-xs opacity-80 mt-1">
                           {item.date}
@@ -248,7 +259,7 @@ const UsageBarChart = ({
             {data.map((item, index) => (
               <div key={index} className="flex-1 text-center px-1">
                 <span
-                  className={`text-sm font-mono ${
+                  className={`text-sm font-product-sans ${
                     item.date === "Today"
                       ? "font-bold text-blue-600 dark:text-blue-400"
                       : "text-gray-600 dark:text-gray-400"
@@ -270,30 +281,32 @@ const UsageBarChart = ({
               <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 font-mono">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 font-product-sans">
                 {data[data.length - 1]?.value > avgValue
                   ? "Above Average"
                   : data[data.length - 1]?.value === avgValue
                   ? "Average Usage"
                   : "Below Average"}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-product-sans">
                 Usage pattern analysis
               </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 font-mono">
-              {(data[data.length - 1]?.value || 0) -
-                (data[data.length - 2]?.value || 0) >=
-              0
-                ? "+"
-                : ""}
-              {(data[data.length - 1]?.value || 0) -
-                (data[data.length - 2]?.value || 0)}{" "}
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 font-product-sans">
+              <span className="font-mono">
+                {(data[data.length - 1]?.value || 0) -
+                  (data[data.length - 2]?.value || 0) >=
+                0
+                  ? "+"
+                  : ""}
+                {(data[data.length - 1]?.value || 0) -
+                  (data[data.length - 2]?.value || 0)}
+              </span>{" "}
               from yesterday
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-product-sans">
               Day-over-day change
             </p>
           </div>
@@ -403,8 +416,9 @@ const AnalyticsAndCosts = ({
 
   // Generate realistic usage data based on analytics
   const generateUsageData = () => {
-    const baseValue = analytics?.totalTranslations || 0;
-    const dailyAverage = Math.max(1, Math.floor(baseValue / 30));
+    const totalTranslations = analytics?.totalTranslations || 0;
+    const period = parseInt(analytics?.period || "30");
+    const dailyAverage = Math.max(1, Math.floor(totalTranslations / period));
 
     // Get the last 7 days with proper day names
     const today = new Date();
@@ -418,14 +432,46 @@ const AnalyticsAndCosts = ({
       const isWeekend = date.getDay() === 0 || date.getDay() === 6;
       const isToday = i === 0;
 
-      // More realistic patterns: weekends lower, gradual variation
-      let multiplier = 0.8 + Math.random() * 0.4;
-      if (isWeekend) multiplier *= 0.6; // Lower usage on weekends
-      if (isToday) multiplier *= 1.2; // Slight boost for today
+      // More realistic patterns based on actual usage
+      let baseMultiplier = 1.0;
+
+      // For users with significant usage, create realistic weekly patterns
+      if (totalTranslations > 50) {
+        baseMultiplier = 0.7 + Math.random() * 0.6; // 0.7 to 1.3
+        if (isWeekend) baseMultiplier *= 0.4; // Much lower on weekends
+        if (isToday) baseMultiplier *= 1.1; // Slight boost for today
+      } else if (totalTranslations > 10) {
+        // For moderate usage, more variation
+        baseMultiplier = 0.5 + Math.random() * 0.8; // 0.5 to 1.3
+        if (isWeekend) baseMultiplier *= 0.6;
+        if (isToday) baseMultiplier *= 1.0;
+      } else {
+        // For low usage, keep it minimal but realistic
+        baseMultiplier = 0.3 + Math.random() * 0.7; // 0.3 to 1.0
+        if (isWeekend) baseMultiplier *= 0.7;
+      }
+
+      // Calculate the actual daily value
+      const dailyValue = Math.max(0, Math.round(dailyAverage * baseMultiplier));
 
       days.push({
         date: isToday ? "Today" : dayName,
-        value: Math.max(0, Math.floor(dailyAverage * multiplier)),
+        value: dailyValue,
+      });
+    }
+
+    // Ensure we have at least some variation and the total roughly matches
+    const totalGenerated = days.reduce((sum, day) => sum + day.value, 0);
+    const weeklyTarget = Math.round((totalTranslations / period) * 7);
+
+    // Adjust if the generated total is too far off
+    if (
+      totalGenerated > 0 &&
+      Math.abs(totalGenerated - weeklyTarget) > weeklyTarget * 0.3
+    ) {
+      const adjustmentFactor = weeklyTarget / totalGenerated;
+      days.forEach((day) => {
+        day.value = Math.max(0, Math.round(day.value * adjustmentFactor));
       });
     }
 
@@ -531,14 +577,14 @@ const AnalyticsAndCosts = ({
           <h2 className="text-2xl font-bold text-foreground font-mono">
             Analytics & Cost Tracking
           </h2>
-          <p className="text-muted-foreground font-mono">
+          <p className="text-muted-foreground font-product-sans">
             Comprehensive analysis of your translation usage and costs
           </p>
         </div>
         <motion.button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="text-xs font-mono font-medium px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 dark:from-cyan-400/20 dark:via-blue-400/20 dark:to-purple-400/20 hover:from-cyan-500/20 hover:via-blue-500/20 hover:to-purple-500/20 dark:hover:from-cyan-400/30 dark:hover:via-blue-400/30 dark:hover:to-purple-400/30 border border-cyan-500/30 dark:border-cyan-400/40 flex items-center gap-2 text-cyan-600 dark:text-cyan-400 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="text-xs font-medium px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 dark:from-cyan-400/20 dark:via-blue-400/20 dark:to-purple-400/20 hover:from-cyan-500/20 hover:via-blue-500/20 hover:to-purple-500/20 dark:hover:from-cyan-400/30 dark:hover:via-blue-400/30 dark:hover:to-purple-400/30 border border-cyan-500/30 dark:border-cyan-400/40 flex items-center gap-2 text-cyan-600 dark:text-cyan-400 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-product-sans"
           whileHover={{
             scale: isRefreshing ? 1 : 1.05,
             boxShadow: isRefreshing
@@ -572,7 +618,7 @@ const AnalyticsAndCosts = ({
               />
             )}
           </motion.div>
-          <span className="font-mono font-semibold">
+          <span className="font-semibold">
             {isRefreshing ? "..." : "Refresh"}
           </span>
         </motion.button>
@@ -589,7 +635,7 @@ const AnalyticsAndCosts = ({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground font-mono">
+                  <p className="text-sm font-medium text-muted-foreground font-product-sans">
                     Total Translations
                   </p>
                   <p className="text-2xl font-bold text-foreground font-mono">
@@ -597,7 +643,7 @@ const AnalyticsAndCosts = ({
                   </p>
                   <div className="flex items-center mt-2">
                     <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
-                    <span className="text-xs text-green-600 font-mono">
+                    <span className="text-xs text-green-600 font-product-sans">
                       +12.5%
                     </span>
                   </div>
@@ -619,7 +665,7 @@ const AnalyticsAndCosts = ({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground font-mono">
+                  <p className="text-sm font-medium text-muted-foreground font-product-sans">
                     Words Translated
                   </p>
                   <p className="text-2xl font-bold text-foreground font-mono">
@@ -627,7 +673,7 @@ const AnalyticsAndCosts = ({
                   </p>
                   <div className="flex items-center mt-2">
                     <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
-                    <span className="text-xs text-green-600 font-mono">
+                    <span className="text-xs text-green-600 font-product-sans">
                       +8.3%
                     </span>
                   </div>
@@ -649,14 +695,14 @@ const AnalyticsAndCosts = ({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground font-mono">
+                  <p className="text-sm font-medium text-muted-foreground font-product-sans">
                     Estimated API Cost
                   </p>
                   <p className="text-2xl font-bold text-foreground font-mono">
                     ${estimatedCosts.totalEstimatedCost.toFixed(2)}
                   </p>
                   <div className="flex items-center mt-2">
-                    <span className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-1 rounded-full font-mono">
+                    <span className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-1 rounded-full font-product-sans">
                       You saved 100%!
                     </span>
                   </div>
@@ -678,14 +724,14 @@ const AnalyticsAndCosts = ({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground font-mono">
+                  <p className="text-sm font-medium text-muted-foreground font-product-sans">
                     Monthly Savings
                   </p>
                   <p className="text-2xl font-bold text-foreground font-mono">
                     ${estimatedCosts.monthlyEstimate.toFixed(2)}
                   </p>
                   <div className="flex items-center mt-2">
-                    <span className="text-xs text-emerald-600 font-mono">
+                    <span className="text-xs text-emerald-600 font-product-sans">
                       vs. ${estimatedCosts.yearlyEstimate.toFixed(2)}/year
                     </span>
                   </div>
@@ -712,14 +758,14 @@ const AnalyticsAndCosts = ({
                 <span className="text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   Usage Analytics
                 </span>
-                <p className="text-sm text-muted-foreground font-mono mt-1">
+                <p className="text-sm text-muted-foreground font-product-sans mt-1">
                   7-day activity overview
                 </p>
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <UsageBarChart data={usageData} color="from-blue-500 to-cyan-500" />
+            <UsageBarChart data={usageData} />
           </CardContent>
         </Card>
 

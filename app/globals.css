@@ -196,6 +196,11 @@
     letter-spacing: normal;
   }
 
+  /* Product Sans utility class */
+  .font-product-sans {
+    font-family: var(--font-product-sans), system-ui, sans-serif;
+  }
+
   /* Additional letter spacing for different text sizes */
   .text-xs {
     letter-spacing: 0.02em;

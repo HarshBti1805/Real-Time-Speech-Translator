@@ -182,7 +182,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground font-mono">
+          <p className="text-muted-foreground font-product-sans">
             Loading your personalized dashboard...
           </p>
         </div>
@@ -218,7 +218,7 @@ const Dashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors font-mono ${
+                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors font-product-sans ${
                     isActive
                       ? "border-primary text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
@@ -244,17 +244,17 @@ const Dashboard = () => {
                   <h2 className="text-2xl font-bold text-foreground mb-2 font-mono">
                     Welcome back, {userName}! 👋
                   </h2>
-                  <p className="text-muted-foreground font-mono">
+                  <p className="text-muted-foreground font-product-sans">
                     Here&apos;s your translation activity overview and
                     personalized insights.
                   </p>
                 </div>
                 <div className="hidden lg:flex items-center space-x-2">
-                  <Badge variant="secondary" className="font-mono">
+                  <Badge variant="secondary" className="font-product-sans">
                     <Activity className="w-3 h-3 mr-1" />
                     Active Session
                   </Badge>
-                  <Badge variant="outline" className="font-mono">
+                  <Badge variant="outline" className="font-product-sans">
                     <Calendar className="w-3 h-3 mr-1" />
                     {new Date().toLocaleDateString()}
                   </Badge>
@@ -268,7 +268,7 @@ const Dashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground font-mono">
+                      <p className="text-sm font-medium text-muted-foreground font-product-sans">
                         Total Translations
                       </p>
                       <p className="text-2xl font-bold text-foreground font-mono">
@@ -286,7 +286,7 @@ const Dashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground font-mono">
+                      <p className="text-sm font-medium text-muted-foreground font-product-sans">
                         Words Translated
                       </p>
                       <p className="text-2xl font-bold text-foreground font-mono">
@@ -304,7 +304,7 @@ const Dashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground font-mono">
+                      <p className="text-sm font-medium text-muted-foreground font-product-sans">
                         Characters
                       </p>
                       <p className="text-2xl font-bold text-foreground font-mono">
@@ -322,7 +322,7 @@ const Dashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground font-mono">
+                      <p className="text-sm font-medium text-muted-foreground font-product-sans">
                         Total Cost
                       </p>
                       <p className="text-2xl font-bold text-foreground font-mono">
@@ -375,7 +375,7 @@ const Dashboard = () => {
               <h2 className="text-2xl font-bold text-foreground font-mono">
                 Settings
               </h2>
-              <p className="text-muted-foreground font-mono">
+              <p className="text-muted-foreground font-product-sans">
                 Customize your dashboard and preferences
               </p>
             </div>
@@ -388,15 +388,15 @@ const Dashboard = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium font-mono">Theme</p>
-                      <p className="text-sm text-muted-foreground font-mono">
+                      <p className="font-medium font-product-sans">Theme</p>
+                      <p className="text-sm text-muted-foreground font-product-sans">
                         Choose your preferred theme
                       </p>
                     </div>
                     <Button
                       onClick={toggleTheme}
                       variant="outline"
-                      className="w-32 font-mono"
+                      className="w-32 font-product-sans"
                     >
                       {theme === "dark" ? (
                         <>
@@ -421,10 +421,10 @@ const Dashboard = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium font-mono">
+                      <p className="font-medium font-product-sans">
                         Email Notifications
                       </p>
-                      <p className="text-sm text-muted-foreground font-mono">
+                      <p className="text-sm text-muted-foreground font-product-sans">
                         Receive updates via email
                       </p>
                     </div>
@@ -441,7 +441,7 @@ const Dashboard = () => {
                             !preferences?.notificationsEnabled,
                         })
                       }
-                      className="font-mono"
+                      className="font-product-sans"
                     >
                       {preferences?.notificationsEnabled
                         ? "Enabled"
@@ -450,8 +450,8 @@ const Dashboard = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium font-mono">Auto Save</p>
-                      <p className="text-sm text-muted-foreground font-mono">
+                      <p className="font-medium font-product-sans">Auto Save</p>
+                      <p className="text-sm text-muted-foreground font-product-sans">
                         Automatically save translations
                       </p>
                     </div>
@@ -465,7 +465,7 @@ const Dashboard = () => {
                           autoSaveEnabled: !preferences?.autoSaveEnabled,
                         })
                       }
-                      className="font-mono"
+                      className="font-product-sans"
                     >
                       {preferences?.autoSaveEnabled ? "Enabled" : "Disabled"}
                     </Button>
