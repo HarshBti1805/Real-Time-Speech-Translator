@@ -19,6 +19,7 @@ import {
   X as CloseIcon,
   PictureInPicture,
   Minimize2,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -306,6 +307,18 @@ export default function Home() {
                         {userEmail}
                       </span>
                     </div>
+                    {/* Dashboard button */}
+                    <Button
+                      onClick={() => router.push("/dashboard")}
+                      variant="outline"
+                      size="sm"
+                      className="hidden lg:flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm font-medium"
+                      title="Go to dashboard"
+                    >
+                      <BarChart3 className="w-3 h-3 lg:w-4 lg:h-4" />
+                      <span className="hidden xl:inline">Dashboard</span>
+                      <span className="xl:hidden">Dash</span>
+                    </Button>
                     {/* Sign Out button */}
                     <button
                       onClick={() => signOut({ callbackUrl: "/login" })}

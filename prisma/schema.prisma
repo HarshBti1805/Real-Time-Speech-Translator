@@ -22,6 +22,10 @@ model User {
   accounts       Account[]
   sessions       Session[]
   transcriptions Transcription[]
+  userPreferences UserPreferences?
+  translationHistory TranslationHistory[]
+  analytics      Analytics[]
+  costTracking   CostTracking[]
 
   @@map("users")
 }
@@ -75,6 +79,81 @@ model Transcription {
 
   @@map("transcriptions")
   @@index([userId, createdAt])
+}
+
+model UserPreferences {
+  id                    String   @id @default(cuid())
+  userId                String   @unique @map("user_id")
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  favoriteSourceLanguages String[] @default([]) // Array of language codes
+  favoriteTargetLanguages String[] @default([]) // Array of language codes
+  defaultSourceLanguage String   @default("en")
+  defaultTargetLanguage String   @default("es")
+  theme                 String   @default("dark")
+  notificationsEnabled  Boolean  @default(true)
+  autoSaveEnabled       Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+model TranslationHistory {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceLanguage  String
+  targetLanguage  String
+  sourceText      String
+  translatedText  String
+  translationType String   // "text", "speech", "file"
+  wordCount       Int      @default(0)
+  characterCount  Int      @default(0)
+  accuracy        Float?   // Translation accuracy score
+  cost            Float    @default(0) // Cost in USD
+  apiProvider     String   @default("google") // Which API was used
+  createdAt       DateTime @default(now())
+
+  @@map("translation_history")
+  @@index([userId, createdAt])
+  @@index([translationType, createdAt])
+}
+
+model Analytics {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime @default(now())
+  translationsCount Int    @default(0)
+  wordsTranslated Int      @default(0)
+  charactersTranslated Int @default(0)
+  totalCost       Float    @default(0)
+  mostUsedSourceLanguage String?
+  mostUsedTargetLanguage String?
+  averageAccuracy Float?
+  sessionDuration Int?     // in seconds
+  createdAt       DateTime @default(now())
+
+  @@map("analytics")
+  @@index([userId, date])
+}
+
+model CostTracking {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime @default(now())
+  apiProvider     String
+  serviceType     String   // "translation", "speech", "ocr", etc.
+  usageAmount     Float    // Number of characters, words, or API calls
+  costPerUnit     Float    // Cost per character, word, or API call
+  totalCost       Float
+  currency        String   @default("USD")
+  createdAt       DateTime @default(now())
+
+  @@map("cost_tracking")
+  @@index([userId, date])
+  @@index([apiProvider, date])
 }
 
 enum Role {
