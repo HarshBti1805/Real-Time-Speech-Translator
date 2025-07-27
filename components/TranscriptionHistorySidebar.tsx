@@ -4,6 +4,7 @@ import {
   Volume2,
   Image as ImageIcon,
   Type,
+  Video,
   Trash2,
   Copy as CopyIcon,
   Check as CheckIcon,
@@ -34,6 +35,8 @@ const typeIcon = (type: string) => {
       return (
         <FileText className="w-4 h-4 text-purple-500 dark:text-purple-400" />
       );
+    case "video":
+      return <Video className="w-4 h-4 text-red-500 dark:text-red-400" />;
     case "image":
       return (
         <ImageIcon className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
@@ -51,6 +54,8 @@ const typeGradient = (type: string) => {
       return "from-cyan-500/10 to-blue-500/10 dark:from-cyan-500/20 dark:to-blue-500/20";
     case "file":
       return "from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20";
+    case "video":
+      return "from-red-500/10 to-rose-500/10 dark:from-red-500/20 dark:to-rose-500/20";
     case "image":
       return "from-emerald-500/10 to-green-500/10 dark:from-emerald-500/20 dark:to-green-500/20";
     case "text":

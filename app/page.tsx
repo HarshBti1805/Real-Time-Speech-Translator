@@ -123,6 +123,7 @@ export default function Home() {
     {
       id: "main",
       label: "Audio Translator",
+      shortLabel: "Audio",
       icon: Volume2,
       description: "Translate speech in real-time",
       badge: "AI Powered",
@@ -130,20 +131,23 @@ export default function Home() {
     {
       id: "translate",
       label: "Text Translator",
+      shortLabel: "Text",
       icon: Languages,
       description: "Translate text between languages",
       badge: "Multi-Lang",
     },
     {
       id: "fileupload",
-      label: "Audio File Upload",
+      label: "Media Upload",
+      shortLabel: "Upload",
       icon: FileText,
-      description: "Upload audio files for transcription",
+      description: "Upload audio/video files for processing",
       badge: "File Upload",
     },
     {
       id: "voicerecording",
       label: "Visual OCR",
+      shortLabel: "OCR",
       icon: Camera,
       description: "Extract text from images and screenshots",
       badge: "OCR Ready",
@@ -288,7 +292,7 @@ export default function Home() {
                     <Mic className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <h1 className="text-lg sm:text-xl md:text-2xl font-jetbrains-mono font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    <h1 className="text-lg sm:text-xl md:text-2xl font-mono font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                       TranslateHub
                     </h1>
                     <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-purple-400" />
@@ -551,15 +555,15 @@ export default function Home() {
           <nav className="sticky top-14 sm:top-16 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="px-2 sm:px-4 min-w-0">
               {/* Desktop Navigation */}
-              <div className="hidden lg:flex justify-center items-center">
-                <div className="flex space-x-3 xl:space-x-5 py-3 lg:py-4">
+              <div className="hidden lg:flex justify-center items-center w-full">
+                <div className="flex space-x-2 lg:space-x-3 xl:space-x-4 py-3 lg:py-4 w-full max-w-7xl justify-center">
                   {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeComponent === item.id;
                     return (
                       <Card
                         key={item.id}
-                        className={`cursor-pointer transition-all duration-200 hover:scale-105 min-w-[200px] xl:min-w-[240px] ${
+                        className={`cursor-pointer transition-all duration-200 hover:scale-105 flex-1 max-w-[280px] min-w-[220px] ${
                           isActive
                             ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-500/50 shadow-lg shadow-blue-500/25"
                             : "bg-card border-border hover:bg-accent hover:border-accent-foreground/20"
@@ -576,7 +580,7 @@ export default function Home() {
                               }`}
                             >
                               <Icon
-                                className={`w-5 h-5 ${
+                                className={`w-4 h-4 lg:w-5 lg:h-5 ${
                                   isActive
                                     ? "text-white"
                                     : "text-muted-foreground"
@@ -586,13 +590,19 @@ export default function Home() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center space-x-2">
                                 <h3
-                                  className={`font-semibold text-lg xl:text-xl font-jetbrains-mono truncate ${
+                                  className={`font-semibold text-sm lg:text-base xl:text-lg font-jetbrains-mono truncate ${
                                     isActive
                                       ? "text-foreground"
                                       : "text-foreground/90"
                                   }`}
+                                  title={item.label}
                                 >
-                                  {item.label}
+                                  <span className="lg:hidden font-mono">
+                                    {item.shortLabel}
+                                  </span>
+                                  <span className="hidden lg:inline font-mono">
+                                    {item.label}
+                                  </span>
                                 </h3>
                               </div>
                               <p
@@ -601,6 +611,7 @@ export default function Home() {
                                     ? "text-foreground/80"
                                     : "text-muted-foreground"
                                 }`}
+                                title={item.description}
                               >
                                 {item.description}
                               </p>
@@ -648,13 +659,19 @@ export default function Home() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <h3
-                                className={`font-semibold text-sm font-jetbrains-mono truncate ${
+                                className={`font-semibold text-sm font-mono truncate ${
                                   isActive
                                     ? "text-foreground"
                                     : "text-foreground/90"
                                 }`}
+                                title={item.label}
                               >
-                                {item.label}
+                                <span className="md:hidden lg:inline font-mono">
+                                  {item.label}
+                                </span>
+                                <span className="hidden md:inline lg:hidden font-mono">
+                                  {item.shortLabel}
+                                </span>
                               </h3>
                               <p
                                 className={`text-xs mt-1 font-product-sans line-clamp-2 ${
@@ -710,13 +727,19 @@ export default function Home() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center space-x-2">
                                 <h3
-                                  className={`font-semibold text-base sm:text-lg font-jetbrains-mono truncate ${
+                                  className={`font-semibold text-base sm:text-lg font-mono truncate ${
                                     isActive
                                       ? "text-foreground"
                                       : "text-foreground/90"
                                   }`}
+                                  title={item.label}
                                 >
-                                  {item.label}
+                                  <span className="sm:hidden font-mono">
+                                    {item.shortLabel}
+                                  </span>
+                                  <span className="hidden sm:inline font-mono">
+                                    {item.label}
+                                  </span>
                                 </h3>
                               </div>
                               <p
@@ -756,7 +779,7 @@ export default function Home() {
                   <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
                     <Mic className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   </div>
-                  <span className="text-base sm:text-lg font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  <span className="text-base sm:text-lg font-semibold font-mono bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                     TranslateHub
                   </span>
                 </div>
