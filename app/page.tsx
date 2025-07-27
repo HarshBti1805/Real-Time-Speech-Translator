@@ -41,6 +41,9 @@ export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [activeComponent, setActiveComponent] = useState("main");
+  const [fileUploadType, setFileUploadType] = useState<
+    "audio" | "video" | null
+  >(null);
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("theme") || "dark";
@@ -79,6 +82,13 @@ export default function Home() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [sidebarOpen]);
+
+  // Reset file upload type when switching components
+  useEffect(() => {
+    if (activeComponent !== "fileupload") {
+      setFileUploadType(null);
+    }
+  }, [activeComponent]);
 
   // Remove all pipHooks, pipHooksLoaded, and related dynamic import logic
   // Use hooks as originally:
@@ -161,7 +171,7 @@ export default function Home() {
       case "translate":
         return <Translate />;
       case "fileupload":
-        return <FileUploadPage />;
+        return <FileUploadPage onFileTypeChange={setFileUploadType} />;
       case "voicerecording":
         return <VoiceRecordingPage />;
       default:
@@ -172,13 +182,20 @@ export default function Home() {
   const getSidebarHeight = () => {
     switch (activeComponent) {
       case "main":
-        return "970px";
+        return "960px";
       case "translate":
-        return "1187px";
+        return "1176px";
       case "fileupload":
-        return "1084px";
+        // Return different heights based on file upload type
+        if (fileUploadType === "audio") {
+          return "1604px";
+        } else if (fileUploadType === "video") {
+          return "1802px";
+        }
+        // Default height when no file type is selected yet
+        return "1604px";
       case "voicerecording":
-        return "1200px";
+        return "1545px";
       default:
         return "100px";
     }

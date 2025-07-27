@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,10 @@ import {
   Music,
 } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
+
+interface FileUploadPageProps {
+  onFileTypeChange?: (type: "audio" | "video" | null) => void;
+}
 
 // Video Upload Component
 function VideoUpload() {
@@ -597,8 +601,21 @@ function VideoUpload() {
   );
 }
 
-export default function FileUploadPage() {
+export default function FileUploadPage({
+  onFileTypeChange,
+}: FileUploadPageProps) {
   const [activeTab, setActiveTab] = useState<"audio" | "video">("audio");
+
+  // Call onFileTypeChange when tab changes
+  const handleTabChange = (tab: "audio" | "video") => {
+    setActiveTab(tab);
+    onFileTypeChange?.(tab);
+  };
+
+  // Set initial file type when component mounts
+  useEffect(() => {
+    onFileTypeChange?.("audio");
+  }, [onFileTypeChange]);
 
   return (
     <div className="p-6">
@@ -625,7 +642,7 @@ export default function FileUploadPage() {
           <CardContent className="p-0">
             <div className="flex border-b border-border">
               <button
-                onClick={() => setActiveTab("audio")}
+                onClick={() => handleTabChange("audio")}
                 className={`flex-1 flex items-center justify-center p-4 font-medium transition-colors ${
                   activeTab === "audio"
                     ? "border-b-2 border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
@@ -636,7 +653,7 @@ export default function FileUploadPage() {
                 Audio Transcription
               </button>
               <button
-                onClick={() => setActiveTab("video")}
+                onClick={() => handleTabChange("video")}
                 className={`flex-1 flex items-center justify-center p-4 font-medium transition-colors ${
                   activeTab === "video"
                     ? "border-b-2 border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-900/20"
