@@ -34,67 +34,34 @@ export async function POST(request: NextRequest) {
 
     // Build context-aware system prompt based on current app state
     const getSystemPrompt = (context: ChatContext) => {
-      const basePrompt = `You are TranslateHub Assistant, an AI chatbot integrated into a real-time translation application. You help users with:
+      const basePrompt = `You are TranslateHub Assistant. Be direct, concise, and helpful. Avoid phrases like "feel free to ask", "I'm here to help", or other redundant politeness. Give specific, actionable answers.
 
-1. TRANSLATION ASSISTANCE:
-   - Explain translation choices and cultural nuances
-   - Suggest alternative translations (formal/informal, regional variants)
-   - Help with grammar and language structure
-   - Provide context for idioms and colloquialisms
+AREAS OF EXPERTISE:
+• Translation accuracy, cultural nuances, alternatives (formal/informal, regional)
+• Grammar, pronunciation, idioms, conversation practice
+• App features: Audio Translator, Text Translator, File to Text
+• Troubleshooting: audio quality, recording, file formats, OCR
+• Language learning: pronunciation, grammar rules, cultural insights
 
-2. APP GUIDANCE:
-   - Help users navigate features (Audio Translator, Text Translator, File to Text)
-   - Troubleshoot common issues
-   - Optimize settings for better results
-   - Explain usage analytics and costs
-
-3. LANGUAGE LEARNING:
-   - Provide pronunciation tips
-   - Explain grammar rules
-   - Suggest conversation practice
-   - Offer cultural insights
-
-4. REAL-TIME SUPPORT:
-   - Help during active translations
-   - Suggest improvements for unclear phrases
-   - Provide meeting/conversation assistance
-
-Current user: ${session.user?.name || "User"}
-Current context: ${context?.currentMode || "main page"}`;
+User: ${session.user?.name || "User"} | Mode: ${
+        context?.currentMode || "main"
+      }`;
 
       // Add mode-specific context
       if (context?.currentMode === "main") {
         return (
           basePrompt +
-          `
-
-You're currently in Audio Translator mode. Help with:
-- Real-time speech translation tips
-- Voice recording optimization
-- Audio quality troubleshooting
-- Pronunciation guidance`
+          `\n\nCURRENT: Audio Translator - Focus on real-time speech, voice optimization, audio troubleshooting.`
         );
       } else if (context?.currentMode === "translate") {
         return (
           basePrompt +
-          `
-
-You're currently in Text Translator mode. Help with:
-- Text translation accuracy
-- Writing style suggestions
-- Language pair optimization
-- Batch translation tips`
+          `\n\nCURRENT: Text Translator - Focus on text accuracy, style, language pairs, batch processing.`
         );
       } else if (context?.currentMode === "speech") {
         return (
           basePrompt +
-          `
-
-You're currently in File to Text mode. Help with:
-- Audio file format optimization
-- OCR text extraction tips
-- File processing troubleshooting
-- Transcription accuracy improvement`
+          `\n\nCURRENT: File to Text - Focus on audio files, OCR, transcription accuracy, file formats.`
         );
       }
 
@@ -124,10 +91,10 @@ You're currently in File to Text mode. Help with:
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,
-      max_tokens: 1000,
-      temperature: 0.7,
-      presence_penalty: 0.1,
-      frequency_penalty: 0.1,
+      max_tokens: 400, // Reduced for concise responses
+      temperature: 0.6, // Slightly lower for more focused responses
+      presence_penalty: 0.2, // Higher to avoid repetitive phrases
+      frequency_penalty: 0.3, // Higher to encourage varied, concise language
     });
 
     const response = completion.choices[0]?.message?.content;

@@ -16,10 +16,11 @@ import {
   Minimize2,
   Maximize2,
   RotateCcw,
-  // Volume2,
   Copy,
   Check,
   Loader2,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -71,6 +72,7 @@ interface SpeechRecognitionResult {
     confidence: number;
   };
   length: number;
+  isFinal: boolean;
 }
 
 interface SpeechRecognitionResultList {
@@ -90,7 +92,7 @@ interface SpeechRecognitionAPI {
   onstart: (() => void) | null;
   onend: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventResult) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: Event) => void) | null;
   start(): void;
   stop(): void;
 }
@@ -135,8 +137,20 @@ const ChatBot = memo(function ChatBot({
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+  // Voice mode states
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentSpeakingMessageId, setCurrentSpeakingMessageId] = useState<
+    string | null
+  >(null);
+  const [voiceError, setVoiceError] = useState("");
+  const [interimTranscript, setInterimTranscript] = useState("");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<SpeechRecognitionAPI | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Quick action suggestions based on current mode
   const getQuickActions = () => {
@@ -197,8 +211,523 @@ const ChatBot = memo(function ChatBot({
     }
   }, [isOpen, session?.user?.name]);
 
-  const sendMessage = async (content: string) => {
+  // Language detection and voice mapping
+  const detectLanguageAndVoice = (text: string, context: string) => {
+    const lowerText = text.toLowerCase();
+    const lowerContext = context.toLowerCase();
+
+    // Language detection patterns
+    const languagePatterns = {
+      hindi: {
+        keywords: [
+          "hindi",
+          "हिंदी",
+          "devanagari",
+          "translate to hindi",
+          "in hindi",
+        ],
+        languageCode: "hi-IN",
+        voiceName: "hi-IN-Wavenet-A",
+      },
+      spanish: {
+        keywords: [
+          "spanish",
+          "español",
+          "translate to spanish",
+          "in spanish",
+          "es-",
+        ],
+        languageCode: "es-ES",
+        voiceName: "es-ES-Wavenet-B",
+      },
+      french: {
+        keywords: [
+          "french",
+          "français",
+          "translate to french",
+          "in french",
+          "fr-",
+        ],
+        languageCode: "fr-FR",
+        voiceName: "fr-FR-Wavenet-A",
+      },
+      german: {
+        keywords: [
+          "german",
+          "deutsch",
+          "translate to german",
+          "in german",
+          "de-",
+        ],
+        languageCode: "de-DE",
+        voiceName: "de-DE-Wavenet-B",
+      },
+      japanese: {
+        keywords: [
+          "japanese",
+          "日本語",
+          "translate to japanese",
+          "in japanese",
+          "ja-",
+        ],
+        languageCode: "ja-JP",
+        voiceName: "ja-JP-Wavenet-A",
+      },
+      chinese: {
+        keywords: [
+          "chinese",
+          "中文",
+          "mandarin",
+          "translate to chinese",
+          "in chinese",
+          "zh-",
+        ],
+        languageCode: "zh-CN",
+        voiceName: "zh-CN-Wavenet-A",
+      },
+      arabic: {
+        keywords: [
+          "arabic",
+          "العربية",
+          "translate to arabic",
+          "in arabic",
+          "ar-",
+        ],
+        languageCode: "ar-XA",
+        voiceName: "ar-XA-Wavenet-A",
+      },
+      italian: {
+        keywords: [
+          "italian",
+          "italiano",
+          "translate to italian",
+          "in italian",
+          "it-",
+        ],
+        languageCode: "it-IT",
+        voiceName: "it-IT-Wavenet-A",
+      },
+      portuguese: {
+        keywords: [
+          "portuguese",
+          "português",
+          "translate to portuguese",
+          "in portuguese",
+          "pt-",
+        ],
+        languageCode: "pt-BR",
+        voiceName: "pt-BR-Wavenet-A",
+      },
+      russian: {
+        keywords: [
+          "russian",
+          "русский",
+          "translate to russian",
+          "in russian",
+          "ru-",
+        ],
+        languageCode: "ru-RU",
+        voiceName: "ru-RU-Wavenet-A",
+      },
+      korean: {
+        keywords: [
+          "korean",
+          "한국어",
+          "translate to korean",
+          "in korean",
+          "ko-",
+        ],
+        languageCode: "ko-KR",
+        voiceName: "ko-KR-Wavenet-A",
+      },
+    };
+
+    // Check if the text contains language-specific characters
+    const hasHindiChars = /[\u0900-\u097F]/.test(text);
+    const hasChineseChars = /[\u4e00-\u9fff]/.test(text);
+    const hasArabicChars = /[\u0600-\u06FF]/.test(text);
+    const hasJapaneseChars = /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
+    const hasKoreanChars = /[\uAC00-\uD7AF]/.test(text);
+
+    if (hasHindiChars) return languagePatterns.hindi;
+    if (hasChineseChars) return languagePatterns.chinese;
+    if (hasArabicChars) return languagePatterns.arabic;
+    if (hasJapaneseChars) return languagePatterns.japanese;
+    if (hasKoreanChars) return languagePatterns.korean;
+
+    // Check context and text for language keywords
+    const combinedText = `${lowerContext} ${lowerText}`;
+
+    for (const [lang, config] of Object.entries(languagePatterns)) {
+      for (const keyword of config.keywords) {
+        if (combinedText.includes(keyword)) {
+          console.log(`🌍 Detected language: ${lang} (keyword: "${keyword}")`);
+          return config;
+        }
+      }
+    }
+
+    // Default to English
+    return {
+      languageCode: "en-US",
+      voiceName: "en-US-Wavenet-D",
+    };
+  };
+
+  // Stop TTS playback
+  const stopTTS = () => {
+    console.log("🛑 Stopping TTS playback");
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsSpeaking(false);
+  };
+
+  // Enhanced TTS Function with smart language detection
+  const speakText = async (
+    text: string,
+    userMessage?: string,
+    messageId?: string
+  ) => {
+    console.log("🔊 speakText function called!");
+    console.log("📝 Text to speak:", text.substring(0, 100) + "...");
+    console.log("🔄 Currently speaking:", isSpeaking);
+    console.log("🎙️ Voice mode state:", isVoiceMode);
+
+    if (!text.trim()) {
+      console.log("❌ No text provided to speak");
+      return;
+    }
+
+    if (isSpeaking) {
+      console.log("⏭️ Already speaking, skipping...");
+      return;
+    }
+
+    console.log("🎯 Setting isSpeaking to true");
+    setIsSpeaking(true);
+    setCurrentSpeakingMessageId(messageId || null);
+    setVoiceError("");
+
+    try {
+      // Smart language and voice detection
+      const context =
+        userMessage || messages[messages.length - 1]?.content || "";
+      const voiceConfig = detectLanguageAndVoice(text, context);
+
+      console.log("🌍 Voice configuration:", voiceConfig);
+      console.log("🗣️ Language code:", voiceConfig.languageCode);
+      console.log("🎭 Voice name:", voiceConfig.voiceName);
+
+      const ttsUrl = "https://chatbot-tts-server.onrender.com/tts";
+
+      console.log("🏠 Connecting to deployed Flask server:", ttsUrl);
+      console.log("📤 Request payload:", {
+        text: text.substring(0, 50) + "...",
+        languageCode: voiceConfig.languageCode,
+        voiceName: voiceConfig.voiceName,
+      });
+
+      const requestOptions = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "audio/mpeg, audio/*",
+        },
+        body: JSON.stringify({
+          text: text,
+          languageCode: voiceConfig.languageCode,
+          voiceName: voiceConfig.voiceName,
+        }),
+      };
+
+      console.log("📡 Making fetch request...");
+      const response = await fetch(ttsUrl, requestOptions);
+
+      console.log("📥 Response received!");
+      console.log(
+        "🌐 Flask response status:",
+        response.status,
+        response.statusText
+      );
+      console.log(
+        "📋 Response headers:",
+        Object.fromEntries(response.headers.entries())
+      );
+
+      if (!response.ok) {
+        let errorText;
+        try {
+          errorText = await response.text();
+        } catch {
+          errorText = "Unable to read error response";
+        }
+        console.error("❌ Flask TTS Error Response:", errorText);
+        throw new Error(
+          `Flask TTS Error: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
+
+      console.log("✅ Response OK, reading audio blob...");
+      const audioBlob = await response.blob();
+      console.log("📦 Flask audio blob:", {
+        size: audioBlob.size + " bytes",
+        type: audioBlob.type,
+      });
+
+      if (audioBlob.size === 0) {
+        throw new Error("Flask returned empty audio blob");
+      }
+
+      console.log("🔗 Creating audio URL...");
+      const audioUrl = URL.createObjectURL(audioBlob);
+      console.log("🔗 Audio URL created:", audioUrl.substring(0, 50) + "...");
+
+      // Clean up previous audio
+      if (audioRef.current) {
+        console.log("🧹 Cleaning up previous audio");
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      console.log("🎵 Creating new Audio object...");
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      // Set up audio event handlers
+      audio.onloadstart = () => {
+        console.log("📥 Audio loading started");
+      };
+
+      audio.onloadeddata = () => {
+        console.log("✅ Audio data loaded successfully");
+      };
+
+      audio.oncanplay = () => {
+        console.log("▶️ Audio ready to play");
+      };
+
+      audio.onended = () => {
+        console.log("🏁 Audio playback ended");
+        setIsSpeaking(false);
+        setCurrentSpeakingMessageId(null);
+        URL.revokeObjectURL(audioUrl);
+        if (isVoiceMode && !isListening) {
+          console.log("🔄 Restarting listening after TTS...");
+          setTimeout(() => {
+            if (isVoiceMode && !isSpeaking) {
+              startContinuousListening();
+            }
+          }, 500);
+        }
+      };
+
+      audio.onerror = (audioError) => {
+        console.error("❌ Audio playback error:", audioError);
+        console.error("❌ Audio error details:", {
+          error: audioError,
+          audioSrc: audio.src,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+        });
+        setIsSpeaking(false);
+        setVoiceError("Audio playback failed");
+        URL.revokeObjectURL(audioUrl);
+        if (isVoiceMode && !isListening) {
+          setTimeout(() => {
+            if (isVoiceMode && !isSpeaking) {
+              startContinuousListening();
+            }
+          }, 1000);
+        }
+      };
+
+      audio.onplay = () => {
+        console.log("▶️ Audio playback started");
+      };
+
+      console.log("🎵 Attempting to play audio...");
+
+      // Try to play the audio
+      try {
+        await audio.play();
+        console.log("✅ TTS audio playing successfully!");
+      } catch (playError) {
+        console.error("❌ Audio play() failed:", playError);
+
+        // Check if it's an autoplay policy issue
+        if (
+          playError instanceof Error &&
+          playError.name === "NotAllowedError"
+        ) {
+          setVoiceError(
+            "Audio blocked by browser. Please interact with the page first."
+          );
+          console.log("🚫 Autoplay blocked - user interaction required");
+        } else {
+          throw playError;
+        }
+      }
+    } catch (error) {
+      console.error("❌ TTS Error:", error);
+
+      // More detailed error information
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        console.error("🌐 Network error - Flask server may not be running");
+        setVoiceError(
+          "Cannot connect to TTS server. Please check your internet connection."
+        );
+      } else if (error instanceof Error) {
+        console.error("❌ Error details:", error.message, error.stack);
+        setVoiceError(error.message);
+      } else {
+        setVoiceError("Unknown TTS error occurred");
+      }
+
+      setIsSpeaking(false);
+      if (isVoiceMode && !isListening) {
+        setTimeout(() => {
+          if (isVoiceMode && !isSpeaking) {
+            startContinuousListening();
+          }
+        }, 1000);
+      }
+    }
+  };
+
+  // Continuous Speech Recognition
+  const startContinuousListening = () => {
+    if (!("webkitSpeechRecognition" in window)) {
+      setVoiceError("Speech recognition not supported in this browser");
+      return;
+    }
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceError("");
+      setInterimTranscript("");
+
+      // Stop any ongoing TTS when user starts speaking
+      if (isSpeaking) {
+        console.log("🛑 User started speaking - stopping TTS");
+        stopTTS();
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setInterimTranscript("");
+      // Restart if voice mode is still on and not currently speaking
+      if (isVoiceMode && !isSpeaking) {
+        setTimeout(() => {
+          if (isVoiceMode && !isSpeaking) {
+            startContinuousListening();
+          }
+        }, 100);
+      }
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEventResult) => {
+      let finalTranscript = "";
+      let interimText = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimText += transcript;
+        }
+      }
+
+      setInterimTranscript(interimText);
+
+      if (finalTranscript.trim()) {
+        setInterimTranscript("");
+        console.log(
+          "🎙️ Speech recognition sending message with voice mode:",
+          isVoiceMode
+        );
+        sendMessage(finalTranscript.trim(), true); // Force voice mode true since this comes from speech recognition
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event);
+      setVoiceError("Speech recognition error occurred");
+      setIsListening(false);
+      setInterimTranscript("");
+
+      // Try to restart after a brief delay if voice mode is still on
+      if (isVoiceMode) {
+        setTimeout(() => {
+          if (isVoiceMode && !isSpeaking) {
+            startContinuousListening();
+          }
+        }, 1000);
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setInterimTranscript("");
+  };
+
+  const toggleVoiceMode = () => {
+    console.log("🎛️ toggleVoiceMode called, current state:", isVoiceMode);
+
+    if (isVoiceMode) {
+      // Turn off voice mode
+      console.log("❌ Turning OFF voice mode");
+      setIsVoiceMode(false);
+      stopListening();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsSpeaking(false);
+      }
+    } else {
+      // Turn on voice mode
+      console.log("✅ Turning ON voice mode");
+      setIsVoiceMode(true);
+      startContinuousListening();
+    }
+
+    // Log the new state after a brief delay to ensure state update
+    setTimeout(() => {
+      console.log("🎛️ Voice mode state after toggle:", !isVoiceMode);
+    }, 100);
+  };
+
+  // Enhanced sendMessage with TTS response for voice mode
+  const sendMessage = async (content: string, forceVoiceMode?: boolean) => {
     if (!content.trim() || isLoading) return;
+
+    // Capture voice mode state at the time of sending
+    const currentVoiceMode =
+      forceVoiceMode !== undefined ? forceVoiceMode : isVoiceMode;
+
+    console.log("📤 sendMessage called with:");
+    console.log("🎙️ Voice mode state (current):", isVoiceMode);
+    console.log("🎙️ Voice mode state (captured):", currentVoiceMode);
+    console.log("💬 Message:", content.substring(0, 50) + "...");
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -211,13 +740,38 @@ const ChatBot = memo(function ChatBot({
     setInputMessage("");
     setIsLoading(true);
 
+    // Stop listening temporarily while processing
+    if (currentVoiceMode && isListening) {
+      console.log("⏸️ Stopping listening during processing");
+      stopListening();
+    }
+
     try {
       const context = {
         currentMode,
         currentTranslation,
         sourceLanguage,
         targetLanguage,
+        isVoiceMode: currentVoiceMode,
       };
+
+      // Include the current user message in conversation history for better context
+      const fullConversationHistory = [
+        ...messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        {
+          role: userMessage.role,
+          content: userMessage.content,
+        },
+      ];
+
+      console.log("Sending to chatbot API:", {
+        message: content,
+        context,
+        conversationHistory: fullConversationHistory,
+      });
 
       const response = await fetch("/api/chatbot", {
         method: "POST",
@@ -227,10 +781,7 @@ const ChatBot = memo(function ChatBot({
         body: JSON.stringify({
           message: content,
           context,
-          conversationHistory: messages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
+          conversationHistory: fullConversationHistory,
         }),
       });
 
@@ -248,6 +799,41 @@ const ChatBot = memo(function ChatBot({
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Speak the response if voice mode is active
+      console.log("🎙️ Checking voice mode for TTS:");
+      console.log("  - isVoiceMode (current state):", isVoiceMode);
+      console.log("  - currentVoiceMode (captured):", currentVoiceMode);
+
+      if (currentVoiceMode) {
+        console.log("🎤 Voice mode is ACTIVE! Starting TTS...");
+        console.log(
+          "🗣️ AI Response to speak:",
+          data.response.substring(0, 100) + "..."
+        );
+        console.log("🌐 Target language:", targetLanguage || "en");
+        console.log("📱 Current mode:", currentMode);
+
+        try {
+          console.log("🔊 Calling speakText function...");
+          await speakText(data.response, content);
+          console.log("✅ speakText completed successfully");
+        } catch (ttsError) {
+          console.error("❌ TTS Error in voice mode:", ttsError);
+          setVoiceError(
+            "Failed to speak response: " +
+              (ttsError instanceof Error ? ttsError.message : "Unknown error")
+          );
+          // Also show the error visually
+          alert(
+            "TTS Error: " +
+              (ttsError instanceof Error ? ttsError.message : "Unknown error")
+          );
+        }
+      } else {
+        console.log("🔇 Voice mode is OFF - no audio response");
+        console.log("  (This might be due to React state timing)");
+      }
     } catch (error) {
       console.error("Chat error:", error);
       const errorMessage: Message = {
@@ -258,6 +844,14 @@ const ChatBot = memo(function ChatBot({
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+
+      // Speak error message if voice mode is active
+      if (currentVoiceMode) {
+        await speakText(
+          "I'm having trouble responding right now. Please try again.",
+          content
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -270,6 +864,7 @@ const ChatBot = memo(function ChatBot({
     }
   };
 
+  // Legacy single voice input (for when not in voice mode)
   const startVoiceInput = () => {
     if ("webkitSpeechRecognition" in window) {
       const recognition = new window.webkitSpeechRecognition();
@@ -334,6 +929,18 @@ const ChatBot = memo(function ChatBot({
   //       return "General";
   //   }
   // };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -518,40 +1125,43 @@ const ChatBot = memo(function ChatBot({
                 className={`${
                   isMinimized
                     ? "pb-2 pt-3 px-4 border-b-0"
-                    : "pb-3 pt-4 px-6 border-b border-border/50"
-                } bg-white/80 dark:bg-black/90 backdrop-blur-xl relative z-10`}
+                    : "pb-4 pt-4 px-6 border-b border-border/30"
+                } bg-white/95 dark:bg-black/95 backdrop-blur-xl relative z-10`}
               >
                 <div
                   className={`flex items-center justify-between ${
-                    isMinimized ? "py-2 px-1" : "px-0"
+                    isMinimized ? "py-1 px-1" : "px-0"
                   }`}
                 >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
                       <Bot className="w-5 h-5 text-white" />
                     </div>
                     {!isMinimized && (
                       <div>
-                        <CardTitle className="text-sm font-jetbrains-mono">
-                          TranslateHub Assistant
+                        <CardTitle className="text-base font-jetbrains-mono font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                          TranslateHub AI
                         </CardTitle>
-                        {/* <div className="flex items-center space-x-1 mt-1">
-                          <Badge
-                            variant="outline"
-                            className="text-xs py-0 px-2 h-5"
-                          >
-                            {getModeIcon()}
-                            <span className="ml-1">{getModeLabel()}</span>
-                          </Badge>
-                        </div> */}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Smart multilingual assistant
+                        </p>
                       </div>
                     )}
                     {isMinimized && (
                       <div className="flex items-center space-x-2">
-                        <CardTitle className="text-base font-jetbrains-mono">
+                        <CardTitle className="text-base font-jetbrains-mono font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                           TranslateHub AI
                         </CardTitle>
-                        <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+                        <motion.div
+                          animate={{ rotate: [0, 360] }}
+                          transition={{
+                            duration: 8,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
+                        >
+                          <Sparkles className="w-4 h-4 text-purple-400" />
+                        </motion.div>
                       </div>
                     )}
                   </div>
@@ -560,7 +1170,7 @@ const ChatBot = memo(function ChatBot({
                       variant="ghost"
                       size="icon"
                       onClick={() => setIsMinimized(!isMinimized)}
-                      className="h-8 w-8 hover:bg-purple-500/20 transition-colors"
+                      className="h-8 w-8 rounded-lg hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200"
                     >
                       {isMinimized ? (
                         <Maximize2 className="w-4 h-4" />
@@ -572,7 +1182,7 @@ const ChatBot = memo(function ChatBot({
                       variant="ghost"
                       size="icon"
                       onClick={() => setIsOpen(false)}
-                      className="h-8 w-8 hover:bg-red-500/20 transition-colors"
+                      className="h-8 w-8 rounded-lg hover:bg-red-500/10 hover:text-red-500 transition-all duration-200"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -595,10 +1205,10 @@ const ChatBot = memo(function ChatBot({
                           }`}
                         >
                           <div
-                            className={`max-w-[80%] rounded-lg p-3 backdrop-blur-sm border shadow-lg ${
+                            className={`max-w-[85%] rounded-2xl p-4 backdrop-blur-sm border shadow-lg group ${
                               message.role === "user"
-                                ? "bg-gradient-to-r from-blue-500/90 to-purple-500/90 text-white border-white/10"
-                                : "bg-gradient-to-br from-gray-50/95 via-white/90 to-blue-50/80 dark:from-gray-800/90 dark:via-gray-700/80 dark:to-gray-900/90 text-foreground border-gray-200/30 dark:border-gray-600/30 shadow-blue-100/50 dark:shadow-purple-900/20"
+                                ? "bg-gradient-to-r from-blue-500/95 to-purple-500/95 text-white border-white/20 shadow-blue-500/20"
+                                : "bg-gradient-to-br from-white/95 via-gray-50/90 to-blue-50/80 dark:from-gray-800/95 dark:via-gray-700/85 dark:to-gray-900/90 text-foreground border-gray-200/40 dark:border-gray-600/40 shadow-gray-100/50 dark:shadow-purple-900/15"
                             }`}
                           >
                             <div className="flex items-start space-x-2">
@@ -629,20 +1239,54 @@ const ChatBot = memo(function ChatBot({
                                     })}
                                   </span>
                                   {message.role === "assistant" && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() =>
-                                        copyMessage(message.content, message.id)
-                                      }
-                                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      {copiedMessageId === message.id ? (
-                                        <Check className="w-3 h-3" />
-                                      ) : (
-                                        <Copy className="w-3 h-3" />
-                                      )}
-                                    </Button>
+                                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                          // Find the most recent user message before this AI response for context
+                                          const messageIndex =
+                                            messages.indexOf(message);
+                                          const contextMessage = messages
+                                            .slice(0, messageIndex)
+                                            .reverse()
+                                            .find((m) => m.role === "user");
+                                          speakText(
+                                            message.content,
+                                            contextMessage?.content || "",
+                                            message.id
+                                          );
+                                        }}
+                                        disabled={isSpeaking}
+                                        className="h-6 w-6 hover:bg-blue-500/20 hover:text-blue-600"
+                                        title="Listen to this response"
+                                      >
+                                        {currentSpeakingMessageId ===
+                                        message.id ? (
+                                          <Volume2 className="w-3 h-3 text-blue-500" />
+                                        ) : (
+                                          <Volume2 className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() =>
+                                          copyMessage(
+                                            message.content,
+                                            message.id
+                                          )
+                                        }
+                                        className="h-6 w-6 hover:bg-gray-500/20"
+                                        title="Copy message"
+                                      >
+                                        {copiedMessageId === message.id ? (
+                                          <Check className="w-3 h-3" />
+                                        ) : (
+                                          <Copy className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -652,10 +1296,10 @@ const ChatBot = memo(function ChatBot({
                       ))}
                       {isLoading && (
                         <div className="flex justify-start">
-                          <div className="bg-gradient-to-br from-gray-50/95 via-white/90 to-blue-50/80 dark:from-gray-800/90 dark:via-gray-700/80 dark:to-gray-900/90 text-foreground rounded-lg p-3 max-w-[80%] backdrop-blur-sm border border-gray-200/30 dark:border-gray-600/30 shadow-lg shadow-blue-100/50 dark:shadow-purple-900/20">
-                            <div className="flex items-center space-x-2">
-                              <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                              <Loader2 className="w-4 h-4 animate-spin text-purple-600 dark:text-purple-400" />
+                          <div className="bg-gradient-to-br from-white/95 via-gray-50/90 to-blue-50/80 dark:from-gray-800/95 dark:via-gray-700/85 dark:to-gray-900/90 text-foreground rounded-2xl p-4 max-w-[85%] backdrop-blur-sm border border-gray-200/40 dark:border-gray-600/40 shadow-lg shadow-gray-100/50 dark:shadow-purple-900/15">
+                            <div className="flex items-center space-x-3">
+                              <Bot className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                              <Loader2 className="w-5 h-5 animate-spin text-purple-600 dark:text-purple-400" />
                               <span className="text-sm font-medium tracking-wide">
                                 Thinking...
                               </span>
@@ -669,78 +1313,219 @@ const ChatBot = memo(function ChatBot({
 
                   {/* Quick Actions */}
                   {messages.length <= 1 && (
-                    <div className="px-4 py-2 border-t border-border/50 bg-white/60 dark:bg-black/60 backdrop-blur-sm relative z-10">
-                      <div className="flex flex-wrap gap-1">
-                        {getQuickActions()
-                          .slice(0, 2)
-                          .map((action, index) => (
-                            <Button
-                              key={index}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => sendMessage(action)}
-                              className="text-xs h-7 px-2 font-medium tracking-wide hover:font-semibold transition-all"
-                            >
-                              {action.length > 30
-                                ? `${action.slice(0, 30)}...`
-                                : action}
-                            </Button>
-                          ))}
+                    <div className="px-6 py-3 border-t border-border/30 bg-white/80 dark:bg-black/80 backdrop-blur-sm relative z-10">
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Quick Actions
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {getQuickActions()
+                            .slice(0, 2)
+                            .map((action, index) => (
+                              <Button
+                                key={index}
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => sendMessage(action)}
+                                className="text-xs h-8 px-3 rounded-lg font-medium tracking-wide bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-800/30 dark:hover:to-purple-800/30 border border-blue-200/50 dark:border-blue-700/30 transition-all duration-200"
+                              >
+                                {action.length > 28
+                                  ? `${action.slice(0, 28)}...`
+                                  : action}
+                              </Button>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Voice Mode Status Bar */}
+                  {isVoiceMode && (
+                    <div className="px-4 py-2 border-t border-border/50 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 backdrop-blur-sm relative z-10">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2">
+                            {isListening ? (
+                              <>
+                                <motion.div
+                                  animate={{ scale: [1, 1.3, 1] }}
+                                  transition={{ duration: 1, repeat: Infinity }}
+                                  className="w-2 h-2 bg-red-500 rounded-full shadow-sm"
+                                />
+                                <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                                  Listening
+                                </span>
+                              </>
+                            ) : isSpeaking ? (
+                              <>
+                                <motion.div
+                                  animate={{ scale: [1, 1.2, 1] }}
+                                  transition={{
+                                    duration: 0.8,
+                                    repeat: Infinity,
+                                  }}
+                                  className="w-2 h-2 bg-blue-500 rounded-full shadow-sm"
+                                />
+                                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                  Speaking
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm" />
+                                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                                  Ready
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {interimTranscript && (
+                            <div className="flex items-center space-x-1 bg-white/50 dark:bg-gray-800/50 rounded-full px-2 py-1">
+                              <span className="text-xs text-muted-foreground italic max-w-48 truncate">
+                                &ldquo;{interimTranscript}&rdquo;
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {voiceError && (
+                          <div className="flex items-center space-x-1 text-orange-500 text-xs bg-orange-50 dark:bg-orange-900/20 rounded-full px-2 py-1">
+                            <VolumeX className="w-3 h-3" />
+                            <span className="max-w-32 truncate">
+                              {voiceError}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
 
                   {/* Input */}
-                  <div className="p-4 border-t border-border/50 bg-white/80 dark:bg-black/90 backdrop-blur-xl relative z-10">
-                    <div className="flex items-end space-x-2">
+                  <div className="p-4 border-t border-border/50 bg-white/90 dark:bg-black/95 backdrop-blur-xl relative z-10">
+                    <div className="flex items-end space-x-3">
                       <div className="flex-1 relative">
                         <textarea
                           ref={inputRef}
                           value={inputMessage}
                           onChange={(e) => setInputMessage(e.target.value)}
                           onKeyPress={handleKeyPress}
-                          placeholder="Ask me anything about translations..."
-                          className="w-full resize-none rounded-lg border border-white/20 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-3 py-2 text-sm font-medium tracking-wide focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-purple-500/50 focus:border-blue-500/50 dark:focus:border-purple-500/50 transition-all duration-200 max-h-20 shadow-sm [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                          placeholder={
+                            isVoiceMode
+                              ? "🎙️ Speak to chat..."
+                              : "Ask about translations, languages..."
+                          }
+                          className="w-full resize-none rounded-xl border border-white/30 dark:border-gray-600/40 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-3 text-sm font-medium tracking-wide placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-purple-500/40 focus:border-blue-500/40 dark:focus:border-purple-500/40 transition-all duration-300 max-h-24 shadow-lg shadow-black/5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                           rows={1}
-                          disabled={isLoading}
+                          disabled={isLoading || isVoiceMode}
                         />
+                        {isLoading && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                          </div>
+                        )}
                       </div>
-                      <div className="flex space-x-1">
+                      <div className="flex space-x-2">
+                        {/* Voice Mode Toggle */}
                         <Button
-                          variant="ghost"
+                          variant={isVoiceMode ? "default" : "ghost"}
                           size="icon"
-                          onClick={startVoiceInput}
-                          disabled={isLoading || isListening}
-                          className="h-10 w-10"
+                          onClick={toggleVoiceMode}
+                          disabled={isLoading}
+                          className={`h-11 w-11 rounded-xl transition-all duration-300 ${
+                            isVoiceMode
+                              ? "bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg shadow-red-500/25"
+                              : "hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 border border-transparent hover:border-blue-500/20"
+                          }`}
+                          title={
+                            isVoiceMode ? "Stop voice mode" : "Start voice mode"
+                          }
                         >
-                          {isListening ? (
-                            <MicOff className="w-4 h-4 text-red-500" />
+                          {isVoiceMode ? (
+                            <motion.div
+                              animate={{ scale: [1, 1.1, 1] }}
+                              transition={{ duration: 1, repeat: Infinity }}
+                            >
+                              <MicOff className="w-5 h-5" />
+                            </motion.div>
                           ) : (
-                            <Mic className="w-4 h-4" />
+                            <Mic className="w-5 h-5" />
                           )}
                         </Button>
+
+                        {/* Traditional single voice input (only when not in voice mode) */}
+                        {!isVoiceMode && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={startVoiceInput}
+                            disabled={isLoading || isListening}
+                            className="h-11 w-11 rounded-xl hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 border border-transparent hover:border-purple-500/20 transition-all duration-300"
+                            title="Single voice input"
+                          >
+                            {isListening ? (
+                              <motion.div
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ duration: 0.5, repeat: Infinity }}
+                              >
+                                <Volume2 className="w-5 h-5 text-red-500" />
+                              </motion.div>
+                            ) : (
+                              <Volume2 className="w-5 h-5" />
+                            )}
+                          </Button>
+                        )}
+
                         <Button
                           onClick={() => sendMessage(inputMessage)}
-                          disabled={!inputMessage.trim() || isLoading}
-                          className="h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                          disabled={
+                            !inputMessage.trim() || isLoading || isVoiceMode
+                          }
+                          className="h-11 w-11 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
                           size="icon"
                         >
-                          <Send className="w-4 h-4" />
+                          <Send className="w-5 h-5" />
                         </Button>
                       </div>
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs text-muted-foreground font-light italic tracking-wide">
-                        Press Enter to send, Shift+Enter for new line
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        {messages.length > 1 &&
+                          messages[messages.length - 1]?.role ===
+                            "assistant" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const lastAIMessage =
+                                  messages[messages.length - 1];
+                                const contextMessage = messages
+                                  .slice(0, -1)
+                                  .reverse()
+                                  .find((m) => m.role === "user");
+                                speakText(
+                                  lastAIMessage.content,
+                                  contextMessage?.content || ""
+                                );
+                              }}
+                              disabled={isSpeaking}
+                              className="text-xs h-6 px-2 font-medium tracking-wide hover:font-semibold transition-all hover:bg-blue-500/10 hover:text-blue-500"
+                            >
+                              {isSpeaking ? (
+                                <Volume2 className="w-3 h-3 mr-1 text-blue-500" />
+                              ) : (
+                                <Volume2 className="w-3 h-3 mr-1" />
+                              )}
+                              Replay
+                            </Button>
+                          )}
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={clearChat}
-                        className="text-xs h-6 px-2 font-medium tracking-wide hover:font-semibold transition-all"
+                        className="text-xs h-6 px-2 font-medium tracking-wide hover:font-semibold transition-all hover:bg-red-500/10 hover:text-red-500"
                       >
                         <RotateCcw className="w-3 h-3 mr-1" />
-                        Clear
+                        Clear Chat
                       </Button>
                     </div>
                   </div>
