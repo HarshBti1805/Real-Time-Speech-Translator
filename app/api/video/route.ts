@@ -128,7 +128,7 @@ async function uploadAudioToStorage(
 
   try {
     // Use a simple bucket name without creating it
-    const bucketName = "speech-translator-466118-speech-audio";
+    const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET || "";
 
     // Create a unique filename
     const timestamp = Date.now();
