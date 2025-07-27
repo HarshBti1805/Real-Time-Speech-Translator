@@ -32,12 +32,12 @@ const parseMarkdown = (text: string) => {
       // ### Headings
       .replace(
         /^###\s+(.+)$/gm,
-        '<h3 class="font-bold text-purple-600 dark:text-purple-400 mt-3 mb-2 text-lg border-l-4 border-purple-500 pl-3 bg-purple-50/50 dark:bg-purple-900/20 py-1 rounded-r">$1</h3>'
+        '<h3 class="font-bold text-purple-600 dark:text-purple-400 mt-3 mb-2 text-lg border-l-4 border-purple-500 pl-3 bg-purple-50/50 dark:bg-purple-900/20 py-1 rounded-r break-words">$1</h3>'
       )
       // Numbered sections with bold titles: 1. **Title:**
       .replace(
         /^(\d+)\.\s?\*\*(.*?)\*\*$/gm,
-        '<div class="font-semibold text-blue-600 dark:text-blue-400 mt-2 mb-1 text-base">$1. $2</div>'
+        '<div class="font-semibold text-blue-600 dark:text-blue-400 mt-2 mb-1 text-base break-words">$1. $2</div>'
       )
       // Bold text: **text**
       .replace(
@@ -57,7 +57,7 @@ const parseMarkdown = (text: string) => {
       // Bullet points: - text
       .replace(
         /^[\s]*-\s+(.+)$/gm,
-        '<div class="flex items-start ml-4 my-0.5"><span class="text-blue-600 dark:text-blue-400 mr-2 mt-0.5 font-bold">•</span><span class="text-gray-700 dark:text-gray-300">$1</span></div>'
+        '<div class="flex items-start ml-4 my-0.5"><span class="text-blue-600 dark:text-blue-400 mr-2 mt-0.5 font-bold flex-shrink-0">•</span><span class="text-gray-700 dark:text-gray-300 break-words flex-1">$1</span></div>'
       )
       // Line breaks
       .replace(/\n\n/g, '<div class="my-1"></div>')
@@ -189,27 +189,25 @@ const ChatBot = memo(function ChatBot({
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length === 1) {
+      // For welcome message, scroll to top to ensure it's visible
+      const messagesContainer = messagesEndRef.current?.parentElement;
+      if (messagesContainer) {
+        messagesContainer.scrollTop = 0;
+      }
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Small delay to ensure DOM is updated
+    setTimeout(() => {
+      scrollToBottom();
+    }, 50);
   }, [messages]);
 
-  // Initialize with welcome message
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      const welcomeMessage: Message = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: `Hello ${
-          session?.user?.name || "there"
-        }! 👋 I'm your TranslateHub Assistant. I'm here to help you with translations, language learning, and navigating the app. What can I help you with today?`,
-        timestamp: new Date(),
-      };
-      setMessages([welcomeMessage]);
-    }
-  }, [isOpen, session?.user?.name]);
+  // This welcome message logic is now handled in the state consistency useEffect below
 
   // Language detection and voice mapping
   const detectLanguageAndVoice = (text: string, context: string) => {
@@ -900,8 +898,29 @@ const ChatBot = memo(function ChatBot({
   };
 
   const clearChat = () => {
-    setMessages([]);
+    // Reset all chat-related states but keep the dialog open
+    setIsLoading(false);
+    setIsListening(false);
+    setCopiedMessageId(null);
+    setVoiceError("");
+    setInterimTranscript("");
     setInputMessage("");
+
+    // Create the welcome message immediately
+    const welcomeMessage: Message = {
+      id: Date.now().toString(),
+      role: "assistant",
+      content: `Hi ${session?.user?.name || "there"}! 👋 How can I help?`,
+      timestamp: new Date(),
+    };
+
+    // Set the welcome message directly - this ensures we always have content
+    setMessages([welcomeMessage]);
+
+    // Ensure the chat stays open and functional after clearing
+    if (!isOpen) {
+      setIsOpen(true);
+    }
   };
 
   // const getModeIcon = () => {
@@ -941,6 +960,25 @@ const ChatBot = memo(function ChatBot({
       }
     };
   }, []);
+
+  // Ensure chat state consistency and proper initialization
+  useEffect(() => {
+    // If chat is open but somehow got into an invalid state, reset it
+    if (isOpen && isMinimized === undefined) {
+      setIsMinimized(false);
+    }
+
+    // Ensure we have a welcome message when chat opens
+    if (isOpen && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `Hi ${session?.user?.name || "there"}! 👋 How can I help?`,
+        timestamp: new Date(),
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [isOpen, isMinimized, messages.length, session?.user?.name]);
 
   return (
     <>
@@ -988,7 +1026,22 @@ const ChatBot = memo(function ChatBot({
               className="rounded-full"
             >
               <Button
-                onClick={() => setIsOpen(true)}
+                onClick={() => {
+                  setIsOpen(true);
+                  setIsMinimized(false);
+                  // Ensure we have a welcome message
+                  if (messages.length === 0) {
+                    const welcomeMessage: Message = {
+                      id: Date.now().toString(),
+                      role: "assistant",
+                      content: `Hi ${
+                        session?.user?.name || "there"
+                      }! 👋 How can I help?`,
+                      timestamp: new Date(),
+                    };
+                    setMessages([welcomeMessage]);
+                  }
+                }}
                 className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 shadow-2xl text-white border-0 transition-all duration-300 relative overflow-hidden group"
                 size="icon"
               >
@@ -1064,9 +1117,10 @@ const ChatBot = memo(function ChatBot({
       </AnimatePresence>
 
       {/* Chat Dialog */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
+            key="chat-dialog"
             initial={{
               scale: 0.9,
               opacity: 0,
@@ -1104,7 +1158,7 @@ const ChatBot = memo(function ChatBot({
                 isMinimized
                   ? "w-96 h-20 max-w-[calc(100vw-3rem)] mx-auto sm:mx-0"
                   : "w-[calc(100vw-2rem)] max-w-[480px] sm:w-[480px] h-[calc(100vh-8rem)] max-h-[650px] sm:h-[650px] mx-auto sm:mx-0"
-              } shadow-2xl shadow-blue-500/10 dark:shadow-purple-500/20 border border-white/10 dark:border-gray-800/50 bg-transparent backdrop-blur-xl transition-all duration-500 ease-out overflow-hidden relative ring-1 ring-white/20 dark:ring-gray-800/30`}
+              } shadow-2xl shadow-blue-500/10 dark:shadow-purple-500/20 border border-white/10 dark:border-gray-800/50 bg-transparent backdrop-blur-xl transition-all duration-500 ease-out overflow-hidden relative ring-1 ring-white/20 dark:ring-gray-800/30 flex flex-col`}
             >
               {/* Enhanced sophisticated gradient background - always visible */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-950 dark:via-black dark:to-gray-900 rounded-lg" />
@@ -1120,13 +1174,22 @@ const ChatBot = memo(function ChatBot({
                 }`}
               />
 
-              {/* Header with glassmorphism effect */}
+              {/* Header with glassmorphism effect - ALWAYS VISIBLE */}
               <CardHeader
                 className={`${
                   isMinimized
                     ? "pb-2 pt-3 px-4 border-b-0"
                     : "pb-4 pt-4 px-6 border-b border-border/30"
-                } bg-white/95 dark:bg-black/95 backdrop-blur-xl relative z-10`}
+                } bg-white/95 dark:bg-black/95 backdrop-blur-xl relative z-20 !block !visible !opacity-100 flex-shrink-0`}
+                style={
+                  {
+                    display: "block",
+                    visibility: "visible",
+                    opacity: 1,
+                    position: "relative",
+                    minHeight: "fit-content",
+                  } as React.CSSProperties
+                }
               >
                 <div
                   className={`flex items-center justify-between ${
@@ -1169,7 +1232,14 @@ const ChatBot = memo(function ChatBot({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setIsMinimized(!isMinimized)}
+                      onClick={() => {
+                        const newMinimizedState = !isMinimized;
+                        setIsMinimized(newMinimizedState);
+                        // Ensure the chat stays open when toggling minimize
+                        if (!isOpen) {
+                          setIsOpen(true);
+                        }
+                      }}
                       className="h-8 w-8 rounded-lg hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200"
                     >
                       {isMinimized ? (
@@ -1181,7 +1251,20 @@ const ChatBot = memo(function ChatBot({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => {
+                        // Ensure proper cleanup when closing
+                        setIsOpen(false);
+                        setIsMinimized(false);
+                        // Reset voice mode if active
+                        if (isVoiceMode) {
+                          setIsVoiceMode(false);
+                          stopListening();
+                          if (audioRef.current) {
+                            audioRef.current.pause();
+                            setIsSpeaking(false);
+                          }
+                        }
+                      }}
                       className="h-8 w-8 rounded-lg hover:bg-red-500/10 hover:text-red-500 transition-all duration-200"
                     >
                       <X className="w-4 h-4" />
@@ -1194,106 +1277,117 @@ const ChatBot = memo(function ChatBot({
                 <>
                   {/* Messages */}
                   <CardContent className="p-0 flex-1 overflow-hidden relative z-10 bg-white/30 dark:bg-black/30 backdrop-blur-sm">
-                    <div className="h-[450px] sm:h-[450px] overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex ${
-                            message.role === "user"
-                              ? "justify-end"
-                              : "justify-start"
-                          }`}
-                        >
+                    <div className="h-[450px] sm:h-[450px] overflow-y-auto overflow-x-hidden pt-4 pb-2 px-2 sm:px-3 space-y-2 sm:space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full">
+                      {messages.map((message, index) => {
+                        return (
                           <div
-                            className={`max-w-[85%] rounded-2xl p-4 backdrop-blur-sm border shadow-lg group ${
+                            key={message.id}
+                            className={`flex w-full ${
                               message.role === "user"
-                                ? "bg-gradient-to-r from-blue-500/95 to-purple-500/95 text-white border-white/20 shadow-blue-500/20"
-                                : "bg-gradient-to-br from-white/95 via-gray-50/90 to-blue-50/80 dark:from-gray-800/95 dark:via-gray-700/85 dark:to-gray-900/90 text-foreground border-gray-200/40 dark:border-gray-600/40 shadow-gray-100/50 dark:shadow-purple-900/15"
-                            }`}
+                                ? "justify-end"
+                                : "justify-start"
+                            } ${index === 0 ? "mt-2" : ""}`}
                           >
-                            <div className="flex items-start space-x-2">
-                              {message.role === "assistant" && (
-                                <Bot className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              )}
-                              {message.role === "user" && (
-                                <User className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              )}
-                              <div className="flex-1">
-                                <div
-                                  className="text-sm leading-normal space-y-0.5 antialiased font-medium [&_h3]:rounded [&_h3]:shadow-sm [&_code]:shadow-sm"
-                                  dangerouslySetInnerHTML={{
-                                    __html: parseMarkdown(message.content),
-                                  }}
-                                />
-                                <div className="flex items-center justify-between mt-2">
-                                  <span
-                                    className={`text-xs font-light tracking-wider ${
-                                      message.role === "user"
-                                        ? "text-white/70"
-                                        : "text-muted-foreground"
-                                    }`}
-                                  >
-                                    {message.timestamp.toLocaleTimeString([], {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </span>
-                                  {message.role === "assistant" && (
-                                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => {
-                                          // Find the most recent user message before this AI response for context
-                                          const messageIndex =
-                                            messages.indexOf(message);
-                                          const contextMessage = messages
-                                            .slice(0, messageIndex)
-                                            .reverse()
-                                            .find((m) => m.role === "user");
-                                          speakText(
-                                            message.content,
-                                            contextMessage?.content || "",
-                                            message.id
-                                          );
-                                        }}
-                                        disabled={isSpeaking}
-                                        className="h-6 w-6 hover:bg-blue-500/20 hover:text-blue-600"
-                                        title="Listen to this response"
-                                      >
-                                        {currentSpeakingMessageId ===
-                                        message.id ? (
-                                          <Volume2 className="w-3 h-3 text-blue-500" />
-                                        ) : (
-                                          <Volume2 className="w-3 h-3" />
-                                        )}
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() =>
-                                          copyMessage(
-                                            message.content,
-                                            message.id
-                                          )
+                            <div
+                              className={`max-w-[65%] sm:max-w-[70%] min-w-0 rounded-2xl p-3 backdrop-blur-sm border shadow-lg group ${
+                                message.role === "user"
+                                  ? "bg-gradient-to-r from-blue-500/95 to-purple-500/95 text-white border-white/20 shadow-blue-500/20"
+                                  : "bg-gradient-to-br from-white/95 via-gray-50/90 to-blue-50/80 dark:from-gray-800/95 dark:via-gray-700/85 dark:to-gray-900/90 text-foreground border-gray-200/40 dark:border-gray-600/40 shadow-gray-100/50 dark:shadow-purple-900/15"
+                              } ${
+                                index === 0 && message.role === "assistant"
+                                  ? "!bg-blue-50/90 dark:!bg-blue-900/30 border-blue-300/50 dark:border-blue-600/50"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex items-start space-x-2 w-full max-w-full">
+                                {message.role === "assistant" && (
+                                  <Bot className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                )}
+                                {message.role === "user" && (
+                                  <User className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div
+                                    className="text-sm leading-relaxed space-y-0.5 antialiased font-medium break-words overflow-wrap-anywhere hyphens-auto max-w-full overflow-hidden [&_h3]:rounded [&_h3]:shadow-sm [&_code]:shadow-sm [&_div]:break-words [&_span]:break-words"
+                                    dangerouslySetInnerHTML={{
+                                      __html: parseMarkdown(
+                                        message.content || "No content"
+                                      ),
+                                    }}
+                                  />
+                                  <div className="flex items-center justify-between mt-2">
+                                    <span
+                                      className={`text-xs font-light tracking-wider ${
+                                        message.role === "user"
+                                          ? "text-white/70"
+                                          : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      {message.timestamp.toLocaleTimeString(
+                                        [],
+                                        {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
                                         }
-                                        className="h-6 w-6 hover:bg-gray-500/20"
-                                        title="Copy message"
-                                      >
-                                        {copiedMessageId === message.id ? (
-                                          <Check className="w-3 h-3" />
-                                        ) : (
-                                          <Copy className="w-3 h-3" />
-                                        )}
-                                      </Button>
-                                    </div>
-                                  )}
+                                      )}
+                                    </span>
+                                    {message.role === "assistant" && (
+                                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => {
+                                            // Find the most recent user message before this AI response for context
+                                            const messageIndex =
+                                              messages.indexOf(message);
+                                            const contextMessage = messages
+                                              .slice(0, messageIndex)
+                                              .reverse()
+                                              .find((m) => m.role === "user");
+                                            speakText(
+                                              message.content,
+                                              contextMessage?.content || "",
+                                              message.id
+                                            );
+                                          }}
+                                          disabled={isSpeaking}
+                                          className="h-6 w-6 hover:bg-blue-500/20 hover:text-blue-600"
+                                          title="Listen to this response"
+                                        >
+                                          {currentSpeakingMessageId ===
+                                          message.id ? (
+                                            <Volume2 className="w-3 h-3 text-blue-500" />
+                                          ) : (
+                                            <Volume2 className="w-3 h-3" />
+                                          )}
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() =>
+                                            copyMessage(
+                                              message.content,
+                                              message.id
+                                            )
+                                          }
+                                          className="h-6 w-6 hover:bg-gray-500/20"
+                                          title="Copy message"
+                                        >
+                                          {copiedMessageId === message.id ? (
+                                            <Check className="w-3 h-3" />
+                                          ) : (
+                                            <Copy className="w-3 h-3" />
+                                          )}
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {isLoading && (
                         <div className="flex justify-start">
                           <div className="bg-gradient-to-br from-white/95 via-gray-50/90 to-blue-50/80 dark:from-gray-800/95 dark:via-gray-700/85 dark:to-gray-900/90 text-foreground rounded-2xl p-4 max-w-[85%] backdrop-blur-sm border border-gray-200/40 dark:border-gray-600/40 shadow-lg shadow-gray-100/50 dark:shadow-purple-900/15">
