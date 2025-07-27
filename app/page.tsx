@@ -1,6 +1,7 @@
 "use client";
 import MainPage from "@/pages/Home";
-import Speech from "@/pages/Speech";
+import FileUploadPage from "@/pages/FileUploadPage";
+import VoiceRecordingPage from "@/pages/VoiceRecordingPage";
 import Translate from "@/pages/Translate";
 import EnhancedChatBot from "@/components/EnhancedChatBot";
 import { useSession, signOut } from "next-auth/react";
@@ -13,6 +14,7 @@ import {
   Sun,
   Mic,
   FileText,
+  Camera,
   Languages,
   Volume2,
   Sparkles,
@@ -133,10 +135,17 @@ export default function Home() {
       badge: "Multi-Lang",
     },
     {
-      id: "speech",
-      label: "File to Text",
+      id: "fileupload",
+      label: "Audio File Upload",
       icon: FileText,
-      description: "Convert audio files to text",
+      description: "Upload audio files for transcription",
+      badge: "File Upload",
+    },
+    {
+      id: "voicerecording",
+      label: "Visual OCR",
+      icon: Camera,
+      description: "Extract text from images and screenshots",
       badge: "OCR Ready",
     },
   ];
@@ -147,8 +156,10 @@ export default function Home() {
         return <MainPage />;
       case "translate":
         return <Translate />;
-      case "speech":
-        return <Speech />;
+      case "fileupload":
+        return <FileUploadPage />;
+      case "voicerecording":
+        return <VoiceRecordingPage />;
       default:
         return <MainPage />;
     }
@@ -160,8 +171,10 @@ export default function Home() {
         return "970px";
       case "translate":
         return "1187px";
-      case "speech":
+      case "fileupload":
         return "1084px";
+      case "voicerecording":
+        return "1200px";
       default:
         return "100px";
     }
