@@ -21,9 +21,35 @@ import {
   Loader2,
   Volume2,
   VolumeX,
+  Pause,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSession } from "next-auth/react";
+
+// Function to strip markdown syntax for TTS
+const stripMarkdown = (text: string) => {
+  return (
+    text
+      // Remove headings
+      .replace(/^#{1,6}\s+(.+)$/gm, "$1")
+      // Remove numbered sections with bold titles: 1. **Title:**
+      .replace(/^(\d+)\.\s?\*\*(.*?)\*\*:?/gm, "$1. $2.")
+      // Remove bold text: **text** -> text
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      // Remove italic text: *text* -> text
+      .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "$1")
+      // Remove code blocks: `code` -> code
+      .replace(/`([^`]+)`/g, "$1")
+      // Remove bullet points markers: - text -> text
+      .replace(/^[\s]*-\s+(.+)$/gm, "$1")
+      // Clean up extra line breaks
+      .replace(/\n\n+/g, "\n")
+      .replace(/\n/g, " ")
+      // Clean up extra spaces
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+};
 
 // Enhanced markdown parser for chat messages
 const parseMarkdown = (text: string) => {
@@ -380,6 +406,7 @@ const ChatBot = memo(function ChatBot({
       audioRef.current = null;
     }
     setIsSpeaking(false);
+    setCurrentSpeakingMessageId(null);
   };
 
   // Enhanced TTS Function with smart language detection
@@ -814,7 +841,7 @@ const ChatBot = memo(function ChatBot({
 
         try {
           console.log("🔊 Calling speakText function...");
-          await speakText(data.response, content);
+          await speakText(stripMarkdown(data.response), content);
           console.log("✅ speakText completed successfully");
         } catch (ttsError) {
           console.error("❌ TTS Error in voice mode:", ttsError);
@@ -1337,26 +1364,39 @@ const ChatBot = memo(function ChatBot({
                                           variant="ghost"
                                           size="icon"
                                           onClick={() => {
-                                            // Find the most recent user message before this AI response for context
-                                            const messageIndex =
-                                              messages.indexOf(message);
-                                            const contextMessage = messages
-                                              .slice(0, messageIndex)
-                                              .reverse()
-                                              .find((m) => m.role === "user");
-                                            speakText(
-                                              message.content,
-                                              contextMessage?.content || "",
-                                              message.id
-                                            );
+                                            if (
+                                              currentSpeakingMessageId ===
+                                                message.id &&
+                                              isSpeaking
+                                            ) {
+                                              // Stop the current audio
+                                              stopTTS();
+                                            } else {
+                                              // Find the most recent user message before this AI response for context
+                                              const messageIndex =
+                                                messages.indexOf(message);
+                                              const contextMessage = messages
+                                                .slice(0, messageIndex)
+                                                .reverse()
+                                                .find((m) => m.role === "user");
+                                              speakText(
+                                                stripMarkdown(message.content),
+                                                contextMessage?.content || "",
+                                                message.id
+                                              );
+                                            }
                                           }}
-                                          disabled={isSpeaking}
                                           className="h-6 w-6 hover:bg-blue-500/20 hover:text-blue-600"
-                                          title="Listen to this response"
+                                          title={
+                                            currentSpeakingMessageId ===
+                                              message.id && isSpeaking
+                                              ? "Stop audio"
+                                              : "Listen to this response"
+                                          }
                                         >
                                           {currentSpeakingMessageId ===
-                                          message.id ? (
-                                            <Volume2 className="w-3 h-3 text-blue-500" />
+                                            message.id && isSpeaking ? (
+                                            <Pause className="w-3 h-3 text-red-500" />
                                           ) : (
                                             <Volume2 className="w-3 h-3" />
                                           )}
@@ -1589,26 +1629,31 @@ const ChatBot = memo(function ChatBot({
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                const lastAIMessage =
-                                  messages[messages.length - 1];
-                                const contextMessage = messages
-                                  .slice(0, -1)
-                                  .reverse()
-                                  .find((m) => m.role === "user");
-                                speakText(
-                                  lastAIMessage.content,
-                                  contextMessage?.content || ""
-                                );
+                                if (isSpeaking) {
+                                  // Stop the current audio
+                                  stopTTS();
+                                } else {
+                                  const lastAIMessage =
+                                    messages[messages.length - 1];
+                                  const contextMessage = messages
+                                    .slice(0, -1)
+                                    .reverse()
+                                    .find((m) => m.role === "user");
+                                  speakText(
+                                    stripMarkdown(lastAIMessage.content),
+                                    contextMessage?.content || "",
+                                    lastAIMessage.id
+                                  );
+                                }
                               }}
-                              disabled={isSpeaking}
                               className="text-xs h-6 px-2 font-medium tracking-wide hover:font-semibold transition-all hover:bg-blue-500/10 hover:text-blue-500"
                             >
                               {isSpeaking ? (
-                                <Volume2 className="w-3 h-3 mr-1 text-blue-500" />
+                                <Pause className="w-3 h-3 mr-1 text-red-500" />
                               ) : (
                                 <Volume2 className="w-3 h-3 mr-1" />
                               )}
-                              Replay
+                              {isSpeaking ? "Stop" : "Replay"}
                             </Button>
                           )}
                       </div>
