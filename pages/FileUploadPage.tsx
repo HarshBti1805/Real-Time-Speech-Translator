@@ -543,7 +543,7 @@ function VideoUpload() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Subtitles Timeline */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-green-200 dark:border-green-700 shadow-sm max-h-64 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-green-200 dark:border-green-700 shadow-sm max-h-64 overflow-y-auto custom-scrollbar">
               {subtitles.map((subtitle, index) => (
                 <div
                   key={index}

@@ -280,7 +280,7 @@ export default function Home() {
           )}
         </AnimatePresence>
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-x-auto w-full">
+        <div className="flex-1 flex flex-col min-w-0 overflow-x-auto w-full custom-scrollbar">
           {/* Header */}
 
           <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -780,7 +780,7 @@ export default function Home() {
           </nav>
 
           {/* Main Content */}
-          <main className="px-2 sm:px-4 py-3 sm:py-4 lg:py-6 min-w-0">
+          <main className="px-2 sm:px-4 py-3 sm:py-4 lg:py-6 min-w-0 custom-scrollbar">
             <Card className="bg-card border-border shadow-2xl">
               <CardContent className="p-0">
                 {renderActiveComponent()}

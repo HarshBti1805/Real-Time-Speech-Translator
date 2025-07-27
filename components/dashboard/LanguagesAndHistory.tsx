@@ -835,7 +835,7 @@ const LanguagesManager = ({
               </div>
 
               {/* Enhanced Language List */}
-              <div className="max-h-96 overflow-y-auto p-8">
+              <div className="max-h-96 overflow-y-auto p-8 custom-scrollbar">
                 <div className="space-y-8">
                   {filteredLanguages.map((category, categoryIndex) => (
                     <motion.div

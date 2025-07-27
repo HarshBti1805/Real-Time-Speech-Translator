@@ -47,6 +47,83 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Custom beautiful scrollbar styles for the entire application */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Webkit scrollbar styles (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 10px;
+  margin: 2px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 10px;
+  border: 2px solid var(--scrollbar-track);
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  transform: scale(1.05);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
+/* Horizontal scrollbar specific styles */
+::-webkit-scrollbar:horizontal {
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb:horizontal {
+  min-width: 40px;
+}
+
+/* Custom scrollbar for specific components */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--custom-scrollbar-thumb) var(--custom-scrollbar-track);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: var(--custom-scrollbar-track);
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--custom-scrollbar-track);
+  border-radius: 8px;
+  margin: 1px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--custom-scrollbar-thumb);
+  border-radius: 8px;
+  border: 1px solid var(--custom-scrollbar-track);
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--custom-scrollbar-thumb-hover);
+}
+
 /* Custom beautiful sidebar scrollbar styles */
 .sidebar-scroll {
   scrollbar-width: thin;
@@ -63,6 +140,74 @@
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--sidebar-scroll-thumb-hover);
+}
+
+/* Thin scrollbar for chat and text areas */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--thin-scrollbar-thumb) var(--thin-scrollbar-track);
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+  background: var(--thin-scrollbar-track);
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: var(--thin-scrollbar-track);
+  border-radius: 6px;
+  margin: 1px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--thin-scrollbar-thumb);
+  border-radius: 6px;
+  border: 1px solid var(--thin-scrollbar-track);
+  transition: all 0.3s ease;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--thin-scrollbar-thumb-hover);
+}
+
+/* Gradient scrollbar for special components */
+.gradient-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gradient-scrollbar-thumb)
+    var(--gradient-scrollbar-track);
+}
+
+.gradient-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background: var(--gradient-scrollbar-track);
+}
+
+.gradient-scrollbar::-webkit-scrollbar-track {
+  background: var(--gradient-scrollbar-track);
+  border-radius: 12px;
+  margin: 2px;
+}
+
+.gradient-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    135deg,
+    var(--gradient-scrollbar-start),
+    var(--gradient-scrollbar-end)
+  );
+  border-radius: 12px;
+  border: 2px solid var(--gradient-scrollbar-track);
+  transition: all 0.3s ease;
+}
+
+.gradient-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    135deg,
+    var(--gradient-scrollbar-hover-start),
+    var(--gradient-scrollbar-hover-end)
+  );
+  transform: scale(1.05);
 }
 
 :root {
@@ -101,6 +246,30 @@
   --sidebar-scroll-thumb: oklch(0.85 0.02 285.823);
   --sidebar-scroll-thumb-hover: oklch(0.7 0.04 285.823);
   --sidebar-scroll-track: oklch(0.97 0.001 286.375);
+
+  /* Main scrollbar colors */
+  --scrollbar-track: oklch(0.97 0.001 286.375);
+  --scrollbar-thumb: oklch(0.85 0.02 285.823);
+  --scrollbar-thumb-hover: oklch(0.7 0.04 285.823);
+  --scrollbar-thumb-active: oklch(0.6 0.06 285.823);
+
+  /* Custom scrollbar colors */
+  --custom-scrollbar-track: oklch(0.95 0.002 286.375);
+  --custom-scrollbar-thumb: oklch(0.8 0.03 285.823);
+  --custom-scrollbar-thumb-hover: oklch(0.65 0.05 285.823);
+
+  /* Thin scrollbar colors */
+  --thin-scrollbar-track: oklch(0.98 0.001 286.375);
+  --thin-scrollbar-thumb: oklch(0.9 0.015 285.823);
+  --thin-scrollbar-thumb-hover: oklch(0.75 0.03 285.823);
+
+  /* Gradient scrollbar colors */
+  --gradient-scrollbar-track: oklch(0.96 0.002 286.375);
+  --gradient-scrollbar-thumb: oklch(0.8 0.03 285.823);
+  --gradient-scrollbar-start: oklch(0.6 0.15 250);
+  --gradient-scrollbar-end: oklch(0.6 0.15 280);
+  --gradient-scrollbar-hover-start: oklch(0.5 0.2 250);
+  --gradient-scrollbar-hover-end: oklch(0.5 0.2 280);
 }
 .dark {
   --background: oklch(0 0 0);
@@ -137,6 +306,30 @@
   --sidebar-scroll-thumb: oklch(0.25 0.02 285.823);
   --sidebar-scroll-thumb-hover: oklch(0.35 0.04 285.823);
   --sidebar-scroll-track: oklch(0.1 0 0);
+
+  /* Main scrollbar colors - Dark theme */
+  --scrollbar-track: oklch(0.1 0 0);
+  --scrollbar-thumb: oklch(0.25 0.02 285.823);
+  --scrollbar-thumb-hover: oklch(0.35 0.04 285.823);
+  --scrollbar-thumb-active: oklch(0.45 0.06 285.823);
+
+  /* Custom scrollbar colors - Dark theme */
+  --custom-scrollbar-track: oklch(0.08 0 0);
+  --custom-scrollbar-thumb: oklch(0.2 0.03 285.823);
+  --custom-scrollbar-thumb-hover: oklch(0.3 0.05 285.823);
+
+  /* Thin scrollbar colors - Dark theme */
+  --thin-scrollbar-track: oklch(0.12 0 0);
+  --thin-scrollbar-thumb: oklch(0.3 0.015 285.823);
+  --thin-scrollbar-thumb-hover: oklch(0.4 0.03 285.823);
+
+  /* Gradient scrollbar colors - Dark theme */
+  --gradient-scrollbar-track: oklch(0.08 0 0);
+  --gradient-scrollbar-thumb: oklch(0.2 0.03 285.823);
+  --gradient-scrollbar-start: oklch(0.4 0.2 250);
+  --gradient-scrollbar-end: oklch(0.4 0.2 280);
+  --gradient-scrollbar-hover-start: oklch(0.3 0.25 250);
+  --gradient-scrollbar-hover-end: oklch(0.3 0.25 280);
 }
 
 @layer base {

@@ -122,7 +122,7 @@ export function useTranslatePiP() {
             border-radius: 8px;
             padding: 2px 6px;
             scrollbar-width: thin;
-            scrollbar-color: #6366f1 #232329;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
             background: none;
           }
           body.light .pip-original {
@@ -142,7 +142,7 @@ export function useTranslatePiP() {
             border-radius: 8px;
             padding: 2px 6px;
             scrollbar-width: thin;
-            scrollbar-color: #6366f1 #232329;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
           }
           body.light .pip-translated {
             color: #2563eb;
@@ -151,20 +151,22 @@ export function useTranslatePiP() {
           }
                     .pip-translated::-webkit-scrollbar {
             width: 8px;
-            background: #232329;
+            background: var(--scrollbar-track);
             border-radius: 6px;
           }
           body.light .pip-translated::-webkit-scrollbar {
             width: 8px;
-            background: #232329;
+            background: var(--scrollbar-track);
             border-radius: 6px;
           }
-          body.light .pip-translated::-webkit-scrollbar-thumb {
-            background: #6366f1;
+          .pip-translated::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
             border-radius: 6px;
+            border: 1px solid var(--scrollbar-track);
+            transition: all 0.3s ease;
           }
-          body.light .pip-translated::-webkit-scrollbar-thumb:hover {
-            background: #818cf8;
+          .pip-translated::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-thumb-hover);
           }
           .pip-arrow {
             font-size: 1.1em;

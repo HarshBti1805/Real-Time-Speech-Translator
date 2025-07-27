@@ -504,7 +504,7 @@ export function useHomePiP() {
             font-size: 0.95em;
             padding: 8px 16px 8px 16px;
             scrollbar-width: thin;
-            scrollbar-color: #ec38bc #232334;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
             text-align: center;
           }
           .pip-result::-webkit-scrollbar, .pip-translation::-webkit-scrollbar {
