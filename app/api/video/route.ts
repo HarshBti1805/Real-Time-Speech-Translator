@@ -68,14 +68,18 @@ async function extractAudioFromVideo(
   );
 
   try {
+    //
     // Use local FFmpeg server
-    const res = await fetch("http://localhost:5000/extract-audio", {
-      method: "POST",
-      headers: {
-        "Content-Type": `video/${format}`,
-      },
-      body: new Uint8Array(buffer),
-    });
+    const res = await fetch(
+      "https://ffmpeg-server-ervj.onrender.com/extract-audio",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": `video/${format}`,
+        },
+        body: new Uint8Array(buffer),
+      }
+    );
 
     if (!res.ok) {
       const errorData = await res
