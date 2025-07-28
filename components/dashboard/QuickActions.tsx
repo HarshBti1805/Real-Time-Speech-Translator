@@ -10,6 +10,7 @@ import {
   Star,
   ArrowRight,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 
 interface QuickActionsProps {
@@ -52,6 +53,17 @@ const QuickActions = ({ onLanguageManage }: QuickActionsProps) => {
       borderColor: "border-green-500/20",
       hoverShadow: "hover:shadow-green-500/25",
       stats: "OCR Ready",
+    },
+    {
+      icon: BookOpen,
+      label: "PDF Processor",
+      description: "AI-powered PDF analysis and translation",
+      onClick: () => router.push("/?tab=pdfprocessor"),
+      gradient: "from-emerald-500 via-teal-500 to-emerald-600",
+      bgGradient: "from-emerald-500/10 via-teal-500/10 to-emerald-600/10",
+      borderColor: "border-emerald-500/20",
+      hoverShadow: "hover:shadow-emerald-500/25",
+      stats: "AI Ready",
     },
     {
       icon: Star,

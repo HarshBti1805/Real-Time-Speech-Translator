@@ -3,6 +3,7 @@ import MainPage from "@/pages/Home";
 import FileUploadPage from "@/pages/FileUploadPage";
 import VoiceRecordingPage from "@/pages/VoiceRecordingPage";
 import Translate from "@/pages/Translate";
+
 import EnhancedChatBot from "@/components/EnhancedChatBot";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -174,6 +175,7 @@ export default function Home() {
         return <FileUploadPage onFileTypeChange={setFileUploadType} />;
       case "voicerecording":
         return <VoiceRecordingPage />;
+
       default:
         return <MainPage />;
     }
@@ -196,6 +198,7 @@ export default function Home() {
         return "1604px";
       case "voicerecording":
         return "1545px";
+
       default:
         return "100px";
     }

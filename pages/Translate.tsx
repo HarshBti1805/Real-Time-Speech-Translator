@@ -151,12 +151,18 @@ export default function Translate() {
   return (
     <div className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="bg-card border-border">
+        <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center justify-center">
-              <Globe className="w-8 h-8 mr-3" />
-              Auto-Detect Translation
+            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent flex items-center justify-center">
+              <div className="flex items-center gap-3">
+                <Languages className="w-10 h-10 text-blue-400" />
+              </div>
+              <span className="ml-4">Translation Hub</span>
             </CardTitle>
+            <p className="text-muted-foreground text-l mt-3">
+              Instantly translate text between languages with AI-powered
+              detection and high accuracy
+            </p>
           </CardHeader>
         </Card>
 

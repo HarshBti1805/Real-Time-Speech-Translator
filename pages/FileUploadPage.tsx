@@ -621,18 +621,17 @@ export default function FileUploadPage({
     <div className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Main Title Card */}
-        <Card className="bg-card border-border">
+        <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center justify-center">
-              <div className="flex items-center">
-                <FileAudio className="w-8 h-8 mr-2" />
-                <Video className="w-8 h-8 mr-3" />
+            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent flex items-center justify-center">
+              <div className="flex items-center gap-3">
+                <FileAudio className="w-10 h-10 text-blue-400" />
               </div>
-              Media File Processing Hub
+              <span className="ml-4">Media Processing Hub</span>
             </CardTitle>
-            <p className="text-muted-foreground text-lg mt-2">
-              Upload audio files for transcription or video files for subtitle
-              generation
+            <p className="text-muted-foreground text-l mt-3">
+              Upload audio files for AI transcription or video files for
+              intelligent subtitle generation
             </p>
           </CardHeader>
         </Card>

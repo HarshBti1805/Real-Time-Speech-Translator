@@ -500,11 +500,18 @@ export default function MainPage() {
   return (
     <div className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="bg-card border-border">
+        <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              🎙️ Real-Time Translation
+            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent flex items-center justify-center">
+              <div className="flex items-center gap-3">
+                <Mic className="w-10 h-10 text-blue-400" />
+              </div>
+              <span className="ml-4">Voice Translation Hub</span>
             </CardTitle>
+            <p className="text-muted-foreground text-l mt-3">
+              Speak naturally and get instant translations with real-time
+              processing and high-accuracy speech recognition
+            </p>
           </CardHeader>
         </Card>
 

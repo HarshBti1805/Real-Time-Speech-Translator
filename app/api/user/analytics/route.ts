@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
       orderBy: { date: "desc" },
     });
 
-    // Get translation history for the period
-    const translationHistory = await prisma.transcription.findMany({
+    // Get transcription history for the period
+    const transcriptionHistory = await prisma.transcription.findMany({
       where: {
         userId: user.id,
         createdAt: {
@@ -47,21 +47,54 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Get translation history for the period
+    const translationHistory = await prisma.translationHistory.findMany({
+      where: {
+        userId: user.id,
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Combine both histories
+    const allTranslations = [
+      ...transcriptionHistory.map((item) => ({
+        id: item.id,
+        sourceText: item.inputValue || "",
+        translatedText: item.outputValue,
+        sourceLanguage: "auto",
+        targetLanguage: "en",
+        date: item.createdAt.toISOString(),
+        inputType: item.inputType,
+        inputValue: item.inputValue,
+        outputValue: item.outputValue,
+        createdAt: item.createdAt.toISOString(),
+      })),
+      ...translationHistory.map((item) => ({
+        id: item.id,
+        sourceText: item.sourceText,
+        translatedText: item.translatedText,
+        sourceLanguage: item.sourceLanguage,
+        targetLanguage: item.targetLanguage,
+        date: item.createdAt.toISOString(),
+        inputType: item.translationType,
+        inputValue: item.sourceText,
+        outputValue: item.translatedText,
+        createdAt: item.createdAt.toISOString(),
+      })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
     // Calculate summary statistics
-    const totalTranslations = translationHistory.length;
-    const totalWords = translationHistory.reduce((sum, item) => {
-      const words = item.outputValue.split(/\s+/).length;
+    const totalTranslations = allTranslations.length;
+    const totalWords = allTranslations.reduce((sum, item) => {
+      const words = item.translatedText.split(/\s+/).length;
       return sum + words;
     }, 0);
-    const totalCharacters = translationHistory.reduce((sum, item) => {
-      return sum + item.outputValue.length;
+    const totalCharacters = allTranslations.reduce((sum, item) => {
+      return sum + item.translatedText.length;
     }, 0);
-
-    // Get most used languages
-    // const languageStats = translationHistory.reduce((acc, item) => {
-    //   // This is a simplified version - you might want to store language info in the transcription
-    //   return acc;
-    // }, {} as Record<string, number>);
 
     const summary = {
       totalTranslations,
@@ -71,7 +104,7 @@ export async function GET(req: NextRequest) {
         totalTranslations > 0 ? totalWords / totalTranslations : 0,
       period,
       analytics,
-      recentTranslations: translationHistory.slice(0, 10), // Last 10 translations
+      recentTranslations: allTranslations.slice(0, 10), // Last 10 translations
     };
 
     return NextResponse.json(summary);
@@ -116,46 +149,58 @@ export async function POST(req: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const analytics = await prisma.analytics.upsert({
+    // Check if analytics entry exists for today
+    const existingAnalytics = await prisma.analytics.findFirst({
       where: {
-        userId_date: {
-          userId: user.id,
-          date: today,
-        },
-      },
-      update: {
-        translationsCount: {
-          increment: translationsCount || 0,
-        },
-        wordsTranslated: {
-          increment: wordsTranslated || 0,
-        },
-        charactersTranslated: {
-          increment: charactersTranslated || 0,
-        },
-        totalCost: {
-          increment: totalCost || 0,
-        },
-        mostUsedSourceLanguage,
-        mostUsedTargetLanguage,
-        averageAccuracy,
-        sessionDuration,
-      },
-      create: {
         userId: user.id,
         date: today,
-        translationsCount: translationsCount || 0,
-        wordsTranslated: wordsTranslated || 0,
-        charactersTranslated: charactersTranslated || 0,
-        totalCost: totalCost || 0,
-        mostUsedSourceLanguage,
-        mostUsedTargetLanguage,
-        averageAccuracy,
-        sessionDuration,
       },
     });
 
-    return NextResponse.json(analytics);
+    if (existingAnalytics) {
+      // Update existing entry
+      const analytics = await prisma.analytics.update({
+        where: {
+          id: existingAnalytics.id,
+        },
+        data: {
+          translationsCount: {
+            increment: translationsCount || 0,
+          },
+          wordsTranslated: {
+            increment: wordsTranslated || 0,
+          },
+          charactersTranslated: {
+            increment: charactersTranslated || 0,
+          },
+          totalCost: {
+            increment: totalCost || 0,
+          },
+          mostUsedSourceLanguage,
+          mostUsedTargetLanguage,
+          averageAccuracy,
+          sessionDuration,
+        },
+      });
+      return NextResponse.json(analytics);
+    } else {
+      // Create new entry
+      const analytics = await prisma.analytics.create({
+        data: {
+          userId: user.id,
+          date: today,
+          translationsCount: translationsCount || 0,
+          wordsTranslated: wordsTranslated || 0,
+          charactersTranslated: charactersTranslated || 0,
+          totalCost: totalCost || 0,
+          mostUsedSourceLanguage,
+          mostUsedTargetLanguage,
+          averageAccuracy,
+          sessionDuration,
+        },
+      });
+      return NextResponse.json(analytics);
+    }
   } catch (error) {
     console.error("Error creating analytics:", error);
     return NextResponse.json(

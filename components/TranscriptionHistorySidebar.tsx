@@ -14,6 +14,7 @@ import {
   Clock,
   AlertCircle,
   CheckCircle,
+  FileDigit,
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
@@ -43,6 +44,10 @@ const typeIcon = (type: string) => {
       );
     case "text":
       return <Type className="w-4 h-4 text-amber-500 dark:text-amber-400" />;
+    case "pdf":
+      return (
+        <FileDigit className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+      );
     default:
       return <Type className="w-4 h-4 text-gray-500 dark:text-gray-400" />;
   }
@@ -60,6 +65,8 @@ const typeGradient = (type: string) => {
       return "from-emerald-500/10 to-green-500/10 dark:from-emerald-500/20 dark:to-green-500/20";
     case "text":
       return "from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20";
+    case "pdf":
+      return "from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20";
     default:
       return "from-gray-500/10 to-slate-500/10 dark:from-gray-500/20 dark:to-slate-500/20";
   }
