@@ -12,6 +12,8 @@ import {
   Clock,
   Copy,
   CheckCircle,
+  FileText,
+  Sparkles,
   X,
   Music,
 } from "lucide-react";
@@ -292,11 +294,11 @@ function VideoUpload() {
     <div className="space-y-8">
       <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-2 border-purple-200 dark:border-purple-700 shadow-xl">
         <CardHeader className="text-center pb-6">
-          <CardTitle className="text-2xl font-bold text-purple-800 dark:text-purple-200 flex items-center justify-center">
-            <Video className="w-6 h-6 mr-3" />
+          <CardTitle className="text-2xl font-mono mb-4 font-bold text-purple-800 dark:text-purple-200 flex items-center justify-center">
+            <Video className="w-6 h-6 mr-3 " />
             Video Subtitle Generation
           </CardTitle>
-          <p className="text-purple-600 dark:text-purple-300">
+          <p className="text-purple-600 mb-3 dark:text-purple-300">
             Upload videos and generate subtitles with perfect timing in multiple
             languages
           </p>
@@ -304,15 +306,17 @@ function VideoUpload() {
         <CardContent className="space-y-6">
           {/* Language Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
-              <label className="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">
-                <Globe className="w-4 h-4 inline mr-2" />
+            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-5 rounded-xl border-2 border-purple-200/60 dark:border-purple-700/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-600">
+              <label className="block text-sm font-semibold text-purple-700 dark:text-purple-300 mb-3 flex items-center">
+                <div className="p-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg mr-3">
+                  <Globe className="w-4 h-4 text-white" />
+                </div>
                 Source Language (Speech)
               </label>
               <select
                 value={sourceLanguage}
                 onChange={(e) => setSourceLanguage(e.target.value)}
-                className="w-full p-2 border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                className="w-full p-3 border-2 border-purple-200 dark:border-purple-600 rounded-lg bg-white/70 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 font-medium transition-all duration-300 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 focus:outline-none hover:border-purple-300 dark:hover:border-purple-500"
               >
                 <option value="en-US">English (US)</option>
                 <option value="en-GB">English (UK)</option>
@@ -381,15 +385,17 @@ function VideoUpload() {
               </select>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
-              <label className="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">
-                <Globe className="w-4 h-4 inline mr-2" />
+            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-5 rounded-xl border-2 border-indigo-200/60 dark:border-indigo-700/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600">
+              <label className="block text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-3 flex items-center">
+                <div className="p-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg mr-3">
+                  <Globe className="w-4 h-4 text-white" />
+                </div>
                 Target Language (Subtitles)
               </label>
               <select
                 value={targetLanguage}
                 onChange={(e) => setTargetLanguage(e.target.value)}
-                className="w-full p-2 border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                className="w-full p-3 border-2 border-indigo-200 dark:border-indigo-600 rounded-lg bg-white/70 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 font-medium transition-all duration-300 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 focus:outline-none hover:border-indigo-300 dark:hover:border-indigo-500"
               >
                 {languages.map((lang) => (
                   <option key={lang.code} value={lang.code}>
@@ -672,10 +678,11 @@ export default function FileUploadPage({
             {/* Features Overview for Audio */}
             <Card className="bg-card border-border">
               <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
+                {/* Features Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                   <div className="space-y-3">
                     <div className="w-12 h-12 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
-                      <FileAudio className="w-6 h-6 text-white" />
+                      <Upload className="w-6 h-6 text-white" />
                     </div>
                     <h3 className="font-semibold text-foreground">
                       File Upload
@@ -688,13 +695,26 @@ export default function FileUploadPage({
 
                   <div className="space-y-3">
                     <div className="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <Zap className="w-6 h-6 text-white" />
+                      <Sparkles className="w-6 h-6 text-white" />
                     </div>
                     <h3 className="font-semibold text-foreground">
                       AI Processing
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       Advanced AI-powered speech recognition with high accuracy
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="font-semibold text-foreground">
+                      Export Options
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Download results in TXT, HTML, or DOC formats for your
+                      needs
                     </p>
                   </div>
                 </div>

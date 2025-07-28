@@ -244,10 +244,17 @@ export default function FileUpload() {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+    <div className="space-y-8">
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700 shadow-xl">
         <CardHeader className="text-center pb-6">
-          <div className="flex justify-center mb-4"></div>
+          <CardTitle className="text-2xl font-mono mb-4 font-bold text-blue-800 dark:text-blue-200 flex items-center justify-center">
+            <Music className="w-6 h-6 mr-3" />
+            Audio File Transcription
+          </CardTitle>
+          <p className="text-blue-600 mb-3 dark:text-blue-300">
+            Upload audio files and generate accurate transcriptions with
+            AI-powered speech recognition
+          </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Drag & Drop Zone */}
