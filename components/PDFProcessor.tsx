@@ -13,6 +13,9 @@ import {
   Zap,
   Globe,
   X,
+  FileDown,
+  FileType,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -291,6 +294,112 @@ export default function PDFProcessor() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const downloadAsDoc = (content: string, filename: string) => {
+    // Create HTML content for DOC format
+    const htmlContent = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>${filename}</title>
+        </head>
+        <body>
+          <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+            ${content.replace(/\n/g, "<br>")}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename.replace(".txt", ".doc");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadAsPDF = async (content: string, filename: string) => {
+    try {
+      // Create a print-friendly HTML document that can be saved as PDF
+      const htmlContent = `
+        <html>
+          <head>
+            <title>${filename}</title>
+            <style>
+              @page { margin: 1in; }
+              body { 
+                font-family: 'Times New Roman', serif; 
+                line-height: 1.6; 
+                margin: 0; 
+                padding: 20px;
+                font-size: 12pt;
+                color: #000;
+                background: white;
+              }
+              h1, h2, h3 { color: #333; }
+              @media print {
+                body { margin: 0; }
+                * { -webkit-print-color-adjust: exact; }
+              }
+            </style>
+          </head>
+          <body>
+            <div>${content.replace(/\n/g, "<br>")}</div>
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(function() {
+                  window.close();
+                }, 1000);
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      const blob = new Blob([htmlContent], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, "_blank", "width=800,height=600");
+
+      if (printWindow) {
+        printWindow.onload = function () {
+          printWindow.print();
+          setTimeout(() => {
+            printWindow.close();
+            URL.revokeObjectURL(url);
+          }, 1000);
+        };
+      } else {
+        // Fallback if popup is blocked
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename.replace(".txt", ".html");
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      // Fallback to text download if PDF generation fails
+      downloadAsText(content, filename);
+    }
+  };
+
+  const downloadInMultipleFormats = (content: string, baseFilename: string) => {
+    // Download as TXT
+    downloadAsText(content, `${baseFilename}.txt`);
+
+    // Download as DOC
+    downloadAsDoc(content, `${baseFilename}.doc`);
+
+    // Download as PDF
+    downloadAsPDF(content, `${baseFilename}.pdf`);
   };
 
   const clearResults = () => {
@@ -708,30 +817,92 @@ export default function PDFProcessor() {
                     onClick={() => copyToClipboard(result.summary)}
                     variant="outline"
                     size="sm"
-                    className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
+                    className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30 cursor-pointer"
                   >
                     <Copy className="w-4 h-4 mr-1" />
                     Copy
                   </Button>
-                  <Button
-                    onClick={() =>
-                      downloadAsText(
-                        result.summary,
-                        `${result.fileName}_summary.txt`
-                      )
-                    }
-                    variant="outline"
-                    size="sm"
-                    className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
-                  </Button>
+                  <div className="relative group">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                      <svg
+                        className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </Button>
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() =>
+                            downloadAsText(
+                              result.summary,
+                              `${result.fileName}_summary.txt`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 cursor-pointer"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Download as TXT
+                        </button>
+                        <button
+                          onClick={() =>
+                            downloadAsDoc(
+                              result.summary,
+                              `${result.fileName}_summary.doc`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileType className="w-4 h-4" />
+                          Download as DOC
+                        </button>
+                        <button
+                          onClick={() =>
+                            downloadAsPDF(
+                              result.summary,
+                              `${result.fileName}_summary.pdf`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileSpreadsheet className="w-4 h-4" />
+                          Download as PDF
+                        </button>
+                        <div className="border-t border-border my-1"></div>
+                        <button
+                          onClick={() =>
+                            downloadInMultipleFormats(
+                              result.summary,
+                              `${result.fileName}_summary`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-emerald-600 hover:bg-emerald-50 font-medium flex items-center gap-2"
+                        >
+                          <FileDown className="w-4 h-4" />
+                          Download All Formats
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/50 p-6 rounded-xl border border-border backdrop-blur-sm">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-xl border border-border backdrop-blur-sm">
                 <div
                   className="text-foreground leading-relaxed"
                   dangerouslySetInnerHTML={{
@@ -765,18 +936,18 @@ export default function PDFProcessor() {
           </Card>
 
           {/* Key Points */}
-          <Card className="bg-black/20 border border-white/10 backdrop-blur-sm shadow-lg">
+          <Card className="bg-background/50 border border-border backdrop-blur-sm shadow-lg">
             <CardHeader className="pb-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-500/20 rounded-lg border border-emerald-500/30">
-                    <Key className="w-5 h-5 text-emerald-400" />
+                    <Key className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-semibold text-white">
+                    <CardTitle className="text-xl font-semibold text-foreground">
                       Key Points
                     </CardTitle>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-muted-foreground">
                       Essential insights and important information
                     </p>
                   </div>
@@ -786,35 +957,97 @@ export default function PDFProcessor() {
                     onClick={() => copyToClipboard(result.keyPoints.join("\n"))}
                     variant="outline"
                     size="sm"
-                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/30"
+                    className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30 cursor-pointer"
                   >
                     <Copy className="w-4 h-4 mr-1" />
                     Copy
                   </Button>
-                  <Button
-                    onClick={() =>
-                      downloadAsText(
-                        result.keyPoints.join("\n"),
-                        `${result.fileName}_keypoints.txt`
-                      )
-                    }
-                    variant="outline"
-                    size="sm"
-                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/30"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
-                  </Button>
+                  <div className="relative group">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                      <svg
+                        className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </Button>
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() =>
+                            downloadAsText(
+                              result.keyPoints.join("\n"),
+                              `${result.fileName}_keypoints.txt`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Download as TXT
+                        </button>
+                        <button
+                          onClick={() =>
+                            downloadAsDoc(
+                              result.keyPoints.join("\n"),
+                              `${result.fileName}_keypoints.doc`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileType className="w-4 h-4" />
+                          Download as DOC
+                        </button>
+                        <button
+                          onClick={() =>
+                            downloadAsPDF(
+                              result.keyPoints.join("\n"),
+                              `${result.fileName}_keypoints.pdf`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileSpreadsheet className="w-4 h-4" />
+                          Download as PDF
+                        </button>
+                        <div className="border-t border-border my-1"></div>
+                        <button
+                          onClick={() =>
+                            downloadInMultipleFormats(
+                              result.keyPoints.join("\n"),
+                              `${result.fileName}_keypoints`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-emerald-600 hover:bg-emerald-50 font-medium flex items-center gap-2"
+                        >
+                          <FileDown className="w-4 h-4" />
+                          Download All Formats
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-black/30 p-6 rounded-xl border border-white/10 backdrop-blur-sm">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-xl border border-border backdrop-blur-sm">
                 <div className="space-y-4">
                   {result.keyPoints.map((point, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-4 group hover:bg-white/10 p-4 rounded-lg transition-all duration-200 border border-transparent hover:border-emerald-500/30"
+                      className="flex items-start gap-4 group hover:bg-white/20 dark:hover:bg-white/10 p-4 rounded-lg transition-all duration-200 border border-transparent hover:border-emerald-500/30"
                     >
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center mt-0.5 shadow-sm">
                         <span className="text-white font-bold text-sm">
@@ -822,7 +1055,7 @@ export default function PDFProcessor() {
                         </span>
                       </div>
                       <div
-                        className="text-white leading-relaxed flex-1"
+                        className="text-foreground leading-relaxed flex-1"
                         dangerouslySetInnerHTML={{
                           __html: parseAndFormatText(point),
                         }}
@@ -836,14 +1069,14 @@ export default function PDFProcessor() {
 
           {/* Translation Results */}
           {result.translation && (
-            <Card className="bg-black/20 border border-white/10 backdrop-blur-sm">
+            <Card className="bg-background/50 border border-border backdrop-blur-sm">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-500/20 rounded-lg border border-emerald-500/30">
-                    <Languages className="w-5 h-5 text-emerald-400" />
+                    <Languages className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-semibold text-white">
+                    <CardTitle className="text-lg font-semibold text-foreground">
                       Translation (
                       {
                         languages.find(
@@ -857,7 +1090,7 @@ export default function PDFProcessor() {
                       }
                       )
                     </CardTitle>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-muted-foreground">
                       AI-powered translation with high accuracy
                     </p>
                   </div>
@@ -866,13 +1099,106 @@ export default function PDFProcessor() {
               <CardContent className="space-y-6">
                 {/* Translated Summary */}
                 <div>
-                  <h4 className="font-semibold mb-3 text-white flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-emerald-400" />
-                    Translated Summary
-                  </h4>
-                  <div className="bg-black/30 p-4 rounded-lg border border-white/10 backdrop-blur-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-semibold text-foreground flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-emerald-500" />
+                      Translated Summary
+                    </h4>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() =>
+                          copyToClipboard(
+                            result.translation?.translatedSummary || ""
+                          )
+                        }
+                        variant="outline"
+                        size="sm"
+                        className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30 cursor-pointer"
+                      >
+                        <Copy className="w-4 h-4 mr-1" />
+                        Copy
+                      </Button>
+                      <div className="relative group">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Download
+                          <svg
+                            className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </Button>
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                          <div className="py-1">
+                            <button
+                              onClick={() =>
+                                downloadAsText(
+                                  result.translation?.translatedSummary || "",
+                                  `${result.fileName}_translated_summary.txt`
+                                )
+                              }
+                              className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 cursor-pointer"
+                            >
+                              <FileText className="w-4 h-4" />
+                              Download as TXT
+                            </button>
+                            <button
+                              onClick={() =>
+                                downloadAsDoc(
+                                  result.translation?.translatedSummary || "",
+                                  `${result.fileName}_translated_summary.doc`
+                                )
+                              }
+                              className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 cursor-pointer"
+                            >
+                              <FileType className="w-4 h-4" />
+                              Download as DOC
+                            </button>
+                            <button
+                              onClick={() =>
+                                downloadAsPDF(
+                                  result.translation?.translatedSummary || "",
+                                  `${result.fileName}_translated_summary.pdf`
+                                )
+                              }
+                              className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 cursor-pointer"
+                            >
+                              <FileSpreadsheet className="w-4 h-4" />
+                              Download as PDF
+                            </button>
+                            <div className="border-t border-border my-1"></div>
+                            <button
+                              onClick={() =>
+                                downloadInMultipleFormats(
+                                  result.translation?.translatedSummary || "",
+                                  `${result.fileName}_translated_summary`
+                                )
+                              }
+                              className="w-full px-4 py-2 text-left text-sm text-emerald-600 hover:bg-emerald-50 font-medium flex items-center gap-2 cursor-pointer"
+                            >
+                              <FileDown className="w-4 h-4" />
+                              Download All Formats
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4 rounded-lg border border-border backdrop-blur-sm">
                     <div
-                      className="text-white leading-relaxed"
+                      className="text-foreground leading-relaxed"
                       dangerouslySetInnerHTML={{
                         __html: parseAndFormatText(
                           result.translation.translatedSummary
@@ -884,17 +1210,118 @@ export default function PDFProcessor() {
 
                 {/* Translated Key Points */}
                 <div>
-                  <h4 className="font-semibold mb-3 text-white flex items-center gap-2">
-                    <Key className="w-4 h-4 text-emerald-400" />
-                    Translated Key Points
-                  </h4>
-                  <div className="bg-black/30 p-4 rounded-lg border border-white/10 backdrop-blur-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-semibold text-foreground flex items-center gap-2">
+                      <Key className="w-4 h-4 text-emerald-500" />
+                      Translated Key Points
+                    </h4>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() =>
+                          copyToClipboard(
+                            result.translation!.translatedKeyPoints.join("\n")
+                          )
+                        }
+                        variant="outline"
+                        size="sm"
+                        className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
+                      >
+                        <Copy className="w-4 h-4 mr-1" />
+                        Copy
+                      </Button>
+                      <div className="relative group">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Download
+                          <svg
+                            className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </Button>
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                          <div className="py-1">
+                            <button
+                              onClick={() =>
+                                downloadAsText(
+                                  result.translation!.translatedKeyPoints.join(
+                                    "\n"
+                                  ),
+                                  `${result.fileName}_translated_keypoints.txt`
+                                )
+                              }
+                              className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                            >
+                              <FileText className="w-4 h-4" />
+                              Download as TXT
+                            </button>
+                            <button
+                              onClick={() =>
+                                downloadAsDoc(
+                                  result.translation!.translatedKeyPoints.join(
+                                    "\n"
+                                  ),
+                                  `${result.fileName}_translated_keypoints.doc`
+                                )
+                              }
+                              className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                            >
+                              <FileType className="w-4 h-4" />
+                              Download as DOC
+                            </button>
+                            <button
+                              onClick={() =>
+                                downloadAsPDF(
+                                  result.translation!.translatedKeyPoints.join(
+                                    "\n"
+                                  ),
+                                  `${result.fileName}_translated_keypoints.pdf`
+                                )
+                              }
+                              className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                            >
+                              <FileSpreadsheet className="w-4 h-4" />
+                              Download as PDF
+                            </button>
+                            <div className="border-t border-border my-1"></div>
+                            <button
+                              onClick={() =>
+                                downloadInMultipleFormats(
+                                  result.translation!.translatedKeyPoints.join(
+                                    "\n"
+                                  ),
+                                  `${result.fileName}_translated_keypoints`
+                                )
+                              }
+                              className="w-full px-4 py-2 text-left text-sm text-emerald-600 hover:bg-emerald-50 font-medium flex items-center gap-2"
+                            >
+                              <FileDown className="w-4 h-4" />
+                              Download All Formats
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4 rounded-lg border border-border backdrop-blur-sm">
                     <div className="space-y-3">
-                      {result.translation.translatedKeyPoints.map(
+                      {result.translation!.translatedKeyPoints.map(
                         (point, index) => (
                           <div
                             key={index}
-                            className="flex items-start gap-3 group hover:bg-white/10 p-3 rounded-lg transition-colors"
+                            className="flex items-start gap-3 group hover:bg-white/20 dark:hover:bg-white/10 p-3 rounded-lg transition-colors"
                           >
                             <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center mt-0.5">
                               <span className="text-white font-semibold text-sm">
@@ -902,7 +1329,7 @@ export default function PDFProcessor() {
                               </span>
                             </div>
                             <div
-                              className="text-white leading-relaxed flex-1"
+                              className="text-foreground leading-relaxed flex-1"
                               dangerouslySetInnerHTML={{
                                 __html: parseAndFormatText(point),
                               }}
@@ -916,19 +1343,81 @@ export default function PDFProcessor() {
 
                 {/* Download Full Translation */}
                 <div className="flex justify-center">
-                  <Button
-                    onClick={() =>
-                      downloadAsText(
-                        result.translation!.translatedText,
-                        `${result.fileName}_translated.txt`
-                      )
-                    }
-                    variant="outline"
-                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/30 px-6 py-2"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Full Translation
-                  </Button>
+                  <div className="relative group">
+                    <Button
+                      variant="outline"
+                      className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30 px-6 py-2"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Full Translation
+                      <svg
+                        className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </Button>
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() =>
+                            downloadAsText(
+                              result.translation!.translatedText,
+                              `${result.fileName}_translated.txt`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Download as TXT
+                        </button>
+                        <button
+                          onClick={() =>
+                            downloadAsDoc(
+                              result.translation!.translatedText,
+                              `${result.fileName}_translated.doc`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileType className="w-4 h-4" />
+                          Download as DOC
+                        </button>
+                        <button
+                          onClick={() =>
+                            downloadAsPDF(
+                              result.translation!.translatedText,
+                              `${result.fileName}_translated.pdf`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileSpreadsheet className="w-4 h-4" />
+                          Download as HTML
+                        </button>
+                        <div className="border-t border-border my-1"></div>
+                        <button
+                          onClick={() =>
+                            downloadInMultipleFormats(
+                              result.translation!.translatedText,
+                              `${result.fileName}_translated`
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-emerald-600 hover:bg-emerald-50 font-medium flex items-center gap-2"
+                        >
+                          <FileDown className="w-4 h-4" />
+                          Download All Formats
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -936,7 +1425,7 @@ export default function PDFProcessor() {
 
           {/* Translation Error */}
           {result.translationError && (
-            <Card className="bg-black/20 border border-red-500/30 backdrop-blur-sm">
+            <Card className="bg-background/50 border border-red-500/30 backdrop-blur-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-red-400" />
@@ -944,7 +1433,7 @@ export default function PDFProcessor() {
                     <span className="font-semibold text-red-400">
                       Translation Warning:
                     </span>
-                    <span className="text-white ml-2">
+                    <span className="text-foreground ml-2">
                       {result.translationError}
                     </span>
                   </div>
@@ -958,9 +1447,9 @@ export default function PDFProcessor() {
             <Button
               onClick={clearResults}
               variant="outline"
-              className="text-gray-300 hover:text-white hover:bg-white/10 border-white/20 px-6 py-2"
+              className="bg-gradient-to-r cursor-pointer from-emerald-400 via-emerald-500 to-emerald-600 hover:from-emerald-500 hover:via-emerald-600 hover:to-emerald-700 text-white border-0 px-8 py-3 font-mono hover:text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
+              <RotateCcw className="w-5 h-5 mr-3" />
               Process New Document
             </Button>
           </div>
