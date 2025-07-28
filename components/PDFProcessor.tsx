@@ -312,15 +312,15 @@ export default function PDFProcessor() {
   return (
     <div className="space-y-6">
       {/* Features Overview */}
-      <Card className="bg-black/20 border border-white/10 backdrop-blur-sm">
+      <Card className="bg-background/50 border border-border backdrop-blur-sm">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div className="space-y-3">
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
                 <FileText className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-semibold text-white">PDF Upload</h3>
-              <p className="text-sm text-gray-300">
+              <h3 className="font-semibold text-foreground">PDF Upload</h3>
+              <p className="text-sm text-muted-foreground">
                 Upload PDF documents up to 25MB for intelligent text extraction
               </p>
             </div>
@@ -329,8 +329,8 @@ export default function PDFProcessor() {
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center">
                 <Brain className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-semibold text-white">AI Analysis</h3>
-              <p className="text-sm text-gray-300">
+              <h3 className="font-semibold text-foreground">AI Analysis</h3>
+              <p className="text-sm text-muted-foreground">
                 Advanced AI-powered text extraction and intelligent
                 summarization
               </p>
@@ -340,8 +340,8 @@ export default function PDFProcessor() {
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center">
                 <Languages className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-semibold text-white">Translation</h3>
-              <p className="text-sm text-gray-300">
+              <h3 className="font-semibold text-foreground">Translation</h3>
+              <p className="text-sm text-muted-foreground">
                 Multi-language translation with download and copy functionality
               </p>
             </div>
@@ -350,25 +350,25 @@ export default function PDFProcessor() {
       </Card>
 
       {/* Language Selection */}
-      <Card className="bg-black/20 border border-white/10 backdrop-blur-sm">
+      <Card className="bg-background/50 border border-border backdrop-blur-sm">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-white flex items-center">
-                <Globe className="w-4 h-4 mr-2 text-emerald-400" />
+              <label className="block text-sm font-semibold text-foreground flex items-center">
+                <Globe className="w-4 h-4 mr-2 text-emerald-500" />
                 Translation Language
               </label>
               <div className="h-[52px]">
                 <select
                   value={targetLanguage}
                   onChange={(e) => setTargetLanguage(e.target.value)}
-                  className="w-full h-full p-3 border border-white/20 rounded-lg bg-black/30 text-white backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  className="w-full h-full p-3 border border-border rounded-lg bg-background text-foreground backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                 >
                   {languages.map((lang) => (
                     <option
                       key={lang.code}
                       value={lang.code}
-                      className="bg-black text-white"
+                      className="bg-background text-foreground"
                     >
                       {lang.flag} {lang.name}
                     </option>
@@ -378,22 +378,22 @@ export default function PDFProcessor() {
             </div>
 
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-white flex items-center">
-                <Languages className="w-4 h-4 mr-2 text-emerald-400" />
+              <label className="block text-sm font-semibold text-foreground flex items-center">
+                <Languages className="w-4 h-4 mr-2 text-emerald-500" />
                 Translation Options
               </label>
-              <div className="flex items-center p-3 bg-black/30 rounded-lg border border-white/20 backdrop-blur-sm h-[52px]">
+              <div className="flex items-center p-3 bg-background rounded-lg border border-border backdrop-blur-sm h-[52px]">
                 <div className="relative cursor-pointer translate-y-[3px]">
                   <input
                     type="checkbox"
                     checked={includeTranslation}
                     onChange={(e) => setIncludeTranslation(e.target.checked)}
-                    className="w-5  cursor-pointer h-5 rounded border-2 border-white/30 bg-transparent text-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-black transition-all duration-200 checked:bg-emerald-500 checked:border-emerald-500"
+                    className="w-5 cursor-pointer h-5 rounded border-2 border-border bg-transparent text-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-background transition-all duration-200 checked:bg-emerald-500 checked:border-emerald-500"
                   />
                   {includeTranslation && (
                     <div className="absolute cursor-pointer inset-0 flex items-center justify-center pointer-events-none">
                       <svg
-                        className="w-3 h-3  cursor-pointer text-white"
+                        className="w-3 h-3 cursor-pointer text-white"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -406,7 +406,7 @@ export default function PDFProcessor() {
                     </div>
                   )}
                 </div>
-                <span className="ml-3 text-sm text-gray-300">
+                <span className="ml-3 text-sm text-muted-foreground">
                   Enable AI-powered translation
                 </span>
               </div>
@@ -426,7 +426,7 @@ export default function PDFProcessor() {
         />
 
         {/* Drag & Drop Zone */}
-        <Card className="bg-black/20 border border-white/10 backdrop-blur-sm">
+        <Card className="bg-background/50 border border-border backdrop-blur-sm">
           <CardContent className="p-6">
             <div
               onDragEnter={handleDrag}
@@ -437,26 +437,26 @@ export default function PDFProcessor() {
               className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer ${
                 dragActive
                   ? "border-emerald-500 bg-emerald-500/10"
-                  : "border-white/30 hover:border-emerald-400 hover:bg-white/5"
+                  : "border-border hover:border-emerald-400 hover:bg-muted/50"
               }`}
             >
               {pdfFile ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-center">
                     <div className="p-4 bg-emerald-500/20 rounded-full border border-emerald-500/30">
-                      <FileText className="w-8 h-8 text-emerald-400" />
+                      <FileText className="w-8 h-8 text-emerald-500" />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white text-lg">
+                    <h3 className="font-semibold text-foreground text-lg">
                       {pdfFile.name}
                     </h3>
-                    <p className="text-sm text-gray-300 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {formatFileSize(pdfFile.size)} • PDF Document
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-2">
-                    <div className="flex items-center gap-1 text-emerald-400">
+                    <div className="flex items-center gap-1 text-emerald-500">
                       <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                       <span className="text-sm font-medium">
                         Ready to process
@@ -480,17 +480,17 @@ export default function PDFProcessor() {
                 <div className="space-y-4">
                   <div className="flex justify-center">
                     <div className="p-6 bg-emerald-500/20 rounded-full border border-emerald-500/30">
-                      <Upload className="w-10 h-10 text-emerald-400" />
+                      <Upload className="w-10 h-10 text-emerald-500" />
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">
+                    <h3 className="text-xl font-semibold text-foreground">
                       Drop your PDF file here
                     </h3>
-                    <p className="text-sm text-gray-300 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                       or click to browse files
                     </p>
-                    <div className="flex items-center justify-center gap-4 mt-3 text-xs text-gray-400">
+                    <div className="flex items-center justify-center gap-4 mt-3 text-xs text-muted-foreground">
                       <span>Max size: 25MB</span>
                       <span>•</span>
                       <span>PDF format only</span>
@@ -503,7 +503,7 @@ export default function PDFProcessor() {
         </Card>
 
         {/* Process Button */}
-        <Card className="bg-black/20 border border-white/10 backdrop-blur-sm">
+        <Card className="bg-background/50 border border-border backdrop-blur-sm">
           <CardContent className="p-6">
             <div className="flex flex-col items-center space-y-4">
               <Button
@@ -526,7 +526,7 @@ export default function PDFProcessor() {
               </Button>
 
               {!pdfFile && (
-                <p className="text-sm text-gray-400 text-center">
+                <p className="text-sm text-muted-foreground text-center">
                   Upload a PDF file to start analysis
                 </p>
               )}
@@ -534,7 +534,7 @@ export default function PDFProcessor() {
               {/* Progress Bar */}
               {isProcessing && (
                 <div className="w-full max-w-4xl">
-                  <div className="flex justify-between items-center text-sm text-gray-300 mb-4">
+                  <div className="flex justify-between items-center text-sm text-muted-foreground mb-4">
                     <span className="flex items-center gap-3">
                       <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-lg shadow-emerald-500/50"></div>
                       <span className="font-medium">
@@ -542,15 +542,17 @@ export default function PDFProcessor() {
                       </span>
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Progress</span>
-                      <span className="font-bold text-lg text-emerald-400">
+                      <span className="text-xs text-muted-foreground">
+                        Progress
+                      </span>
+                      <span className="font-bold text-lg text-emerald-500">
                         {Math.round(uploadProgress)}%
                       </span>
                     </div>
                   </div>
 
                   {/* Main Progress Bar */}
-                  <div className="w-full bg-black/50 rounded-2xl h-6 overflow-hidden border border-white/30 backdrop-blur-sm shadow-xl">
+                  <div className="w-full bg-muted/50 rounded-2xl h-6 overflow-hidden border border-border backdrop-blur-sm shadow-xl">
                     <div
                       className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 h-6 rounded-2xl transition-all duration-500 ease-out shadow-lg relative"
                       style={{ width: `${uploadProgress}%` }}
@@ -578,8 +580,8 @@ export default function PDFProcessor() {
 
                   {/* Status Messages */}
                   <div className="flex justify-center mt-4">
-                    <div className="bg-black/30 px-6 py-3 rounded-xl border border-white/20 backdrop-blur-sm">
-                      <span className="text-sm text-gray-300 font-medium">
+                    <div className="bg-muted/50 px-6 py-3 rounded-xl border border-border backdrop-blur-sm">
+                      <span className="text-sm text-foreground font-medium">
                         {uploadProgress < 20 &&
                           "🔄 Initializing PDF processing..."}
                         {uploadProgress >= 20 &&
@@ -605,15 +607,13 @@ export default function PDFProcessor() {
                       <div
                         className={`flex items-center gap-2 ${
                           uploadProgress >= 20
-                            ? "text-emerald-400"
-                            : "text-gray-500"
+                            ? "text-emerald-500"
+                            : "text-muted-foreground"
                         }`}
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${
-                            uploadProgress >= 20
-                              ? "bg-emerald-500"
-                              : "bg-gray-600"
+                            uploadProgress >= 20 ? "bg-emerald-500" : "bg-muted"
                           }`}
                         ></div>
                         <span className="text-xs">Extract</span>
@@ -621,15 +621,13 @@ export default function PDFProcessor() {
                       <div
                         className={`flex items-center gap-2 ${
                           uploadProgress >= 40
-                            ? "text-emerald-400"
-                            : "text-gray-500"
+                            ? "text-emerald-500"
+                            : "text-muted-foreground"
                         }`}
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${
-                            uploadProgress >= 40
-                              ? "bg-emerald-500"
-                              : "bg-gray-600"
+                            uploadProgress >= 40 ? "bg-emerald-500" : "bg-muted"
                           }`}
                         ></div>
                         <span className="text-xs">Analyze</span>
@@ -637,15 +635,13 @@ export default function PDFProcessor() {
                       <div
                         className={`flex items-center gap-2 ${
                           uploadProgress >= 60
-                            ? "text-emerald-400"
-                            : "text-gray-500"
+                            ? "text-emerald-500"
+                            : "text-muted-foreground"
                         }`}
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${
-                            uploadProgress >= 60
-                              ? "bg-emerald-500"
-                              : "bg-gray-600"
+                            uploadProgress >= 60 ? "bg-emerald-500" : "bg-muted"
                           }`}
                         ></div>
                         <span className="text-xs">Summarize</span>
@@ -653,15 +649,13 @@ export default function PDFProcessor() {
                       <div
                         className={`flex items-center gap-2 ${
                           uploadProgress >= 80
-                            ? "text-emerald-400"
-                            : "text-gray-500"
+                            ? "text-emerald-500"
+                            : "text-muted-foreground"
                         }`}
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${
-                            uploadProgress >= 80
-                              ? "bg-emerald-500"
-                              : "bg-gray-600"
+                            uploadProgress >= 80 ? "bg-emerald-500" : "bg-muted"
                           }`}
                         ></div>
                         <span className="text-xs">Translate</span>
@@ -669,15 +663,13 @@ export default function PDFProcessor() {
                       <div
                         className={`flex items-center gap-2 ${
                           uploadProgress >= 95
-                            ? "text-emerald-400"
-                            : "text-gray-500"
+                            ? "text-emerald-500"
+                            : "text-muted-foreground"
                         }`}
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${
-                            uploadProgress >= 95
-                              ? "bg-emerald-500"
-                              : "bg-gray-600"
+                            uploadProgress >= 95 ? "bg-emerald-500" : "bg-muted"
                           }`}
                         ></div>
                         <span className="text-xs">Complete</span>
@@ -695,18 +687,18 @@ export default function PDFProcessor() {
       {result && (
         <div className="space-y-6">
           {/* AI Summary */}
-          <Card className="bg-black/20 border border-white/10 backdrop-blur-sm shadow-lg">
+          <Card className="bg-background/50 border border-border backdrop-blur-sm shadow-lg">
             <CardHeader className="pb-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-500/20 rounded-lg border border-emerald-500/30">
-                    <Brain className="w-5 h-5 text-emerald-400" />
+                    <Brain className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-semibold text-white">
+                    <CardTitle className="text-xl font-semibold text-foreground">
                       AI Summary
                     </CardTitle>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-muted-foreground">
                       Intelligent analysis of the document content
                     </p>
                   </div>
@@ -716,7 +708,7 @@ export default function PDFProcessor() {
                     onClick={() => copyToClipboard(result.summary)}
                     variant="outline"
                     size="sm"
-                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/30"
+                    className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
                   >
                     <Copy className="w-4 h-4 mr-1" />
                     Copy
@@ -730,7 +722,7 @@ export default function PDFProcessor() {
                     }
                     variant="outline"
                     size="sm"
-                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/30"
+                    className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30"
                   >
                     <Download className="w-4 h-4 mr-1" />
                     Download
@@ -739,29 +731,29 @@ export default function PDFProcessor() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-black/30 p-6 rounded-xl border border-white/10 backdrop-blur-sm">
+              <div className="bg-muted/50 p-6 rounded-xl border border-border backdrop-blur-sm">
                 <div
-                  className="text-white leading-relaxed"
+                  className="text-foreground leading-relaxed"
                   dangerouslySetInnerHTML={{
                     __html: parseAndFormatText(result.summary),
                   }}
                 />
               </div>
               {result.metadata && (
-                <div className="flex items-center gap-6 mt-4 p-3 bg-black/40 rounded-lg border border-white/10">
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                <div className="flex items-center gap-6 mt-4 p-3 bg-muted/30 rounded-lg border border-border">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FileText className="w-4 h-4" />
                     <span className="font-medium">
                       {result.metadata?.pages || 0} pages
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FileText className="w-4 h-4" />
                     <span className="font-medium">
                       {result.metadata?.textLength || 0} characters
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Zap className="w-4 h-4" />
                     <span className="font-medium">
                       {result.metadata?.extractionMethod || "Unknown"}
