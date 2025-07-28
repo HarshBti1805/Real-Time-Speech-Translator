@@ -45,6 +45,9 @@ export default function Home() {
   const [fileUploadType, setFileUploadType] = useState<
     "audio" | "video" | null
   >(null);
+  const [voiceRecordingTab, setVoiceRecordingTab] = useState<"visual" | "pdf">(
+    "visual"
+  );
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("theme") || "dark";
@@ -174,7 +177,7 @@ export default function Home() {
       case "fileupload":
         return <FileUploadPage onFileTypeChange={setFileUploadType} />;
       case "voicerecording":
-        return <VoiceRecordingPage />;
+        return <VoiceRecordingPage onTabChange={setVoiceRecordingTab} />;
 
       default:
         return <MainPage />;
@@ -184,19 +187,26 @@ export default function Home() {
   const getSidebarHeight = () => {
     switch (activeComponent) {
       case "main":
-        return "960px";
+        return "1005px";
       case "translate":
-        return "1176px";
+        return "1222px";
       case "fileupload":
         // Return different heights based on file upload type
         if (fileUploadType === "audio") {
-          return "1604px";
+          return "1607px";
         } else if (fileUploadType === "video") {
-          return "1802px";
+          return "1806px";
         }
         // Default height when no file type is selected yet
         return "1604px";
       case "voicerecording":
+        // Return different heights based on voice recording tab
+        if (voiceRecordingTab === "visual") {
+          return "1483px";
+        } else if (voiceRecordingTab === "pdf") {
+          return "1874px";
+        }
+        // Default height when no tab is selected yet
         return "1545px";
 
       default:

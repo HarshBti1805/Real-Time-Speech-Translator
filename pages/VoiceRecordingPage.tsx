@@ -12,14 +12,26 @@ import {
 } from "lucide-react";
 import VoiceRecording from "@/components/VoiceRecording";
 
-export default function VoiceRecordingPage() {
+interface VoiceRecordingPageProps {
+  onTabChange?: (tab: "visual" | "pdf") => void;
+}
+
+export default function VoiceRecordingPage({
+  onTabChange,
+}: VoiceRecordingPageProps) {
   const [activeTab, setActiveTab] = useState<"visual" | "pdf">("visual");
+
+  // Update parent component when tab changes
+  const handleTabChange = (tab: "visual" | "pdf") => {
+    setActiveTab(tab);
+    onTabChange?.(tab);
+  };
 
   return (
     <div className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Voice & Visual Recognition Section */}
-        <VoiceRecording onTabChange={setActiveTab} />
+        <VoiceRecording onTabChange={handleTabChange} />
 
         {/* Instructions for Visual Text Recognition - Only show when visual tab is active */}
         {activeTab === "visual" && (
