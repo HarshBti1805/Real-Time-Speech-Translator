@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Upload,
   Monitor,
@@ -10,6 +10,18 @@ import {
   BookOpen,
   Eye,
   Scissors,
+  Clipboard,
+  Edit3,
+  RotateCw,
+  Sun,
+  Palette,
+  Move,
+  Square,
+  Download,
+  Undo,
+  Redo,
+  Play,
+  Pause,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +56,15 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
+  // Real-time OCR state - separate from camera capture
+  const [realtimeOCROpen, setRealtimeOCROpen] = useState(false);
+  const [realtimeOCRStream, setRealtimeOCRStream] =
+    useState<MediaStream | null>(null);
+  const [realtimeOCR, setRealtimeOCR] = useState(false);
+  const [realtimeText, setRealtimeText] = useState("");
+  const [ocrInterval, setOcrInterval] = useState<NodeJS.Timeout | null>(null);
+  const [isProcessingFrame, setIsProcessingFrame] = useState(false);
+
   // --- SNIPPING TOOL STATE ---
   const [snippingModalOpen, setSnippingModalOpen] = useState(false);
   const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(
@@ -54,8 +75,25 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [cropShape, setCropShape] = useState<"rect" | "round">("rect");
 
+  // --- IMAGE EDITOR STATE ---
+  const [imageEditorOpen, setImageEditorOpen] = useState(false);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [editedImage, setEditedImage] = useState<string | null>(null);
+  const [editorSettings, setEditorSettings] = useState({
+    brightness: 100,
+    contrast: 100,
+    rotation: 0,
+    flipHorizontal: false,
+    flipVertical: false,
+    filter: "none",
+  });
+  const [editorTool, setEditorTool] = useState<"move" | "crop">("move");
+  const [editorHistory, setEditorHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
   // Video refs
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const realtimeOCRVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // --- SNIPPING TOOL LOGIC ---
   const startSnipping = async () => {
@@ -174,6 +212,366 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
     return new File([u8arr], filename, { type: mime });
   };
 
+  // --- PASTE IMAGE FUNCTIONALITY ---
+  const handlePasteImage = useCallback(async () => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        if (
+          item.types.includes("image/png") ||
+          item.types.includes("image/jpeg")
+        ) {
+          const blob = await item.getType(
+            item.types.find((type) => type.startsWith("image/"))!
+          );
+          const file = new File([blob], "pasted-image.png", {
+            type: blob.type,
+          });
+
+          // Convert to data URL for editor
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            setOriginalImage(dataUrl);
+            setEditedImage(dataUrl);
+            setImageEditorOpen(true);
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+      }
+      alert("No image found in clipboard. Please copy an image first.");
+    } catch (error) {
+      console.error("Error accessing clipboard:", error);
+      alert(
+        "Failed to access clipboard. Please make sure you have copied an image."
+      );
+    }
+  }, []);
+
+  // --- IMAGE EDITOR FUNCTIONS ---
+  const applyImageEdits = useCallback(
+    (imageUrl: string, settings: typeof editorSettings) => {
+      return new Promise<string>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d")!;
+
+          // Calculate rotated dimensions
+          const angle = (settings.rotation * Math.PI) / 180;
+          const cos = Math.abs(Math.cos(angle));
+          const sin = Math.abs(Math.sin(angle));
+          const newWidth = img.width * cos + img.height * sin;
+          const newHeight = img.width * sin + img.height * cos;
+
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+
+          // Clear canvas
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Apply transformations
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate(angle);
+          ctx.scale(
+            settings.flipHorizontal ? -1 : 1,
+            settings.flipVertical ? -1 : 1
+          );
+
+          // Apply filters
+          const brightness = settings.brightness / 100;
+          const contrast = settings.contrast / 100;
+          ctx.filter = `brightness(${brightness}) contrast(${contrast})`;
+
+          // Apply color filters
+          if (settings.filter !== "none") {
+            switch (settings.filter) {
+              case "grayscale":
+                ctx.filter += " grayscale(100%)";
+                break;
+              case "sepia":
+                ctx.filter += " sepia(100%)";
+                break;
+              case "blur":
+                ctx.filter += " blur(2px)";
+                break;
+              case "vintage":
+                ctx.filter += " sepia(50%) contrast(1.2) brightness(0.9)";
+                break;
+            }
+          }
+
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          ctx.restore();
+
+          resolve(canvas.toDataURL());
+        };
+        img.src = imageUrl;
+      });
+    },
+    []
+  );
+
+  const undoEdit = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      setEditedImage(editorHistory[historyIndex - 1]);
+    }
+  }, [historyIndex, editorHistory]);
+
+  const redoEdit = useCallback(() => {
+    if (historyIndex < editorHistory.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      setEditedImage(editorHistory[historyIndex + 1]);
+    }
+  }, [historyIndex, editorHistory]);
+
+  const resetEditor = useCallback(() => {
+    setEditorSettings({
+      brightness: 100,
+      contrast: 100,
+      rotation: 0,
+      flipHorizontal: false,
+      flipVertical: false,
+      filter: "none",
+    });
+    setEditorTool("move");
+    setEditorHistory([]);
+    setHistoryIndex(-1);
+    if (originalImage) {
+      setEditedImage(originalImage);
+    }
+  }, [originalImage]);
+
+  const downloadEditedImage = useCallback(() => {
+    if (editedImage) {
+      const link = document.createElement("a");
+      link.download = "edited-image.png";
+      link.href = editedImage;
+      link.click();
+    }
+  }, [editedImage]);
+
+  const processEditedImage = useCallback(async () => {
+    if (editedImage) {
+      const file = dataURLtoFile(editedImage, "edited-image.png");
+      await handleImageUpload(file);
+      setImageEditorOpen(false);
+    }
+  }, [editedImage]);
+
+  // --- REAL-TIME OCR FUNCTIONS ---
+  const startRealtimeOCRCamera = useCallback(async () => {
+    try {
+      // Try environment camera first, fallback to any available camera
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+      } catch (envError) {
+        console.log(
+          "Environment camera not available, trying any camera:",
+          envError
+        );
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+      }
+
+      setRealtimeOCRStream(stream);
+      setRealtimeOCROpen(true);
+    } catch (error) {
+      console.error("Error accessing camera for real-time OCR:", error);
+      alert(
+        "Camera access denied. Please check your browser permissions and try again."
+      );
+    }
+  }, []);
+
+  const startRealtimeOCR = useCallback(async () => {
+    if (!realtimeOCRVideoRef.current) return;
+
+    setRealtimeOCR(true);
+    const video = realtimeOCRVideoRef.current;
+
+    const processFrame = async () => {
+      if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+        console.log("Video not ready:", {
+          video: !!video,
+          videoWidth: video?.videoWidth,
+          videoHeight: video?.videoHeight,
+        });
+        return;
+      }
+
+      console.log("Processing frame:", {
+        width: video.videoWidth,
+        height: video.videoHeight,
+      });
+
+      setIsProcessingFrame(true);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        canvas.toBlob(
+          async (blob) => {
+            if (blob) {
+              try {
+                // Create a File object from the blob
+                const file = new File([blob], "camera-frame.jpg", {
+                  type: "image/jpeg",
+                });
+
+                console.log("Sending frame to OCR API, file size:", file.size);
+
+                // Create FormData and append the file
+                const formData = new FormData();
+                formData.append("image", file);
+
+                const response = await fetch("/api/ocr", {
+                  method: "POST",
+                  body: formData,
+                  // Don't set Content-Type header - let browser set it with boundary for FormData
+                });
+
+                console.log("OCR API response status:", response.status);
+
+                if (response.ok) {
+                  const data = await response.json();
+                  console.log("OCR API response data:", data);
+
+                  if (data.success) {
+                    if (data.text && data.text.trim()) {
+                      setRealtimeText(data.text);
+                      console.log("OCR text extracted:", data.text);
+                    } else {
+                      console.log("OCR successful but no text found");
+                    }
+                  } else {
+                    console.error("OCR API returned error:", data.error);
+                  }
+                } else {
+                  const errorText = await response.text();
+                  console.error(
+                    "OCR API request failed:",
+                    response.status,
+                    errorText
+                  );
+                }
+              } catch (error) {
+                console.error("Real-time OCR error:", error);
+              } finally {
+                setIsProcessingFrame(false);
+              }
+            }
+          },
+          "image/jpeg",
+          0.8
+        );
+      }
+    };
+
+    const interval = setInterval(processFrame, 2000); // Process every 2 seconds for better stability
+    setOcrInterval(interval);
+  }, []);
+
+  const stopRealtimeOCR = useCallback(() => {
+    setRealtimeOCR(false);
+    setRealtimeText("");
+    setIsProcessingFrame(false);
+    if (ocrInterval) {
+      clearInterval(ocrInterval);
+      setOcrInterval(null);
+    }
+  }, [ocrInterval]);
+
+  // Effect to apply image edits when settings change
+  useEffect(() => {
+    if (originalImage && imageEditorOpen) {
+      applyImageEdits(originalImage, editorSettings).then((result) => {
+        setEditedImage(result);
+      });
+    }
+  }, [originalImage, editorSettings, imageEditorOpen, applyImageEdits]);
+
+  // Effect to handle camera stream for photo capture
+  useEffect(() => {
+    if (cameraStream && cameraVideoRef.current) {
+      const video = cameraVideoRef.current;
+      video.srcObject = cameraStream;
+
+      const handleLoadedMetadata = () => {
+        video.play().catch((error) => {
+          console.error("Error playing camera video:", error);
+        });
+      };
+
+      video.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+      return () => {
+        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      };
+    }
+  }, [cameraStream]);
+
+  // Effect to handle real-time OCR camera stream
+  useEffect(() => {
+    if (realtimeOCRStream && realtimeOCRVideoRef.current) {
+      const video = realtimeOCRVideoRef.current;
+      video.srcObject = realtimeOCRStream;
+
+      const handleLoadedMetadata = () => {
+        video
+          .play()
+          .then(() => {
+            console.log("Real-time OCR video started playing");
+            // Don't auto-start OCR - let user manually start it
+          })
+          .catch((error) => {
+            console.error("Error playing real-time OCR video:", error);
+          });
+      };
+
+      video.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+      return () => {
+        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      };
+    }
+  }, [realtimeOCRStream]);
+
+  // Cleanup effect for camera stream and intervals
+  useEffect(() => {
+    return () => {
+      if (ocrInterval) {
+        clearInterval(ocrInterval);
+      }
+      // Cleanup camera streams on unmount
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+      }
+      if (realtimeOCRStream) {
+        realtimeOCRStream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [ocrInterval, cameraStream, realtimeOCRStream]);
+
   // --- MAIN FUNCTIONS ---
   const handleImageUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -195,16 +593,14 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
     setExtractedText("");
 
     try {
-      const base64 = await fileToBase64(file);
+      // Create FormData and append the file
+      const formData = new FormData();
+      formData.append("image", file);
 
       const response = await fetch("/api/ocr", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          image: base64,
-        }),
+        body: formData,
+        // Don't set Content-Type header - let browser set it with boundary for FormData
       });
 
       if (!response.ok) {
@@ -228,23 +624,6 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
     } finally {
       setProcessingImage(false);
     }
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === "string") {
-          // Remove the data:image/...;base64, prefix
-          const base64 = reader.result.split(",")[1];
-          resolve(base64);
-        } else {
-          reject(new Error("Failed to convert file to base64"));
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
   };
 
   const takeScreenshot = async () => {
@@ -291,15 +670,30 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      setCameraStream(stream);
-
-      if (cameraVideoRef.current) {
-        cameraVideoRef.current.srcObject = stream;
+      // Try environment camera first, fallback to any available camera
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+      } catch (envError) {
+        console.log(
+          "Environment camera not available, trying any camera:",
+          envError
+        );
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
       }
 
+      setCameraStream(stream);
       setCameraModalOpen(true);
     } catch (error) {
       console.error("Error accessing camera:", error);
@@ -333,60 +727,95 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Main Title Card */}
-      <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent flex items-center justify-center">
-            <div className="flex items-center gap-3">
-              <Eye className="w-10 h-10 text-blue-400" />
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Hero Section */}
+      <Card className="bg-gradient-to-br from-background/80 to-background/40 border border-border backdrop-blur-sm shadow-xl">
+        <CardHeader className="text-center pb-6">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="p-4 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-2xl shadow-lg">
+              <Eye className="w-10 h-10 text-white" />
             </div>
-            <span className="ml-4">Document Intelligence Hub</span>
-          </CardTitle>
-          <p className="text-muted-foreground text-l mt-3">
-            Choose your preferred method to extract and analyze text from images
-            or PDF documents
-          </p>
+            <div>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent">
+                Advanced OCR Intelligence Hub
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Professional-grade text extraction with AI-powered analysis
+              </p>
+            </div>
+          </div>
         </CardHeader>
       </Card>
 
       {/* Tab Navigation */}
-      <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
+      <Card className="bg-gradient-to-br from-background/80 to-background/40 border border-border backdrop-blur-sm shadow-xl">
         <CardContent className="p-0">
           <div className="flex border-b border-border">
             <button
               onClick={() => handleTabChange("visual")}
-              className={`flex-1 flex items-center justify-center p-6 font-medium transition-all duration-300 ${
+              className={`flex-1 flex items-center justify-center p-8 font-medium transition-all duration-300 group ${
                 activeTab === "visual"
-                  ? "border-b-2 border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "border-b-4 border-blue-500 text-blue-600 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-gradient-to-br hover:from-blue-50/50 hover:to-indigo-50/50 dark:hover:from-blue-950/10 dark:hover:to-indigo-950/10"
               }`}
             >
-              <Eye className="w-6 h-6 mr-3" />
-              <div className="text-left">
-                <div className="font-semibold text-lg">
-                  Visual Text Recognition
+              <div className="flex items-center gap-4">
+                <div
+                  className={`p-3 rounded-xl transition-all duration-300 ${
+                    activeTab === "visual"
+                      ? "bg-blue-500/20 border border-blue-500/30"
+                      : "bg-muted/30 group-hover:bg-blue-500/10"
+                  }`}
+                >
+                  <Eye
+                    className={`w-6 h-6 ${
+                      activeTab === "visual"
+                        ? "text-blue-500"
+                        : "text-muted-foreground"
+                    }`}
+                  />
                 </div>
-                <div className="text-sm opacity-75">
-                  Extract text from images and screenshots
+                <div className="text-left">
+                  <div className="font-bold text-lg">
+                    Visual Text Recognition
+                  </div>
+                  <div className="text-sm opacity-75">
+                    Extract text from images and screenshots
+                  </div>
                 </div>
               </div>
             </button>
             <button
               onClick={() => handleTabChange("pdf")}
-              className={`flex-1 flex items-center justify-center p-6 font-medium transition-all duration-300 ${
+              className={`flex-1 flex items-center justify-center p-8 font-medium transition-all duration-300 group ${
                 activeTab === "pdf"
-                  ? "border-b-2 border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-50/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "border-b-4 border-emerald-500 text-emerald-600 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-gradient-to-br hover:from-emerald-50/50 hover:to-teal-50/50 dark:hover:from-emerald-950/10 dark:hover:to-teal-950/10"
               }`}
             >
-              <BookOpen className="w-6 h-6 mr-3" />
-              <div className="text-left">
-                <div className="font-semibold text-lg">
-                  PDF Document Processing
+              <div className="flex items-center gap-4">
+                <div
+                  className={`p-3 rounded-xl transition-all duration-300 ${
+                    activeTab === "pdf"
+                      ? "bg-emerald-500/20 border border-emerald-500/30"
+                      : "bg-muted/30 group-hover:bg-emerald-500/10"
+                  }`}
+                >
+                  <BookOpen
+                    className={`w-6 h-6 ${
+                      activeTab === "pdf"
+                        ? "text-emerald-500"
+                        : "text-muted-foreground"
+                    }`}
+                  />
                 </div>
-                <div className="text-sm opacity-75">
-                  Analyze and summarize PDF documents
+                <div className="text-left">
+                  <div className="font-bold text-lg">
+                    PDF Document Processing
+                  </div>
+                  <div className="text-sm opacity-75">
+                    Analyze and summarize PDF documents
+                  </div>
                 </div>
               </div>
             </button>
@@ -404,134 +833,243 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         // Visual Text Recognition Section
         <div className="space-y-6">
           {/* Features Overview for Visual Text Recognition */}
-          <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
-                <div className="space-y-3">
-                  <div className="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <Upload className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">
-                    Image Upload
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Upload images from your device for text extraction
-                  </p>
+          <Card className="bg-gradient-to-br from-background/80 to-background/40 border border-border backdrop-blur-sm shadow-xl">
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full shadow-lg">
+                  <Eye className="w-6 h-6 text-white" />
                 </div>
-
-                <div className="space-y-3">
-                  <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                    <Camera className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">
-                    Camera Capture
-                  </h3>
+                <div>
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Visual OCR Capabilities
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Take photos directly with your camera for instant OCR
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="w-12 h-12 mx-auto bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                    <Monitor className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">
-                    Screen Capture
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Capture your entire screen and extract visible text
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="w-12 h-12 mx-auto bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <Scissors className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">Snip Tool</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Crop specific regions from your screen for targeted OCR
+                    Advanced text extraction with 6 powerful methods
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </CardHeader>
+            <CardContent className="p-8">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  e.target.files?.[0] && handleImageUpload(e.target.files[0])
+                }
+                className="hidden"
+              />
 
-          <Card className="bg-card/50 border-blue-500/20 backdrop-blur-sm shadow-xl">
-            <CardContent className="p-8 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    e.target.files?.[0] && handleImageUpload(e.target.files[0])
-                  }
-                  className="hidden"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Upload Image - Functional Card */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={processingImage}
+                  className="group relative p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl border border-blue-500/30 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                >
+                  <div className="absolute top-4 right-4 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Upload className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground mb-3 text-center">
+                    Image Upload
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                    Upload images from your device with intelligent format
+                    detection and processing
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <div className="flex gap-1">
+                      <div
+                        className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></div>
+                    </div>
+                  </div>
+                </button>
 
-                {/* Upload Image Button */}
-                <div className="group relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={processingImage}
-                    variant="outline"
-                    className="relative border-2 border-blue-500/30 cursor-pointer text-blue-400 hover:bg-blue-500/10 flex flex-col items-center gap-4 h-32 w-full justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-blue-400 rounded-2xl backdrop-blur-sm"
-                  >
-                    <Upload className="w-8 h-8" />
-                    <span className="font-jetbrains-mono font-semibold text-center">
-                      Upload Image
-                    </span>
-                  </Button>
-                </div>
+                {/* Paste & Edit - Functional Card */}
+                <button
+                  onClick={handlePasteImage}
+                  disabled={processingImage}
+                  className="group relative p-6 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20 rounded-xl border border-cyan-500/30 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                >
+                  <div className="absolute top-4 right-4 w-3 h-3 bg-cyan-500 rounded-full animate-pulse"></div>
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Clipboard className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground mb-3 text-center">
+                    Paste & Edit
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                    Paste images from clipboard and enhance with advanced
+                    editing tools
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <div className="flex gap-1">
+                      <div
+                        className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></div>
+                    </div>
+                  </div>
+                </button>
 
-                {/* Camera Capture Button */}
-                <div className="group relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                  <Button
-                    onClick={startCamera}
-                    disabled={processingImage}
-                    variant="outline"
-                    className="relative border-2 border-green-500/30 cursor-pointer text-green-400 hover:bg-green-500/10 flex flex-col items-center gap-4 h-32 w-full justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-green-400 rounded-2xl backdrop-blur-sm"
-                  >
-                    <Camera className="w-8 h-8" />
-                    <span className="font-jetbrains-mono font-semibold text-center">
-                      Camera Capture
-                    </span>
-                  </Button>
-                </div>
+                {/* Photo Capture - Functional Card */}
+                <button
+                  onClick={startCamera}
+                  disabled={processingImage}
+                  className="group relative p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-xl border border-green-500/30 hover:border-green-500/50 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                >
+                  <div className="absolute top-4 right-4 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Camera className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground mb-3 text-center">
+                    Photo Capture
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                    Take high-quality photos with your camera for precise OCR
+                    processing
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <div className="flex gap-1">
+                      <div
+                        className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></div>
+                    </div>
+                  </div>
+                </button>
 
-                {/* Screenshot Button */}
-                <div className="group relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                  <Button
-                    onClick={takeScreenshot}
-                    disabled={processingImage}
-                    variant="outline"
-                    className="relative border-2 border-purple-500/30 cursor-pointer text-purple-400 hover:bg-purple-500/10 flex flex-col items-center gap-4 h-32 w-full justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-purple-400 rounded-2xl backdrop-blur-sm"
-                  >
-                    <Monitor className="w-8 h-8" />
-                    <span className="font-jetbrains-mono font-semibold text-center">
-                      Take Screenshot
-                    </span>
-                  </Button>
-                </div>
+                {/* Live OCR Stream - Functional Card */}
+                <button
+                  onClick={startRealtimeOCRCamera}
+                  disabled={processingImage}
+                  className="group relative p-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 rounded-xl border border-emerald-500/30 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                >
+                  <div className="absolute top-4 right-4 w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Eye className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground mb-3 text-center">
+                    Live OCR Stream
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                    Real-time text detection and extraction from live camera
+                    feed
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <div className="flex gap-1">
+                      <div
+                        className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></div>
+                    </div>
+                  </div>
+                </button>
 
-                {/* Snipping Tool Button */}
-                <div className="group relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                  <Button
-                    onClick={startSnipping}
-                    disabled={processingImage}
-                    variant="outline"
-                    className="relative border-2 border-orange-500/30 cursor-pointer text-orange-400 hover:bg-orange-500/10 flex flex-col items-center gap-4 h-32 w-full justify-center text-lg font-jetbrains-mono transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-orange-400 rounded-2xl backdrop-blur-sm"
-                  >
-                    <Scissors className="w-8 h-8" />
-                    <span className="font-jetbrains-mono font-semibold text-center">
-                      Snipping Tool
-                    </span>
-                  </Button>
-                </div>
+                {/* Screen Capture - Functional Card */}
+                <button
+                  onClick={takeScreenshot}
+                  disabled={processingImage}
+                  className="group relative p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                >
+                  <div className="absolute top-4 right-4 w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Monitor className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground mb-3 text-center">
+                    Screen Capture
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                    Capture your entire screen and extract all visible text
+                    content
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <div className="flex gap-1">
+                      <div
+                        className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></div>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Smart Snip Tool - Functional Card */}
+                <button
+                  onClick={startSnipping}
+                  disabled={processingImage}
+                  className="group relative p-6 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-xl border border-orange-500/30 hover:border-orange-500/50 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                >
+                  <div className="absolute top-4 right-4 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Scissors className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground mb-3 text-center">
+                    Smart Snip Tool
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                    Crop specific regions from your screen for targeted OCR
+                    analysis
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <div className="flex gap-1">
+                      <div
+                        className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></div>
+                    </div>
+                  </div>
+                </button>
               </div>
 
               {/* Processing Status */}
@@ -701,7 +1239,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         </div>
       )}
 
-      {/* Camera Modal */}
+      {/* Simple Camera Modal */}
       {cameraModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="bg-card/95 border border-border/50 rounded-2xl shadow-2xl p-8 relative w-full max-w-md mx-4 flex flex-col items-center">
@@ -718,14 +1256,16 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
             >
               ×
             </button>
+
             <div className="flex items-center gap-2 mb-6">
               <div className="p-2 rounded-full bg-green-500/20">
                 <Camera className="w-5 h-5 text-green-400" />
               </div>
               <h3 className="text-xl font-semibold text-foreground">
-                Camera Capture
+                Photo Capture
               </h3>
             </div>
+
             <video
               ref={cameraVideoRef}
               className="w-full rounded-xl border border-border/50 mb-6 shadow-lg"
@@ -733,6 +1273,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
               playsInline
               muted
             />
+
             <Button
               onClick={async () => {
                 if (cameraVideoRef.current) {
@@ -753,7 +1294,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                         }
                       },
                       "image/jpeg",
-                      0.8
+                      0.9
                     );
                   }
                 }
@@ -763,11 +1304,460 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                 }
                 setCameraModalOpen(false);
               }}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 shadow-lg"
             >
               <Camera className="w-5 h-5" />
-              Capture Photo
+              Capture High-Quality Photo
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Rich Image Editor Modal */}
+      {imageEditorOpen && originalImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-card/95 border border-border/50 rounded-2xl shadow-2xl relative w-full max-w-7xl mx-4 h-[90vh] flex flex-col">
+            <button
+              onClick={() => {
+                setImageEditorOpen(false);
+                resetEditor();
+              }}
+              className="absolute top-4 right-4 text-foreground hover:text-red-500 transition-colors duration-300 p-2 rounded-full hover:bg-red-500/10 z-10"
+              aria-label="Close image editor"
+            >
+              ×
+            </button>
+
+            {/* Editor Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-cyan-500/20">
+                  <Edit3 className="w-5 h-5 text-cyan-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground">
+                  Advanced Image Editor
+                </h3>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={undoEdit}
+                  disabled={historyIndex <= 0}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Undo className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={redoEdit}
+                  disabled={historyIndex >= editorHistory.length - 1}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Redo className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={downloadEditedImage}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+                <Button onClick={resetEditor} variant="outline" size="sm">
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-1 overflow-hidden">
+              {/* Editor Tools Panel */}
+              <div className="w-80 bg-muted/30 border-r border-border/50 p-4 overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Tool Selection */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-foreground">
+                      Tools
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => setEditorTool("move")}
+                        variant={editorTool === "move" ? "default" : "outline"}
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Move className="w-4 h-4" />
+                        Move
+                      </Button>
+                      <Button
+                        onClick={() => setEditorTool("crop")}
+                        variant={editorTool === "crop" ? "default" : "outline"}
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Square className="w-4 h-4" />
+                        Crop
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Brightness & Contrast */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                      <Sun className="w-4 h-4" />
+                      Adjustments
+                    </h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm text-muted-foreground">
+                          Brightness: {editorSettings.brightness}%
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="200"
+                          value={editorSettings.brightness}
+                          onChange={(e) =>
+                            setEditorSettings((prev) => ({
+                              ...prev,
+                              brightness: parseInt(e.target.value),
+                            }))
+                          }
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-muted-foreground">
+                          Contrast: {editorSettings.contrast}%
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="200"
+                          value={editorSettings.contrast}
+                          onChange={(e) =>
+                            setEditorSettings((prev) => ({
+                              ...prev,
+                              contrast: parseInt(e.target.value),
+                            }))
+                          }
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rotation & Transform */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                      <RotateCw className="w-4 h-4" />
+                      Transform
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() =>
+                            setEditorSettings((prev) => ({
+                              ...prev,
+                              rotation: prev.rotation + 90,
+                            }))
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <RotateCw className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={() =>
+                            setEditorSettings((prev) => ({
+                              ...prev,
+                              flipHorizontal: !prev.flipHorizontal,
+                            }))
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          Flip H
+                        </Button>
+                        <Button
+                          onClick={() =>
+                            setEditorSettings((prev) => ({
+                              ...prev,
+                              flipVertical: !prev.flipVertical,
+                            }))
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          Flip V
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                      <Palette className="w-4 h-4" />
+                      Filters
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {["none", "grayscale", "sepia", "blur", "vintage"].map(
+                        (filter) => (
+                          <Button
+                            key={filter}
+                            onClick={() =>
+                              setEditorSettings((prev) => ({ ...prev, filter }))
+                            }
+                            variant={
+                              editorSettings.filter === filter
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            className="capitalize"
+                          >
+                            {filter}
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Image Preview Area */}
+              <div className="flex-1 flex flex-col">
+                <div className="flex-1 relative bg-background/50 rounded-lg m-4 overflow-hidden">
+                  {editedImage && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <NextImage
+                        src={editedImage}
+                        alt="Edited image preview"
+                        className="max-w-full max-h-full object-contain"
+                        width={800}
+                        height={600}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="p-4 border-t border-border/50 flex gap-3 justify-end">
+                  <Button
+                    onClick={() => {
+                      setImageEditorOpen(false);
+                      resetEditor();
+                    }}
+                    variant="outline"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={processEditedImage}
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold px-6"
+                  >
+                    Extract Text from Edited Image
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Real-time OCR Modal */}
+      {realtimeOCROpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-card/95 border border-border/50 rounded-2xl shadow-2xl relative w-full max-w-6xl mx-4 h-[85vh] flex flex-col">
+            <button
+              onClick={() => {
+                if (realtimeOCRStream) {
+                  realtimeOCRStream
+                    .getTracks()
+                    .forEach((track) => track.stop());
+                  setRealtimeOCRStream(null);
+                }
+                stopRealtimeOCR();
+                setRealtimeOCROpen(false);
+              }}
+              className="absolute top-4 right-4 text-foreground hover:text-red-500 transition-colors duration-300 p-2 rounded-full hover:bg-red-500/10 z-10"
+              aria-label="Close real-time OCR modal"
+            >
+              ×
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-emerald-500/20">
+                  <Eye className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-semibold text-foreground">
+                    Live OCR Stream
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Real-time text detection from camera feed
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={realtimeOCR ? stopRealtimeOCR : startRealtimeOCR}
+                  variant={realtimeOCR ? "outline" : "default"}
+                  className={`${
+                    realtimeOCR
+                      ? "border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg"
+                  } font-semibold transition-all duration-300`}
+                >
+                  {realtimeOCR ? (
+                    <>
+                      <Pause className="w-4 h-4 mr-2" />
+                      Stop OCR
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Start OCR
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex flex-1 overflow-hidden">
+              {/* Video Section */}
+              <div className="flex-1 p-6 flex flex-col">
+                <div className="relative flex-1 bg-background/30 rounded-xl overflow-hidden border border-border/50">
+                  <video
+                    ref={realtimeOCRVideoRef}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+
+                  {/* OCR Status Overlay */}
+                  <div className="absolute top-4 left-4 flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        realtimeOCR
+                          ? "bg-green-500 animate-pulse"
+                          : "bg-blue-500"
+                      }`}
+                    ></div>
+                    <span
+                      className={`text-sm font-medium px-3 py-1 rounded-full backdrop-blur-md ${
+                        realtimeOCR
+                          ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                          : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                      }`}
+                    >
+                      {realtimeOCR ? "OCR Active" : "Camera Ready"}
+                    </span>
+                  </div>
+
+                  {/* Processing Indicator */}
+                  {isProcessingFrame && (
+                    <div className="absolute top-4 right-4 flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div>
+                      <span className="text-sm font-medium px-3 py-1 rounded-full backdrop-blur-md bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        Processing...
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Camera is ready! Point at text and click &quot;Start
+                    OCR&quot; to begin detection
+                  </p>
+                </div>
+              </div>
+
+              {/* Results Section */}
+              <div className="w-96 bg-muted/20 border-l border-border/50 flex flex-col">
+                <div className="p-4 border-b border-border/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 rounded-full bg-blue-500/20">
+                      <FileText className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <h4 className="font-semibold text-foreground">
+                      Detected Text
+                    </h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Text will appear here as it&apos;s detected from the camera
+                  </p>
+                </div>
+
+                <div className="flex-1 p-4 overflow-y-auto">
+                  {realtimeText ? (
+                    <div className="space-y-4">
+                      <div className="bg-background/50 rounded-lg p-4 border border-border/50">
+                        <pre className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                          {realtimeText}
+                        </pre>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => copyToClipboard(realtimeText)}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <Copy className="w-3 h-3 mr-2" />
+                          Copy Text
+                        </Button>
+                        <Button
+                          onClick={() => setRealtimeText("")}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <RotateCcw className="w-3 h-3 mr-2" />
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-muted/50 rounded-full flex items-center justify-center">
+                        <Eye className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <div className="text-muted-foreground text-sm">
+                        {realtimeOCR ? (
+                          <div className="space-y-2">
+                            <div className="animate-pulse">
+                              Scanning for text...
+                            </div>
+                            <div className="text-xs">
+                              Point camera at readable text
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div>Ready to detect text</div>
+                            <div className="text-xs">
+                              Click &quot;Start OCR&quot; to begin
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
