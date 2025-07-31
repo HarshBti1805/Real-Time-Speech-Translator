@@ -13,9 +13,15 @@ import {
   Languages,
   Clock,
   Zap,
+  MessageCircle,
+  Send,
+  Bot,
+  User,
 } from "lucide-react";
 import { TTSListenButton } from "@/components/ui/TTSListenButton";
 import { CustomAudioPlayer } from "@/components/ui/CustomAudioPlayer";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 // Type definitions
 interface TranslationResult {
@@ -723,85 +729,197 @@ export default function MainPage() {
     return lang ? lang.name : code;
   };
 
+  const [animationRef] = useAutoAnimate();
+
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent flex items-center justify-center">
-              <div className="flex items-center gap-3">
-                <Mic className="w-10 h-10 text-blue-400" />
-              </div>
-              <span className="ml-4">Voice Translation Hub</span>
-            </CardTitle>
-            <p className="text-muted-foreground text-l mt-3">
-              Speak naturally and get instant translations with real-time
-              processing and high-accuracy speech recognition
-            </p>
-          </CardHeader>
-        </Card>
+    <motion.div
+      className="p-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="max-w-6xl mx-auto space-y-6" ref={animationRef}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
+          <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent flex items-center justify-center">
+                <motion.div
+                  className="flex items-center gap-3"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <motion.div
+                    animate={{ rotate: isRecording ? 360 : 0 }}
+                    transition={{
+                      duration: 2,
+                      repeat: isRecording ? Infinity : 0,
+                      ease: "linear",
+                    }}
+                  >
+                    {isConversationMode ? (
+                      <MessageCircle className="w-10 h-10 text-purple-400" />
+                    ) : (
+                      <Mic className="w-10 h-10 text-blue-400" />
+                    )}
+                  </motion.div>
+                </motion.div>
+                <span className="ml-4">
+                  {isConversationMode
+                    ? "AI Conversation Hub"
+                    : "Voice Translation Hub"}
+                </span>
+              </CardTitle>
+              <motion.p
+                className="text-muted-foreground text-l mt-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                {isConversationMode
+                  ? "Have natural conversations with AI in your preferred language"
+                  : "Speak naturally and get instant translations with real-time processing and high-accuracy speech recognition"}
+              </motion.p>
+            </CardHeader>
+          </Card>
+        </motion.div>
 
         {/* Mode Selection */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-6">
-            <div className="flex justify-center">
-              <div className="bg-muted rounded-lg p-1 flex">
-                <Button
-                  onClick={() => {
-                    setIsRealTimeMode(false);
-                    setIsConversationMode(false);
-                  }}
-                  disabled={isRecording}
-                  variant={
-                    !isRealTimeMode && !isConversationMode ? "default" : "ghost"
-                  }
-                  className={`transition-all duration-200 ${
-                    !isRealTimeMode && !isConversationMode
-                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Standard Mode
-                </Button>
-                <Button
-                  onClick={() => {
-                    setIsRealTimeMode(true);
-                    setIsConversationMode(false);
-                  }}
-                  disabled={isRecording}
-                  variant={
-                    isRealTimeMode && !isConversationMode ? "default" : "ghost"
-                  }
-                  className={`transition-all duration-200 ${
-                    isRealTimeMode && !isConversationMode
-                      ? "bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  Real-Time Mode
-                </Button>
-                <Button
-                  onClick={() => {
-                    setIsRealTimeMode(false);
-                    setIsConversationMode(true);
-                  }}
-                  disabled={isRecording}
-                  variant={isConversationMode ? "default" : "ghost"}
-                  className={`transition-all duration-200 ${
-                    isConversationMode
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                >
-                  <Volume2 className="w-4 h-4 mr-2" />
-                  Conversation Mode
-                </Button>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <Card className="bg-card/50 border-border backdrop-blur-sm shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex justify-center">
+                <div className="bg-muted/50 rounded-lg p-1 flex backdrop-blur-sm border border-border/50">
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button
+                      onClick={() => {
+                        setIsRealTimeMode(false);
+                        setIsConversationMode(false);
+                      }}
+                      disabled={isRecording}
+                      variant={
+                        !isRealTimeMode && !isConversationMode
+                          ? "default"
+                          : "ghost"
+                      }
+                      className={`transition-all duration-300 ${
+                        !isRealTimeMode && !isConversationMode
+                          ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      <motion.div
+                        animate={{
+                          rotate:
+                            !isRealTimeMode && !isConversationMode
+                              ? [0, 5, -5, 0]
+                              : 0,
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat:
+                            !isRealTimeMode && !isConversationMode
+                              ? Infinity
+                              : 0,
+                        }}
+                      >
+                        <Clock className="w-4 h-4 mr-2" />
+                      </motion.div>
+                      Standard Mode
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button
+                      onClick={() => {
+                        setIsRealTimeMode(true);
+                        setIsConversationMode(false);
+                      }}
+                      disabled={isRecording}
+                      variant={
+                        isRealTimeMode && !isConversationMode
+                          ? "default"
+                          : "ghost"
+                      }
+                      className={`transition-all duration-300 ${
+                        isRealTimeMode && !isConversationMode
+                          ? "bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg shadow-green-500/25"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      <motion.div
+                        animate={{
+                          scale:
+                            isRealTimeMode && !isConversationMode
+                              ? [1, 1.2, 1]
+                              : 1,
+                          rotate:
+                            isRealTimeMode && !isConversationMode
+                              ? [0, 10, -10, 0]
+                              : 0,
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          repeat:
+                            isRealTimeMode && !isConversationMode
+                              ? Infinity
+                              : 0,
+                        }}
+                      >
+                        <Zap className="w-4 h-4 mr-2" />
+                      </motion.div>
+                      Real-Time Mode
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button
+                      onClick={() => {
+                        setIsRealTimeMode(false);
+                        setIsConversationMode(true);
+                      }}
+                      disabled={isRecording}
+                      variant={isConversationMode ? "default" : "ghost"}
+                      className={`transition-all duration-300 ${
+                        isConversationMode
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      <motion.div
+                        animate={{
+                          y: isConversationMode ? [0, -2, 0] : 0,
+                          scale: isConversationMode ? [1, 1.1, 1] : 1,
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: isConversationMode ? Infinity : 0,
+                        }}
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                      </motion.div>
+                      Conversation Mode
+                    </Button>
+                  </motion.div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Language Selection */}
         <Card className="bg-card border-border">
@@ -888,111 +1006,193 @@ export default function MainPage() {
         </Card>
 
         {/* Recording Controls */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-6">
-            <div className="text-center space-y-4">
-              {!isRecording ? (
-                <Button
-                  onClick={startRecording}
-                  disabled={isProcessing}
-                  size="lg"
-                  className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Processing...
-                    </>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+        >
+          <Card className="bg-card/50 border-border backdrop-blur-sm shadow-lg">
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <AnimatePresence mode="wait">
+                  {!isRecording ? (
+                    <motion.div
+                      key="start-recording"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          onClick={startRecording}
+                          disabled={isProcessing}
+                          size="lg"
+                          className="px-12 py-6 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white font-semibold transition-all duration-300 shadow-2xl hover:shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                        >
+                          {isProcessing ? (
+                            <motion.div
+                              className="flex items-center"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              <motion.div
+                                className="rounded-full h-6 w-6 border-b-2 border-white mr-3"
+                                animate={{ rotate: 360 }}
+                                transition={{
+                                  duration: 1,
+                                  repeat: Infinity,
+                                  ease: "linear",
+                                }}
+                              />
+                              Processing...
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              className="flex items-center"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              <motion.div
+                                animate={{
+                                  scale: [1, 1.1, 1],
+                                  rotate: [0, 5, -5, 0],
+                                }}
+                                transition={{
+                                  duration: 2,
+                                  repeat: Infinity,
+                                  ease: "easeInOut",
+                                }}
+                              >
+                                <Mic className="w-6 h-6 mr-3" />
+                              </motion.div>
+                              {isConversationMode
+                                ? "Start Conversation"
+                                : "Start Recording"}
+                            </motion.div>
+                          )}
+                        </Button>
+                      </motion.div>
+                    </motion.div>
                   ) : (
-                    <>
-                      <Mic className="w-5 h-5 mr-2" />
-                      Start Recording
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  onClick={stopRecording}
-                  size="lg"
-                  className="px-8 py-4 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <Square className="w-5 h-5 mr-2" />
-                  Stop Recording
-                </Button>
-              )}
-
-              {(result ||
-                realtimeTranslation ||
-                conversationMessages.length > 0) && (
-                <Button
-                  onClick={clearResults}
-                  disabled={isRecording}
-                  variant="outline"
-                  className="ml-4 border-border text-foreground hover:bg-accent"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  {isConversationMode ? "Clear Conversation" : "Clear Results"}
-                </Button>
-              )}
-
-              {/* Recording Status */}
-              {isRecording && (
-                <div className="flex flex-col items-center space-y-4 mt-6">
-                  <div className="flex items-center space-x-2 text-lg font-mono text-green-400">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span>
-                      {isRealTimeMode
-                        ? "🔴 LIVE"
-                        : isConversationMode
-                        ? "💬 Listening"
-                        : "Recording"}
-                      : {formatTime(recordingTime)}
-                    </span>
-                  </div>
-
-                  {/* Audio Level Indicator */}
-                  <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-100 rounded-full"
-                      style={{ width: `${Math.min(audioLevel, 100)}%` }}
-                    ></div>
-                  </div>
-
-                  <div className="text-sm text-muted-foreground">
-                    {audioLevel > 10 ? "🎙️ Audio detected" : "🔇 Speak louder"}
-                  </div>
-
-                  {isRealTimeMode && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-green-500/20 text-green-400 border-green-500/30"
+                    <motion.div
+                      key="stop-recording"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      {isProcessing
-                        ? "🔄 Processing..."
-                        : "✓ Real-time translation active (updates every 2s)"}
-                    </Badge>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        animate={{
+                          boxShadow: [
+                            "0 0 0 0 rgba(239, 68, 68, 0.7)",
+                            "0 0 0 10px rgba(239, 68, 68, 0)",
+                            "0 0 0 0 rgba(239, 68, 68, 0)",
+                          ],
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Button
+                          onClick={stopRecording}
+                          size="lg"
+                          className="px-12 py-6 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold transition-all duration-300 shadow-2xl hover:shadow-red-500/25 text-lg"
+                        >
+                          <motion.div
+                            animate={{ scale: [1, 0.9, 1] }}
+                            transition={{ duration: 1, repeat: Infinity }}
+                          >
+                            <Square className="w-6 h-6 mr-3" />
+                          </motion.div>
+                          {isConversationMode
+                            ? "Stop Listening"
+                            : "Stop Recording"}
+                        </Button>
+                      </motion.div>
+                    </motion.div>
                   )}
+                </AnimatePresence>
 
-                  {isConversationMode && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-purple-500/20 text-purple-400 border-purple-500/30"
-                    >
-                      {isProcessing
-                        ? "🔄 Processing conversation..."
-                        : isConversationPlaying
-                        ? "🔊 AI speaking..."
-                        : "💬 Conversation mode active"}
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                {(result ||
+                  realtimeTranslation ||
+                  conversationMessages.length > 0) && (
+                  <Button
+                    onClick={clearResults}
+                    disabled={isRecording}
+                    variant="outline"
+                    className="ml-4 border-border text-foreground hover:bg-accent"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    {isConversationMode
+                      ? "Clear Conversation"
+                      : "Clear Results"}
+                  </Button>
+                )}
 
-        {/* Processing Status */}
-        {/* {isProcessing && !isRecording && (
+                {/* Recording Status */}
+                {isRecording && (
+                  <div className="flex flex-col items-center space-y-4 mt-6">
+                    <div className="flex items-center space-x-2 text-lg font-mono text-green-400">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>
+                        {isRealTimeMode
+                          ? "🔴 LIVE"
+                          : isConversationMode
+                          ? "💬 Listening"
+                          : "Recording"}
+                        : {formatTime(recordingTime)}
+                      </span>
+                    </div>
+
+                    {/* Audio Level Indicator */}
+                    <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-100 rounded-full"
+                        style={{ width: `${Math.min(audioLevel, 100)}%` }}
+                      ></div>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground">
+                      {audioLevel > 10
+                        ? "🎙️ Audio detected"
+                        : "🔇 Speak louder"}
+                    </div>
+
+                    {isRealTimeMode && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-green-500/20 text-green-400 border-green-500/30"
+                      >
+                        {isProcessing
+                          ? "🔄 Processing..."
+                          : "✓ Real-time translation active (updates every 2s)"}
+                      </Badge>
+                    )}
+
+                    {isConversationMode && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-purple-500/20 text-purple-400 border-purple-500/30"
+                      >
+                        {isProcessing
+                          ? "🔄 Processing conversation..."
+                          : isConversationPlaying
+                          ? "🔊 AI speaking..."
+                          : "💬 Conversation mode active"}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Processing Status */}
+          {/* {isProcessing && !isRecording && (
           <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="text-center">
@@ -1004,6 +1204,7 @@ export default function MainPage() {
             </CardContent>
           </Card>
         )} */}
+        </motion.div>
 
         {/* Real-time Translation Display */}
         {isRealTimeMode &&
@@ -1178,108 +1379,360 @@ export default function MainPage() {
         )}
 
         {/* Conversation Mode Display */}
-        {isConversationMode && conversationMessages.length > 0 && (
-          <Card className="bg-card border-purple-500/50 shadow-lg shadow-purple-500/25">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-purple-400 flex items-center">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse mr-2"></div>
-                  Conversation History
-                </h2>
-                <Badge
-                  variant="secondary"
-                  className="bg-purple-500/20 text-purple-400 border-purple-500/30"
-                >
-                  {conversationMessages.length} messages
-                </Badge>
-              </div>
-
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {conversationMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-                        message.role === "user"
-                          ? "bg-blue-500/20 text-blue-100 border border-blue-500/30"
-                          : "bg-purple-500/20 text-purple-100 border border-purple-500/30"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm">{message.content}</p>
-                        {message.audioUrl && (
-                          <Button
-                            onClick={() =>
-                              playAIResponse(message.audioUrl!, message.id)
-                            }
-                            disabled={
-                              isConversationPlaying &&
-                              currentPlayingMessageId !== message.id
-                            }
-                            size="sm"
-                            variant="ghost"
-                            className="flex-shrink-0 p-1 h-6 w-6"
-                          >
-                            {isConversationPlaying &&
-                            currentPlayingMessageId === message.id ? (
-                              <div className="w-3 h-3 animate-pulse bg-current rounded-full" />
-                            ) : (
-                              <Volume2 className="w-3 h-3" />
-                            )}
-                          </Button>
-                        )}
+        <AnimatePresence>
+          {isConversationMode && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30 shadow-2xl shadow-purple-500/20 backdrop-blur-sm">
+                <CardContent className="p-0">
+                  {/* Chat Header */}
+                  <div className="p-4 border-b border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <motion.div
+                          animate={{
+                            scale: [1, 1.1, 1],
+                            rotate: [0, 5, -5, 0],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }}
+                        >
+                          <Bot className="w-6 h-6 text-purple-400" />
+                        </motion.div>
+                        <div>
+                          <h2 className="text-lg font-semibold text-purple-300 flex items-center">
+                            AI Assistant
+                            <motion.div
+                              className="w-2 h-2 bg-green-500 rounded-full ml-2"
+                              animate={{ opacity: [1, 0.5, 1] }}
+                              transition={{ duration: 1.5, repeat: Infinity }}
+                            />
+                          </h2>
+                          <p className="text-xs text-muted-foreground">
+                            {conversationMessages.length > 0
+                              ? `${
+                                  conversationMessages.length
+                                } messages • ${getLanguageName(
+                                  conversationLanguage
+                                )}`
+                              : `Ready to chat in ${getLanguageName(
+                                  conversationLanguage
+                                )}`}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {message.role === "user" ? "You" : "AI"} •{" "}
-                        {message.timestamp.toLocaleTimeString()}
-                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="bg-purple-500/20 text-purple-300 border-purple-500/30"
+                      >
+                        {isProcessing ? "Processing..." : "Online"}
+                      </Badge>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {isProcessing && (
-                <div className="text-center py-4">
-                  <div className="inline-flex items-center px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mr-2"></div>
-                    <span className="text-purple-400 text-sm">
-                      AI is thinking...
-                    </span>
+                  {/* Chat Messages */}
+                  <div className="h-80 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-purple-500/5">
+                    <AnimatePresence>
+                      {conversationMessages.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-center py-8"
+                        >
+                          <motion.div
+                            animate={{
+                              y: [0, -10, 0],
+                              rotate: [0, 5, -5, 0],
+                            }}
+                            transition={{
+                              duration: 3,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }}
+                          >
+                            <MessageCircle className="w-12 h-12 text-purple-400 mx-auto mb-3" />
+                          </motion.div>
+                          <h3 className="text-lg font-semibold text-purple-300 mb-2">
+                            Start a conversation!
+                          </h3>
+                          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                            Press the record button and speak naturally.
+                            I&apos;ll respond with both text and voice in{" "}
+                            {getLanguageName(conversationLanguage)}.
+                          </p>
+                        </motion.div>
+                      ) : (
+                        conversationMessages.map((message, index) => (
+                          <motion.div
+                            key={message.id}
+                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                            className={`flex ${
+                              message.role === "user"
+                                ? "justify-end"
+                                : "justify-start"
+                            }`}
+                          >
+                            <div
+                              className={`flex gap-2 max-w-[75%] ${
+                                message.role === "user"
+                                  ? "flex-row-reverse"
+                                  : "flex-row"
+                              }`}
+                            >
+                              {/* Avatar */}
+                              <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  message.role === "user"
+                                    ? "bg-blue-500/20 border border-blue-500/30"
+                                    : "bg-purple-500/20 border border-purple-500/30"
+                                }`}
+                              >
+                                {message.role === "user" ? (
+                                  <User className="w-4 h-4 text-blue-400" />
+                                ) : (
+                                  <Bot className="w-4 h-4 text-purple-400" />
+                                )}
+                              </motion.div>
+
+                              {/* Message Bubble */}
+                              <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                className={`px-4 py-3 rounded-2xl backdrop-blur-sm ${
+                                  message.role === "user"
+                                    ? "bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-100 border border-blue-500/30"
+                                    : "bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-100 border border-purple-500/30"
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="text-sm leading-relaxed">
+                                    {message.content}
+                                  </p>
+                                  {message.audioUrl && (
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      onClick={() =>
+                                        playAIResponse(
+                                          message.audioUrl!,
+                                          message.id
+                                        )
+                                      }
+                                      disabled={
+                                        isConversationPlaying &&
+                                        currentPlayingMessageId !== message.id
+                                      }
+                                      className="flex-shrink-0 p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                                    >
+                                      {isConversationPlaying &&
+                                      currentPlayingMessageId === message.id ? (
+                                        <motion.div
+                                          className="w-3 h-3 bg-current rounded-full"
+                                          animate={{ scale: [1, 1.2, 1] }}
+                                          transition={{
+                                            duration: 0.5,
+                                            repeat: Infinity,
+                                          }}
+                                        />
+                                      ) : (
+                                        <Volume2 className="w-3 h-3" />
+                                      )}
+                                    </motion.button>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-2 opacity-70">
+                                  {message.timestamp.toLocaleTimeString()}
+                                </div>
+                              </motion.div>
+                            </div>
+                          </motion.div>
+                        ))
+                      )}
+                    </AnimatePresence>
+
+                    {/* AI Thinking Indicator */}
+                    <AnimatePresence>
+                      {isProcessing && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="flex justify-start"
+                        >
+                          <div className="flex gap-2">
+                            <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+                              <Bot className="w-4 h-4 text-purple-400" />
+                            </div>
+                            <div className="px-4 py-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
+                              <div className="flex items-center gap-2">
+                                <motion.div className="flex gap-1">
+                                  {[0, 1, 2].map((i) => (
+                                    <motion.div
+                                      key={i}
+                                      className="w-2 h-2 bg-purple-400 rounded-full"
+                                      animate={{
+                                        scale: [1, 1.5, 1],
+                                        opacity: [0.5, 1, 0.5],
+                                      }}
+                                      transition={{
+                                        duration: 1,
+                                        repeat: Infinity,
+                                        delay: i * 0.2,
+                                      }}
+                                    />
+                                  ))}
+                                </motion.div>
+                                <span className="text-purple-300 text-sm">
+                                  AI is thinking...
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+
+                  {/* Chat Input Area */}
+                  <div className="p-4 border-t border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 bg-muted/50 rounded-full border border-purple-500/20 px-4 py-2">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                          <Mic className="w-4 h-4" />
+                          <span>
+                            {isRecording
+                              ? "Listening..."
+                              : "Press record to speak"}
+                          </span>
+                        </div>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Send className="w-4 h-4 text-purple-400" />
+                      </motion.div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Instructions */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-6">
-            <div className="text-center text-muted-foreground text-sm space-y-2">
-              <p>
-                <strong>Standard Mode:</strong> Record, then get translation
-                after stopping
-              </p>
-              <p>
-                <strong>Real-Time Mode:</strong> Live translation updates every
-                2 seconds
-              </p>
-              <p>
-                <strong>Conversation Mode:</strong> Have full conversations with
-                AI in your chosen language
-              </p>
-              <p className="text-xs text-muted-foreground/70">
-                💡 In conversation mode, speak naturally and the AI will respond
-                with voice
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.8 }}
+        >
+          <Card className="bg-gradient-to-br from-card/50 to-muted/20 border-border/50 backdrop-blur-sm shadow-lg">
+            <CardContent className="p-6">
+              <motion.div
+                className="text-center text-muted-foreground text-sm space-y-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+              >
+                <motion.div
+                  className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.2, staggerChildren: 0.1 }}
+                >
+                  <motion.div
+                    className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20"
+                    whileHover={{
+                      scale: 1.02,
+                      backgroundColor: "rgba(59, 130, 246, 0.15)",
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="flex items-center justify-center mb-2">
+                      <Clock className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <h4 className="font-semibold text-blue-300 mb-1">
+                      Standard Mode
+                    </h4>
+                    <p className="text-xs">
+                      Record, then get translation after stopping
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    className="p-3 rounded-lg bg-green-500/10 border border-green-500/20"
+                    whileHover={{
+                      scale: 1.02,
+                      backgroundColor: "rgba(34, 197, 94, 0.15)",
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="flex items-center justify-center mb-2">
+                      <Zap className="w-5 h-5 text-green-400" />
+                    </div>
+                    <h4 className="font-semibold text-green-300 mb-1">
+                      Real-Time Mode
+                    </h4>
+                    <p className="text-xs">
+                      Live translation updates every 2 seconds
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20"
+                    whileHover={{
+                      scale: 1.02,
+                      backgroundColor: "rgba(168, 85, 247, 0.15)",
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="flex items-center justify-center mb-2">
+                      <MessageCircle className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <h4 className="font-semibold text-purple-300 mb-1">
+                      Conversation Mode
+                    </h4>
+                    <p className="text-xs">
+                      Have full conversations with AI in your chosen language
+                    </p>
+                  </motion.div>
+                </motion.div>
+
+                <motion.div
+                  className="flex items-center justify-center gap-2 text-xs text-muted-foreground/70 bg-accent/30 rounded-full px-4 py-2 max-w-fit mx-auto"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.4 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    💡
+                  </motion.div>
+                  <span>
+                    {isConversationMode
+                      ? "Speak naturally and the AI will respond with voice"
+                      : isRealTimeMode
+                      ? "Real-time mode works best with clear, continuous speech"
+                      : "Choose your preferred mode and start translating"}
+                  </span>
+                </motion.div>
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
