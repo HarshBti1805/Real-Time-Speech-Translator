@@ -13,10 +13,6 @@ import {
   Languages,
   Clock,
   Zap,
-  MessageCircle,
-  Send,
-  Bot,
-  User,
 } from "lucide-react";
 import { TTSListenButton } from "@/components/ui/TTSListenButton";
 import { CustomAudioPlayer } from "@/components/ui/CustomAudioPlayer";
@@ -39,17 +35,7 @@ interface Language {
   name: string;
 }
 
-// Add conversation message interface
-interface ConversationMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  audioUrl?: string | null;
-}
-
 // Custom error types for better type safety
-
 interface TimeoutError extends Error {
   name: "TimeoutError";
 }
@@ -57,8 +43,6 @@ interface TimeoutError extends Error {
 interface WindowWithWebkitAudioContext extends Window {
   webkitAudioContext?: typeof AudioContext;
 }
-
-// IMPROVEMENT OF REAL TIME AUDIO TRANSTALION
 
 export default function MainPage() {
   const [result, setResult] = useState<TranslationResult | null>(null);
@@ -73,19 +57,6 @@ export default function MainPage() {
     useState<TranslationResult | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null); // For playback
   const [lastAudioBlob, setLastAudioBlob] = useState<Blob | null>(null); // Store last audio for retranslation
-
-  // Conversation mode state
-  const [isConversationMode, setIsConversationMode] = useState<boolean>(false);
-  const [conversationMessages, setConversationMessages] = useState<
-    ConversationMessage[]
-  >([]);
-  const [conversationLanguage, setConversationLanguage] =
-    useState<string>("en");
-  const [isConversationPlaying, setIsConversationPlaying] =
-    useState<boolean>(false);
-  const [currentPlayingMessageId, setCurrentPlayingMessageId] = useState<
-    string | null
-  >(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -360,12 +331,6 @@ export default function MainPage() {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       setAudioUrl(URL.createObjectURL(audioBlob));
 
-      // Handle conversation mode
-      if (isConversationMode) {
-        await processConversationRecording(audioBlob);
-        return;
-      }
-
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
       formData.append("targetLanguage", targetLanguage);
@@ -411,194 +376,6 @@ export default function MainPage() {
       });
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  // Process conversation recording
-  const processConversationRecording = async (
-    audioBlob: Blob
-  ): Promise<void> => {
-    try {
-      // Step 1: Transcribe user audio
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "conversation.webm");
-      formData.append("targetLanguage", conversationLanguage);
-      formData.append("baseLanguage", conversationLanguage);
-      formData.append("isRealtime", "false");
-
-      const transcriptionRes = await fetch("/api/voice", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!transcriptionRes.ok) {
-        throw new Error("Failed to transcribe audio");
-      }
-
-      const transcriptionData = await transcriptionRes.json();
-      const userMessage = transcriptionData.transcription;
-
-      if (!userMessage?.trim()) {
-        console.warn("No speech detected");
-        return;
-      }
-
-      // Add user message to conversation
-      const userConversationMessage: ConversationMessage = {
-        id: Date.now().toString(),
-        role: "user",
-        content: userMessage,
-        timestamp: new Date(),
-        audioUrl: URL.createObjectURL(audioBlob),
-      };
-
-      setConversationMessages((prev) => [...prev, userConversationMessage]);
-
-      // Step 2: Get AI response
-      const chatbotRes = await fetch("/api/chatbot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: userMessage,
-          context: {
-            currentMode: "conversation",
-            sourceLanguage: conversationLanguage,
-            targetLanguage: conversationLanguage,
-          },
-          conversationHistory: conversationMessages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
-        }),
-      });
-
-      if (!chatbotRes.ok) {
-        throw new Error("Failed to get AI response");
-      }
-
-      const chatbotData = await chatbotRes.json();
-      const aiResponse = chatbotData.response;
-
-      // Step 3: Convert AI response to speech
-      const aiAudioUrl = await generateAISpeech(aiResponse);
-
-      // Add AI message to conversation
-      const aiConversationMessage: ConversationMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: aiResponse,
-        timestamp: new Date(),
-        audioUrl: aiAudioUrl || undefined,
-      };
-
-      setConversationMessages((prev) => [...prev, aiConversationMessage]);
-
-      // Step 4: Auto-play AI response
-      if (aiAudioUrl) {
-        await playAIResponse(aiAudioUrl, aiConversationMessage.id);
-      }
-    } catch (error) {
-      console.error("Error processing conversation:", error);
-      // Add error message to conversation
-      const errorMessage: ConversationMessage = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: "Sorry, I couldn't process that. Please try again.",
-        timestamp: new Date(),
-      };
-      setConversationMessages((prev) => [...prev, errorMessage]);
-    }
-  };
-
-  // Generate AI speech using TTS
-  const generateAISpeech = async (text: string): Promise<string | null> => {
-    try {
-      const ttsRes = await fetch(
-        "https://chatbot-tts-server.onrender.com/tts",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text,
-            languageCode:
-              conversationLanguage === "en"
-                ? "en-US"
-                : conversationLanguage === "es"
-                ? "es-ES"
-                : conversationLanguage === "fr"
-                ? "fr-FR"
-                : conversationLanguage === "de"
-                ? "de-DE"
-                : conversationLanguage === "it"
-                ? "it-IT"
-                : conversationLanguage === "pt"
-                ? "pt-BR"
-                : conversationLanguage === "ja"
-                ? "ja-JP"
-                : conversationLanguage === "ko"
-                ? "ko-KR"
-                : conversationLanguage === "zh"
-                ? "zh-CN"
-                : "en-US",
-            voiceName:
-              conversationLanguage === "en"
-                ? "en-US-Neural2-D"
-                : conversationLanguage === "es"
-                ? "es-ES-Neural2-B"
-                : conversationLanguage === "fr"
-                ? "fr-FR-Neural2-B"
-                : conversationLanguage === "de"
-                ? "de-DE-Neural2-B"
-                : conversationLanguage === "it"
-                ? "it-IT-Neural2-A"
-                : conversationLanguage === "pt"
-                ? "pt-BR-Neural2-A"
-                : conversationLanguage === "ja"
-                ? "ja-JP-Neural2-B"
-                : conversationLanguage === "ko"
-                ? "ko-KR-Neural2-A"
-                : conversationLanguage === "zh"
-                ? "zh-CN-Neural2-A"
-                : "en-US-Neural2-D",
-          }),
-        }
-      );
-
-      if (ttsRes.ok) {
-        const audioBlob = await ttsRes.blob();
-        return URL.createObjectURL(audioBlob);
-      }
-      return null;
-    } catch (error) {
-      console.error("Error generating AI speech:", error);
-      return null;
-    }
-  };
-
-  // Play AI response audio
-  const playAIResponse = async (
-    audioUrl: string,
-    messageId: string
-  ): Promise<void> => {
-    try {
-      setIsConversationPlaying(true);
-      setCurrentPlayingMessageId(messageId);
-
-      const audio = new Audio(audioUrl);
-      audio.onended = () => {
-        setIsConversationPlaying(false);
-        setCurrentPlayingMessageId(null);
-      };
-      audio.onerror = () => {
-        setIsConversationPlaying(false);
-        setCurrentPlayingMessageId(null);
-      };
-
-      await audio.play();
-    } catch (error) {
-      console.error("Error playing AI response:", error);
-      setIsConversationPlaying(false);
-      setCurrentPlayingMessageId(null);
     }
   };
 
@@ -702,16 +479,6 @@ export default function MainPage() {
       URL.revokeObjectURL(audioUrl);
       setAudioUrl(null);
     }
-
-    // Clear conversation messages if in conversation mode
-    if (isConversationMode) {
-      conversationMessages.forEach((msg) => {
-        if (msg.audioUrl) {
-          URL.revokeObjectURL(msg.audioUrl);
-        }
-      });
-      setConversationMessages([]);
-    }
   };
 
   const formatTime = (seconds: number): string => {
@@ -760,18 +527,10 @@ export default function MainPage() {
                       ease: "linear",
                     }}
                   >
-                    {isConversationMode ? (
-                      <MessageCircle className="w-10 h-10 text-purple-400" />
-                    ) : (
-                      <Mic className="w-10 h-10 text-blue-400" />
-                    )}
+                    <Mic className="w-10 h-10 text-blue-400" />
                   </motion.div>
                 </motion.div>
-                <span className="ml-4">
-                  {isConversationMode
-                    ? "AI Conversation Hub"
-                    : "Voice Translation Hub"}
-                </span>
+                <span className="ml-4">Voice Translation Hub</span>
               </CardTitle>
               <motion.p
                 className="text-muted-foreground text-l mt-3"
@@ -779,9 +538,8 @@ export default function MainPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                {isConversationMode
-                  ? "Have natural conversations with AI in your preferred language"
-                  : "Speak naturally and get instant translations with real-time processing and high-accuracy speech recognition"}
+                Speak naturally and get instant translations with real-time
+                processing and high-accuracy speech recognition
               </motion.p>
             </CardHeader>
           </Card>
@@ -802,35 +560,22 @@ export default function MainPage() {
                     whileTap={{ scale: 0.98 }}
                   >
                     <Button
-                      onClick={() => {
-                        setIsRealTimeMode(false);
-                        setIsConversationMode(false);
-                      }}
+                      onClick={() => setIsRealTimeMode(false)}
                       disabled={isRecording}
-                      variant={
-                        !isRealTimeMode && !isConversationMode
-                          ? "default"
-                          : "ghost"
-                      }
+                      variant={!isRealTimeMode ? "default" : "ghost"}
                       className={`transition-all duration-300 ${
-                        !isRealTimeMode && !isConversationMode
+                        !isRealTimeMode
                           ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
                           : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                       }`}
                     >
                       <motion.div
                         animate={{
-                          rotate:
-                            !isRealTimeMode && !isConversationMode
-                              ? [0, 5, -5, 0]
-                              : 0,
+                          rotate: !isRealTimeMode ? [0, 5, -5, 0] : 0,
                         }}
                         transition={{
                           duration: 2,
-                          repeat:
-                            !isRealTimeMode && !isConversationMode
-                              ? Infinity
-                              : 0,
+                          repeat: !isRealTimeMode ? Infinity : 0,
                         }}
                       >
                         <Clock className="w-4 h-4 mr-2" />
@@ -843,76 +588,28 @@ export default function MainPage() {
                     whileTap={{ scale: 0.98 }}
                   >
                     <Button
-                      onClick={() => {
-                        setIsRealTimeMode(true);
-                        setIsConversationMode(false);
-                      }}
+                      onClick={() => setIsRealTimeMode(true)}
                       disabled={isRecording}
-                      variant={
-                        isRealTimeMode && !isConversationMode
-                          ? "default"
-                          : "ghost"
-                      }
+                      variant={isRealTimeMode ? "default" : "ghost"}
                       className={`transition-all duration-300 ${
-                        isRealTimeMode && !isConversationMode
+                        isRealTimeMode
                           ? "bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg shadow-green-500/25"
                           : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                       }`}
                     >
                       <motion.div
                         animate={{
-                          scale:
-                            isRealTimeMode && !isConversationMode
-                              ? [1, 1.2, 1]
-                              : 1,
-                          rotate:
-                            isRealTimeMode && !isConversationMode
-                              ? [0, 10, -10, 0]
-                              : 0,
+                          scale: isRealTimeMode ? [1, 1.2, 1] : 1,
+                          rotate: isRealTimeMode ? [0, 10, -10, 0] : 0,
                         }}
                         transition={{
                           duration: 1.5,
-                          repeat:
-                            isRealTimeMode && !isConversationMode
-                              ? Infinity
-                              : 0,
+                          repeat: isRealTimeMode ? Infinity : 0,
                         }}
                       >
                         <Zap className="w-4 h-4 mr-2" />
                       </motion.div>
                       Real-Time Mode
-                    </Button>
-                  </motion.div>
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button
-                      onClick={() => {
-                        setIsRealTimeMode(false);
-                        setIsConversationMode(true);
-                      }}
-                      disabled={isRecording}
-                      variant={isConversationMode ? "default" : "ghost"}
-                      className={`transition-all duration-300 ${
-                        isConversationMode
-                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                      }`}
-                    >
-                      <motion.div
-                        animate={{
-                          y: isConversationMode ? [0, -2, 0] : 0,
-                          scale: isConversationMode ? [1, 1.1, 1] : 1,
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: isConversationMode ? Infinity : 0,
-                        }}
-                      >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                      </motion.div>
-                      Conversation Mode
                     </Button>
                   </motion.div>
                 </div>
@@ -924,84 +621,53 @@ export default function MainPage() {
         {/* Language Selection */}
         <Card className="bg-card border-border">
           <CardContent className="p-6">
-            {isConversationMode ? (
-              <div className="space-y-4">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    Conversation Language
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    Choose one language for both you and the AI
-                  </p>
-                </div>
-                <div className="max-w-md mx-auto">
-                  <select
-                    value={conversationLanguage}
-                    onChange={(e) => setConversationLanguage(e.target.value)}
-                    className="w-full p-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-foreground placeholder-muted-foreground"
-                    disabled={isRecording || isProcessing}
-                  >
-                    {languageOptions.map((lang: Language) => (
-                      <option
-                        key={lang.code}
-                        value={lang.code}
-                        className="bg-background text-foreground"
-                      >
-                        {lang.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground/90">
+                  <Languages className="w-4 h-4 inline mr-2" />
+                  Translate From:
+                </label>
+                <select
+                  value={baseLanguage}
+                  onChange={(e) => setBaseLanguage(e.target.value)}
+                  className="w-full p-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground"
+                  disabled={isRecording || isProcessing}
+                >
+                  {baseLanguageOptions.map((lang: Language) => (
+                    <option
+                      key={lang.code}
+                      value={lang.code}
+                      className="bg-background text-foreground"
+                    >
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground/90">
-                    <Languages className="w-4 h-4 inline mr-2" />
-                    Translate From:
-                  </label>
-                  <select
-                    value={baseLanguage}
-                    onChange={(e) => setBaseLanguage(e.target.value)}
-                    className="w-full p-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground"
-                    disabled={isRecording || isProcessing}
-                  >
-                    {baseLanguageOptions.map((lang: Language) => (
-                      <option
-                        key={lang.code}
-                        value={lang.code}
-                        className="bg-background text-foreground"
-                      >
-                        {lang.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground/90">
-                    <Volume2 className="w-4 h-4 inline mr-2" />
-                    Translate to:
-                  </label>
-                  <select
-                    value={targetLanguage}
-                    onChange={(e) => setTargetLanguage(e.target.value)}
-                    className="w-full p-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground"
-                    disabled={isRecording || isProcessing}
-                  >
-                    {languageOptions.map((lang: Language) => (
-                      <option
-                        key={lang.code}
-                        value={lang.code}
-                        className="bg-background text-foreground"
-                      >
-                        {lang.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground/90">
+                  <Volume2 className="w-4 h-4 inline mr-2" />
+                  Translate to:
+                </label>
+                <select
+                  value={targetLanguage}
+                  onChange={(e) => setTargetLanguage(e.target.value)}
+                  className="w-full p-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-foreground placeholder-muted-foreground"
+                  disabled={isRecording || isProcessing}
+                >
+                  {languageOptions.map((lang: Language) => (
+                    <option
+                      key={lang.code}
+                      value={lang.code}
+                      className="bg-background text-foreground"
+                    >
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -1069,9 +735,7 @@ export default function MainPage() {
                               >
                                 <Mic className="w-6 h-6 mr-3" />
                               </motion.div>
-                              {isConversationMode
-                                ? "Start Conversation"
-                                : "Start Recording"}
+                              Start Recording
                             </motion.div>
                           )}
                         </Button>
@@ -1108,18 +772,14 @@ export default function MainPage() {
                           >
                             <Square className="w-6 h-6 mr-3" />
                           </motion.div>
-                          {isConversationMode
-                            ? "Stop Listening"
-                            : "Stop Recording"}
+                          Stop Recording
                         </Button>
                       </motion.div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {(result ||
-                  realtimeTranslation ||
-                  conversationMessages.length > 0) && (
+                {(result || realtimeTranslation) && (
                   <Button
                     onClick={clearResults}
                     disabled={isRecording}
@@ -1127,9 +787,7 @@ export default function MainPage() {
                     className="ml-4 border-border text-foreground hover:bg-accent"
                   >
                     <RotateCcw className="w-4 h-4 mr-2" />
-                    {isConversationMode
-                      ? "Clear Conversation"
-                      : "Clear Results"}
+                    Clear Results
                   </Button>
                 )}
 
@@ -1139,12 +797,8 @@ export default function MainPage() {
                     <div className="flex items-center space-x-2 text-lg font-mono text-green-400">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <span>
-                        {isRealTimeMode
-                          ? "🔴 LIVE"
-                          : isConversationMode
-                          ? "💬 Listening"
-                          : "Recording"}
-                        : {formatTime(recordingTime)}
+                        {isRealTimeMode ? "🔴 LIVE" : "Recording"}:{" "}
+                        {formatTime(recordingTime)}
                       </span>
                     </div>
 
@@ -1172,38 +826,11 @@ export default function MainPage() {
                           : "✓ Real-time translation active (updates every 2s)"}
                       </Badge>
                     )}
-
-                    {isConversationMode && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-purple-500/20 text-purple-400 border-purple-500/30"
-                      >
-                        {isProcessing
-                          ? "🔄 Processing conversation..."
-                          : isConversationPlaying
-                          ? "🔊 AI speaking..."
-                          : "💬 Conversation mode active"}
-                      </Badge>
-                    )}
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
-
-          {/* Processing Status */}
-          {/* {isProcessing && !isRecording && (
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="text-center">
-                <div className="inline-flex items-center px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-400 mr-3"></div>
-                  <span className="text-yellow-400">Processing audio...</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )} */}
         </motion.div>
 
         {/* Real-time Translation Display */}
@@ -1378,257 +1005,6 @@ export default function MainPage() {
           </Card>
         )}
 
-        {/* Conversation Mode Display */}
-        <AnimatePresence>
-          {isConversationMode && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30 shadow-2xl shadow-purple-500/20 backdrop-blur-sm">
-                <CardContent className="p-0">
-                  {/* Chat Header */}
-                  <div className="p-4 border-b border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <motion.div
-                          animate={{
-                            scale: [1, 1.1, 1],
-                            rotate: [0, 5, -5, 0],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                        >
-                          <Bot className="w-6 h-6 text-purple-400" />
-                        </motion.div>
-                        <div>
-                          <h2 className="text-lg font-semibold text-purple-300 flex items-center">
-                            AI Assistant
-                            <motion.div
-                              className="w-2 h-2 bg-green-500 rounded-full ml-2"
-                              animate={{ opacity: [1, 0.5, 1] }}
-                              transition={{ duration: 1.5, repeat: Infinity }}
-                            />
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            {conversationMessages.length > 0
-                              ? `${
-                                  conversationMessages.length
-                                } messages • ${getLanguageName(
-                                  conversationLanguage
-                                )}`
-                              : `Ready to chat in ${getLanguageName(
-                                  conversationLanguage
-                                )}`}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="bg-purple-500/20 text-purple-300 border-purple-500/30"
-                      >
-                        {isProcessing ? "Processing..." : "Online"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Chat Messages */}
-                  <div className="h-80 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-purple-500/5">
-                    <AnimatePresence>
-                      {conversationMessages.length === 0 ? (
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="text-center py-8"
-                        >
-                          <motion.div
-                            animate={{
-                              y: [0, -10, 0],
-                              rotate: [0, 5, -5, 0],
-                            }}
-                            transition={{
-                              duration: 3,
-                              repeat: Infinity,
-                              ease: "easeInOut",
-                            }}
-                          >
-                            <MessageCircle className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-                          </motion.div>
-                          <h3 className="text-lg font-semibold text-purple-300 mb-2">
-                            Start a conversation!
-                          </h3>
-                          <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                            Press the record button and speak naturally.
-                            I&apos;ll respond with both text and voice in{" "}
-                            {getLanguageName(conversationLanguage)}.
-                          </p>
-                        </motion.div>
-                      ) : (
-                        conversationMessages.map((message, index) => (
-                          <motion.div
-                            key={message.id}
-                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ duration: 0.3, delay: index * 0.1 }}
-                            className={`flex ${
-                              message.role === "user"
-                                ? "justify-end"
-                                : "justify-start"
-                            }`}
-                          >
-                            <div
-                              className={`flex gap-2 max-w-[75%] ${
-                                message.role === "user"
-                                  ? "flex-row-reverse"
-                                  : "flex-row"
-                              }`}
-                            >
-                              {/* Avatar */}
-                              <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                  message.role === "user"
-                                    ? "bg-blue-500/20 border border-blue-500/30"
-                                    : "bg-purple-500/20 border border-purple-500/30"
-                                }`}
-                              >
-                                {message.role === "user" ? (
-                                  <User className="w-4 h-4 text-blue-400" />
-                                ) : (
-                                  <Bot className="w-4 h-4 text-purple-400" />
-                                )}
-                              </motion.div>
-
-                              {/* Message Bubble */}
-                              <motion.div
-                                whileHover={{ scale: 1.02 }}
-                                className={`px-4 py-3 rounded-2xl backdrop-blur-sm ${
-                                  message.role === "user"
-                                    ? "bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-100 border border-blue-500/30"
-                                    : "bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-100 border border-purple-500/30"
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <p className="text-sm leading-relaxed">
-                                    {message.content}
-                                  </p>
-                                  {message.audioUrl && (
-                                    <motion.button
-                                      whileHover={{ scale: 1.1 }}
-                                      whileTap={{ scale: 0.9 }}
-                                      onClick={() =>
-                                        playAIResponse(
-                                          message.audioUrl!,
-                                          message.id
-                                        )
-                                      }
-                                      disabled={
-                                        isConversationPlaying &&
-                                        currentPlayingMessageId !== message.id
-                                      }
-                                      className="flex-shrink-0 p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                                    >
-                                      {isConversationPlaying &&
-                                      currentPlayingMessageId === message.id ? (
-                                        <motion.div
-                                          className="w-3 h-3 bg-current rounded-full"
-                                          animate={{ scale: [1, 1.2, 1] }}
-                                          transition={{
-                                            duration: 0.5,
-                                            repeat: Infinity,
-                                          }}
-                                        />
-                                      ) : (
-                                        <Volume2 className="w-3 h-3" />
-                                      )}
-                                    </motion.button>
-                                  )}
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-2 opacity-70">
-                                  {message.timestamp.toLocaleTimeString()}
-                                </div>
-                              </motion.div>
-                            </div>
-                          </motion.div>
-                        ))
-                      )}
-                    </AnimatePresence>
-
-                    {/* AI Thinking Indicator */}
-                    <AnimatePresence>
-                      {isProcessing && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="flex justify-start"
-                        >
-                          <div className="flex gap-2">
-                            <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
-                              <Bot className="w-4 h-4 text-purple-400" />
-                            </div>
-                            <div className="px-4 py-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
-                              <div className="flex items-center gap-2">
-                                <motion.div className="flex gap-1">
-                                  {[0, 1, 2].map((i) => (
-                                    <motion.div
-                                      key={i}
-                                      className="w-2 h-2 bg-purple-400 rounded-full"
-                                      animate={{
-                                        scale: [1, 1.5, 1],
-                                        opacity: [0.5, 1, 0.5],
-                                      }}
-                                      transition={{
-                                        duration: 1,
-                                        repeat: Infinity,
-                                        delay: i * 0.2,
-                                      }}
-                                    />
-                                  ))}
-                                </motion.div>
-                                <span className="text-purple-300 text-sm">
-                                  AI is thinking...
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Chat Input Area */}
-                  <div className="p-4 border-t border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 bg-muted/50 rounded-full border border-purple-500/20 px-4 py-2">
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                          <Mic className="w-4 h-4" />
-                          <span>
-                            {isRecording
-                              ? "Listening..."
-                              : "Press record to speak"}
-                          </span>
-                        </div>
-                      </div>
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Send className="w-4 h-4 text-purple-400" />
-                      </motion.div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Instructions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1644,7 +1020,7 @@ export default function MainPage() {
                 transition={{ delay: 1 }}
               >
                 <motion.div
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.2, staggerChildren: 0.1 }}
@@ -1686,25 +1062,6 @@ export default function MainPage() {
                       Live translation updates every 2 seconds
                     </p>
                   </motion.div>
-
-                  <motion.div
-                    className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20"
-                    whileHover={{
-                      scale: 1.02,
-                      backgroundColor: "rgba(168, 85, 247, 0.15)",
-                    }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center justify-center mb-2">
-                      <MessageCircle className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <h4 className="font-semibold text-purple-300 mb-1">
-                      Conversation Mode
-                    </h4>
-                    <p className="text-xs">
-                      Have full conversations with AI in your chosen language
-                    </p>
-                  </motion.div>
                 </motion.div>
 
                 <motion.div
@@ -1721,9 +1078,7 @@ export default function MainPage() {
                     💡
                   </motion.div>
                   <span>
-                    {isConversationMode
-                      ? "Speak naturally and the AI will respond with voice"
-                      : isRealTimeMode
+                    {isRealTimeMode
                       ? "Real-time mode works best with clear, continuous speech"
                       : "Choose your preferred mode and start translating"}
                   </span>

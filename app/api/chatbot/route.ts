@@ -13,6 +13,9 @@ interface ChatContext {
   sourceLanguage?: string;
   targetLanguage?: string;
   recentActivity?: string[];
+  conversationMode?: string;
+  conversationLanguage?: string;
+  systemPrompt?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -34,6 +37,22 @@ export async function POST(request: NextRequest) {
 
     // Build context-aware system prompt based on current app state
     const getSystemPrompt = (context: ChatContext) => {
+      // Use custom system prompt if provided (from conversation mode)
+      if (context?.systemPrompt) {
+        const baseInfo = `User: ${session.user?.name || "User"} | Mode: ${
+          context?.currentMode || "main"
+        } | Conversation Mode: ${context?.conversationMode || "general"}`;
+
+        // Add language preference if specified
+        const languageInfo =
+          context?.conversationLanguage &&
+          context.conversationLanguage !== "auto"
+            ? ` | Preferred Language: ${context.conversationLanguage}`
+            : "";
+
+        return `${context.systemPrompt}\n\n${baseInfo}${languageInfo}`;
+      }
+
       const basePrompt = `You are TranslateHub Assistant. Be direct, concise, and helpful. Avoid phrases like "feel free to ask", "I'm here to help", or other redundant politeness. Give specific, actionable answers.
 
 AREAS OF EXPERTISE:
@@ -87,12 +106,16 @@ User: ${session.user?.name || "User"} | Mode: ${
       content: message,
     });
 
+    // Adjust parameters based on conversation mode
+    const isConversationalMode =
+      context?.conversationMode && context.conversationMode !== "general";
+
     // Call OpenAI API
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,
-      max_tokens: 400, // Reduced for concise responses
-      temperature: 0.6, // Slightly lower for more focused responses
+      max_tokens: isConversationalMode ? 300 : 400, // Shorter responses for conversation modes
+      temperature: isConversationalMode ? 0.8 : 0.6, // More natural for conversations
       presence_penalty: 0.2, // Higher to avoid repetitive phrases
       frequency_penalty: 0.3, // Higher to encourage varied, concise language
     });
@@ -107,6 +130,7 @@ User: ${session.user?.name || "User"} | Mode: ${
       response,
       timestamp: new Date().toISOString(),
       context: context?.currentMode || "general",
+      conversationMode: context?.conversationMode || "general",
     });
   } catch (error) {
     console.error("Chatbot API error:", error);

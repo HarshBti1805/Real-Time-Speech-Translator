@@ -149,6 +149,50 @@ interface ChatBotProps {
   targetLanguage?: string;
 }
 
+// Conversation mode presets
+const conversationModes = [
+  {
+    id: "general",
+    name: "General Chat",
+    description: "Natural conversation in any language",
+    icon: "💬",
+    systemPrompt:
+      "You are a helpful conversational AI. Be natural, engaging, and adapt to the user's language.",
+  },
+  {
+    id: "language-practice",
+    name: "Language Practice",
+    description: "Practice speaking in a target language",
+    icon: "🎯",
+    systemPrompt:
+      "You are a language practice partner. Help the user practice by having natural conversations, gently correcting mistakes, and providing helpful feedback.",
+  },
+  {
+    id: "cultural-guide",
+    name: "Cultural Guide",
+    description: "Learn about cultures and customs",
+    icon: "🌍",
+    systemPrompt:
+      "You are a cultural guide. Share insights about cultures, customs, traditions, and help users understand cultural contexts.",
+  },
+  {
+    id: "translation-helper",
+    name: "Translation Helper",
+    description: "Get help with translations and meanings",
+    icon: "📝",
+    systemPrompt:
+      "You are a translation expert. Help users understand translations, provide alternatives, explain nuances, and suggest better phrasing.",
+  },
+  {
+    id: "pronunciation-coach",
+    name: "Pronunciation Coach",
+    description: "Focus on pronunciation and speaking",
+    icon: "🗣️",
+    systemPrompt:
+      "You are a pronunciation coach. Focus on helping users improve their pronunciation, speaking clarity, and oral communication skills.",
+  },
+];
+
 const ChatBot = memo(function ChatBot({
   currentMode,
   currentTranslation,
@@ -172,6 +216,11 @@ const ChatBot = memo(function ChatBot({
   >(null);
   const [voiceError, setVoiceError] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
+
+  // Enhanced conversation features
+  const [conversationMode, setConversationMode] = useState("general");
+  const [conversationLanguage, setConversationLanguage] = useState("auto");
+  const [isPushToTalk, setIsPushToTalk] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -741,7 +790,7 @@ const ChatBot = memo(function ChatBot({
     }, 100);
   };
 
-  // Enhanced sendMessage with TTS response for voice mode
+  // Enhanced sendMessage with conversation mode context
   const sendMessage = async (content: string, forceVoiceMode?: boolean) => {
     if (!content.trim() || isLoading) return;
 
@@ -772,12 +821,18 @@ const ChatBot = memo(function ChatBot({
     }
 
     try {
+      const selectedMode = conversationModes.find(
+        (m) => m.id === conversationMode
+      );
       const context = {
         currentMode,
         currentTranslation,
         sourceLanguage,
         targetLanguage,
         isVoiceMode: currentVoiceMode,
+        conversationMode: conversationMode,
+        conversationLanguage: conversationLanguage,
+        systemPrompt: selectedMode?.systemPrompt,
       };
 
       // Include the current user message in conversation history for better context
@@ -997,15 +1052,26 @@ const ChatBot = memo(function ChatBot({
 
     // Ensure we have a welcome message when chat opens
     if (isOpen && messages.length === 0) {
+      const selectedMode = conversationModes.find(
+        (m) => m.id === conversationMode
+      );
       const welcomeMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: `Hi ${session?.user?.name || "there"}! 👋 How can I help?`,
+        content: `Hi ${session?.user?.name || "there"}! 👋 I'm in ${
+          selectedMode?.name || "General Chat"
+        } mode. How can I help?`,
         timestamp: new Date(),
       };
       setMessages([welcomeMessage]);
     }
-  }, [isOpen, isMinimized, messages.length, session?.user?.name]);
+  }, [
+    isOpen,
+    isMinimized,
+    messages.length,
+    session?.user?.name,
+    conversationMode,
+  ]);
 
   return (
     <>
@@ -1058,12 +1124,17 @@ const ChatBot = memo(function ChatBot({
                   setIsMinimized(false);
                   // Ensure we have a welcome message
                   if (messages.length === 0) {
+                    const selectedMode = conversationModes.find(
+                      (m) => m.id === conversationMode
+                    );
                     const welcomeMessage: Message = {
                       id: Date.now().toString(),
                       role: "assistant",
                       content: `Hi ${
                         session?.user?.name || "there"
-                      }! 👋 How can I help?`,
+                      }! 👋 I'm in ${
+                        selectedMode?.name || "General Chat"
+                      } mode. How can I help?`,
                       timestamp: new Date(),
                     };
                     setMessages([welcomeMessage]);
@@ -1184,30 +1255,22 @@ const ChatBot = memo(function ChatBot({
               className={`${
                 isMinimized
                   ? "w-96 h-20 max-w-[calc(100vw-3rem)] mx-auto sm:mx-0"
-                  : "w-[calc(100vw-2rem)] max-w-[480px] sm:w-[480px] h-[calc(100vh-8rem)] max-h-[650px] sm:h-[650px] mx-auto sm:mx-0"
-              } shadow-2xl shadow-blue-500/10 dark:shadow-purple-500/20 border border-white/10 dark:border-gray-800/50 bg-transparent backdrop-blur-xl transition-all duration-500 ease-out overflow-hidden relative ring-1 ring-white/20 dark:ring-gray-800/30 flex flex-col`}
+                  : "w-[calc(100vw-2rem)] max-w-[480px] sm:w-[480px] h-[calc(100vh-8rem)] max-h-[600px] sm:h-[600px] mx-auto sm:mx-0"
+              } shadow-2xl shadow-blue-500/20 dark:shadow-purple-500/30 border border-white/20 dark:border-gray-800/60 bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl transition-all duration-500 ease-out overflow-hidden relative ring-1 ring-white/30 dark:ring-gray-700/50 flex flex-col`}
             >
-              {/* Enhanced sophisticated gradient background - always visible */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-950 dark:via-black dark:to-gray-900 rounded-lg" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(59,130,246,0.08),transparent_60%)] dark:bg-[radial-gradient(circle_at_30%_40%,rgba(59,130,246,0.12),transparent_60%)] rounded-lg" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(99,102,241,0.06),transparent_60%)] dark:bg-[radial-gradient(circle_at_70%_20%,rgba(147,51,234,0.12),transparent_60%)] rounded-lg" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(168,85,247,0.05),transparent_60%)] dark:bg-[radial-gradient(circle_at_20%_80%,rgba(236,72,153,0.10),transparent_60%)] rounded-lg" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.03),transparent_70%)] dark:bg-[radial-gradient(circle_at_80%_80%,rgba(245,101,101,0.08),transparent_70%)] rounded-lg" />
-              <div
-                className={`absolute inset-0 rounded-lg ${
-                  isMinimized
-                    ? "bg-gradient-to-r from-blue-500/10 via-purple-500/15 to-pink-500/10 dark:from-blue-500/20 dark:via-purple-500/25 dark:to-pink-500/20"
-                    : "bg-gradient-to-t from-transparent via-transparent to-blue-100/30 dark:to-white/5"
-                }`}
-              />
+              {/* Modern gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-indigo-50/30 to-purple-50/50 dark:from-gray-950/80 dark:via-black/60 dark:to-gray-900/80 rounded-lg" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(59,130,246,0.1),transparent_60%)] dark:bg-[radial-gradient(circle_at_30%_40%,rgba(59,130,246,0.15),transparent_60%)] rounded-lg" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(147,51,234,0.08),transparent_60%)] dark:bg-[radial-gradient(circle_at_70%_20%,rgba(147,51,234,0.12),transparent_60%)] rounded-lg" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(236,72,153,0.06),transparent_60%)] dark:bg-[radial-gradient(circle_at_20%_80%,rgba(236,72,153,0.10),transparent_60%)] rounded-lg" />
 
-              {/* Header with glassmorphism effect - ALWAYS VISIBLE */}
+              {/* Header with modern glassmorphism */}
               <CardHeader
                 className={`${
                   isMinimized
                     ? "pb-2 pt-3 px-4 border-b-0"
-                    : "pb-4 pt-4 px-6 border-b border-border/30"
-                } bg-white/95 dark:bg-black/95 backdrop-blur-xl relative z-20 !block !visible !opacity-100 flex-shrink-0`}
+                    : "pb-3 pt-3 px-4 border-b border-white/20 dark:border-gray-700/50"
+                } bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl relative z-20 !block !visible !opacity-100 flex-shrink-0`}
                 style={
                   {
                     display: "block",
@@ -1224,22 +1287,40 @@ const ChatBot = memo(function ChatBot({
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-                      <Bot className="w-5 h-5 text-white" />
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25 relative overflow-hidden">
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
+                        animate={{
+                          background: [
+                            "linear-gradient(45deg, rgb(59, 130, 246), rgb(147, 51, 234), rgb(236, 72, 153))",
+                            "linear-gradient(90deg, rgb(147, 51, 234), rgb(236, 72, 153), rgb(59, 130, 246))",
+                            "linear-gradient(135deg, rgb(236, 72, 153), rgb(59, 130, 246), rgb(147, 51, 234))",
+                            "linear-gradient(45deg, rgb(59, 130, 246), rgb(147, 51, 234), rgb(236, 72, 153))",
+                          ],
+                        }}
+                        transition={{
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
+                      />
+                      <Bot className="w-4 h-4 text-white relative z-10" />
                     </div>
                     {!isMinimized && (
                       <div>
-                        <CardTitle className="text-base font-jetbrains-mono font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        <CardTitle className="text-base font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                           TranslateHub AI
                         </CardTitle>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Smart multilingual assistant
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 font-medium">
+                          {conversationModes.find(
+                            (m) => m.id === conversationMode
+                          )?.name || "Smart multilingual assistant"}
                         </p>
                       </div>
                     )}
                     {isMinimized && (
                       <div className="flex items-center space-x-2">
-                        <CardTitle className="text-base font-jetbrains-mono font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        <CardTitle className="text-base font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                           TranslateHub AI
                         </CardTitle>
                         <motion.div
@@ -1267,12 +1348,12 @@ const ChatBot = memo(function ChatBot({
                           setIsOpen(true);
                         }
                       }}
-                      className="h-8 w-8 rounded-lg hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200"
+                      className="h-7 w-7 rounded-lg hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200"
                     >
                       {isMinimized ? (
-                        <Maximize2 className="w-4 h-4" />
+                        <Maximize2 className="w-3 h-3" />
                       ) : (
-                        <Minimize2 className="w-4 h-4" />
+                        <Minimize2 className="w-3 h-3" />
                       )}
                     </Button>
                     <Button
@@ -1292,9 +1373,9 @@ const ChatBot = memo(function ChatBot({
                           }
                         }
                       }}
-                      className="h-8 w-8 rounded-lg hover:bg-red-500/10 hover:text-red-500 transition-all duration-200"
+                      className="h-7 w-7 rounded-lg hover:bg-red-500/10 hover:text-red-500 transition-all duration-200"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3" />
                     </Button>
                   </div>
                 </div>
@@ -1302,13 +1383,75 @@ const ChatBot = memo(function ChatBot({
 
               {!isMinimized && (
                 <>
-                  {/* Messages */}
-                  <CardContent className="p-0 flex-1 overflow-hidden relative z-10 bg-white/30 dark:bg-black/30 backdrop-blur-sm">
-                    <div className="h-[450px] sm:h-[450px] overflow-y-auto overflow-x-hidden pt-4 pb-2 px-2 sm:px-3 space-y-2 sm:space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full">
+                  {/* Modern Conversation Mode Selector */}
+                  <div className="px-4 py-3 border-b border-white/20 dark:border-gray-700/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl relative z-10">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                          Conversation Mode
+                        </h4>
+                        <select
+                          value={conversationLanguage}
+                          onChange={(e) =>
+                            setConversationLanguage(e.target.value)
+                          }
+                          className="text-xs px-2 py-1 bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-600/50 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 backdrop-blur-sm transition-all duration-200"
+                        >
+                          <option value="auto">Auto Language</option>
+                          <option value="en">English</option>
+                          <option value="es">Spanish</option>
+                          <option value="fr">French</option>
+                          <option value="de">German</option>
+                          <option value="it">Italian</option>
+                          <option value="pt">Portuguese</option>
+                          <option value="ja">Japanese</option>
+                          <option value="ko">Korean</option>
+                          <option value="zh">Chinese</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {conversationModes.map((mode) => (
+                          <motion.div
+                            key={mode.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Button
+                              variant={
+                                conversationMode === mode.id
+                                  ? "default"
+                                  : "ghost"
+                              }
+                              size="sm"
+                              onClick={() => setConversationMode(mode.id)}
+                              className={`text-xs h-7 px-3 rounded-lg font-semibold tracking-wide transition-all duration-300 ${
+                                conversationMode === mode.id
+                                  ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
+                                  : "bg-white/60 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-700/80 border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm"
+                              }`}
+                              title={mode.description}
+                            >
+                              <span className="mr-1.5 text-sm">
+                                {mode.icon}
+                              </span>
+                              {mode.name}
+                            </Button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modern Messages Container */}
+                  <CardContent className="p-0 flex-1 overflow-hidden relative z-10 bg-gradient-to-b from-transparent to-blue-50/20 dark:to-gray-900/20">
+                    <div className="h-[280px] sm:h-[280px] overflow-y-auto overflow-x-hidden pt-4 pb-3 px-3 space-y-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-400/50 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600/50 dark:[&::-webkit-scrollbar-thumb:hover]:bg-gray-500/50">
                       {messages.map((message, index) => {
                         return (
-                          <div
+                          <motion.div
                             key={message.id}
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
                             className={`flex w-full ${
                               message.role === "user"
                                 ? "justify-end"
@@ -1316,26 +1459,30 @@ const ChatBot = memo(function ChatBot({
                             } ${index === 0 ? "mt-2" : ""}`}
                           >
                             <div
-                              className={`max-w-[65%] sm:max-w-[70%] min-w-0 rounded-2xl p-3 backdrop-blur-sm border shadow-lg group ${
+                              className={`max-w-[70%] sm:max-w-[75%] min-w-0 rounded-2xl p-3 backdrop-blur-xl border shadow-xl group ${
                                 message.role === "user"
-                                  ? "bg-gradient-to-r from-blue-500/95 to-purple-500/95 text-white border-white/20 shadow-blue-500/20"
-                                  : "bg-gradient-to-br from-white/95 via-gray-50/90 to-blue-50/80 dark:from-gray-800/95 dark:via-gray-700/85 dark:to-gray-900/90 text-foreground border-gray-200/40 dark:border-gray-600/40 shadow-gray-100/50 dark:shadow-purple-900/15"
+                                  ? "bg-gradient-to-br from-blue-500/95 to-purple-600/95 text-white border-white/30 shadow-blue-500/25"
+                                  : "bg-white/95 dark:bg-gray-800/95 text-gray-900 dark:text-gray-100 border-gray-200/50 dark:border-gray-600/50 shadow-gray-200/50 dark:shadow-gray-800/50"
                               } ${
                                 index === 0 && message.role === "assistant"
-                                  ? "!bg-blue-50/90 dark:!bg-blue-900/30 border-blue-300/50 dark:border-blue-600/50"
+                                  ? "!bg-blue-50/95 dark:!bg-blue-900/30 border-blue-300/50 dark:border-blue-600/50"
                                   : ""
                               }`}
                             >
                               <div className="flex items-start space-x-2 w-full max-w-full">
                                 {message.role === "assistant" && (
-                                  <Bot className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                  <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <Bot className="w-2.5 h-2.5 text-white" />
+                                  </div>
                                 )}
                                 {message.role === "user" && (
-                                  <User className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                  <div className="w-5 h-5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <User className="w-2.5 h-2.5 text-white" />
+                                  </div>
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <div
-                                    className="text-sm leading-relaxed space-y-0.5 antialiased font-medium break-words overflow-wrap-anywhere hyphens-auto max-w-full overflow-hidden [&_h3]:rounded [&_h3]:shadow-sm [&_code]:shadow-sm [&_div]:break-words [&_span]:break-words"
+                                    className="text-sm leading-relaxed space-y-1 antialiased font-medium break-words overflow-wrap-anywhere hyphens-auto max-w-full overflow-hidden [&_h3]:rounded-lg [&_h3]:shadow-sm [&_code]:shadow-sm [&_div]:break-words [&_span]:break-words"
                                     dangerouslySetInnerHTML={{
                                       __html: parseMarkdown(
                                         message.content || "No content"
@@ -1344,10 +1491,10 @@ const ChatBot = memo(function ChatBot({
                                   />
                                   <div className="flex items-center justify-between mt-2">
                                     <span
-                                      className={`text-xs font-light tracking-wider ${
+                                      className={`text-xs font-medium tracking-wider ${
                                         message.role === "user"
-                                          ? "text-white/70"
-                                          : "text-muted-foreground"
+                                          ? "text-white/80"
+                                          : "text-gray-500 dark:text-gray-400"
                                       }`}
                                     >
                                       {message.timestamp.toLocaleTimeString(
@@ -1386,7 +1533,7 @@ const ChatBot = memo(function ChatBot({
                                               );
                                             }
                                           }}
-                                          className="h-6 w-6 hover:bg-blue-500/20 hover:text-blue-600"
+                                          className="h-6 w-6 rounded-full hover:bg-blue-500/20 hover:text-blue-600 transition-all duration-200"
                                           title={
                                             currentSpeakingMessageId ===
                                               message.id && isSpeaking
@@ -1396,9 +1543,9 @@ const ChatBot = memo(function ChatBot({
                                         >
                                           {currentSpeakingMessageId ===
                                             message.id && isSpeaking ? (
-                                            <Pause className="w-3 h-3 text-red-500" />
+                                            <Pause className="w-2.5 h-2.5 text-red-500" />
                                           ) : (
-                                            <Volume2 className="w-3 h-3" />
+                                            <Volume2 className="w-2.5 h-2.5" />
                                           )}
                                         </Button>
                                         <Button
@@ -1410,13 +1557,13 @@ const ChatBot = memo(function ChatBot({
                                               message.id
                                             )
                                           }
-                                          className="h-6 w-6 hover:bg-gray-500/20"
+                                          className="h-6 w-6 rounded-full hover:bg-gray-500/20 transition-all duration-200"
                                           title="Copy message"
                                         >
                                           {copiedMessageId === message.id ? (
-                                            <Check className="w-3 h-3" />
+                                            <Check className="w-2.5 h-2.5" />
                                           ) : (
-                                            <Copy className="w-3 h-3" />
+                                            <Copy className="w-2.5 h-2.5" />
                                           )}
                                         </Button>
                                       </div>
@@ -1425,58 +1572,69 @@ const ChatBot = memo(function ChatBot({
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </motion.div>
                         );
                       })}
                       {isLoading && (
-                        <div className="flex justify-start">
-                          <div className="bg-gradient-to-br from-white/95 via-gray-50/90 to-blue-50/80 dark:from-gray-800/95 dark:via-gray-700/85 dark:to-gray-900/90 text-foreground rounded-2xl p-4 max-w-[85%] backdrop-blur-sm border border-gray-200/40 dark:border-gray-600/40 shadow-lg shadow-gray-100/50 dark:shadow-purple-900/15">
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex justify-start"
+                        >
+                          <div className="bg-white/95 dark:bg-gray-800/95 text-gray-900 dark:text-gray-100 rounded-2xl p-3 max-w-[85%] backdrop-blur-xl border border-gray-200/50 dark:border-gray-600/50 shadow-xl shadow-gray-200/50 dark:shadow-gray-800/50">
                             <div className="flex items-center space-x-3">
-                              <Bot className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                              <Loader2 className="w-5 h-5 animate-spin text-purple-600 dark:text-purple-400" />
-                              <span className="text-sm font-medium tracking-wide">
+                              <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-sm">
+                                <Bot className="w-2.5 h-2.5 text-white" />
+                              </div>
+                              <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+                              <span className="text-sm font-semibold tracking-wide">
                                 Thinking...
                               </span>
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       )}
                       <div ref={messagesEndRef} />
                     </div>
                   </CardContent>
 
-                  {/* Quick Actions */}
+                  {/* Modern Quick Actions */}
                   {messages.length <= 1 && (
-                    <div className="px-6 py-3 border-t border-border/30 bg-white/80 dark:bg-black/80 backdrop-blur-sm relative z-10">
+                    <div className="px-4 py-3 border-t border-white/20 dark:border-gray-700/50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl relative z-10">
                       <div className="space-y-2">
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                           Quick Actions
                         </h4>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                           {getQuickActions()
                             .slice(0, 2)
                             .map((action, index) => (
-                              <Button
+                              <motion.div
                                 key={index}
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => sendMessage(action)}
-                                className="text-xs h-8 px-3 rounded-lg font-medium tracking-wide bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-800/30 dark:hover:to-purple-800/30 border border-blue-200/50 dark:border-blue-700/30 transition-all duration-200"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                               >
-                                {action.length > 28
-                                  ? `${action.slice(0, 28)}...`
-                                  : action}
-                              </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => sendMessage(action)}
+                                  className="text-xs h-7 px-3 rounded-lg font-semibold tracking-wide bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm transition-all duration-200"
+                                >
+                                  {action.length > 28
+                                    ? `${action.slice(0, 28)}...`
+                                    : action}
+                                </Button>
+                              </motion.div>
                             ))}
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Voice Mode Status Bar */}
+                  {/* Modern Voice Mode Status Bar */}
                   {isVoiceMode && (
-                    <div className="px-4 py-2 border-t border-border/50 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 backdrop-blur-sm relative z-10">
-                      <div className="flex items-center justify-between">
+                    <div className="px-4 py-3 border-t border-white/20 dark:border-gray-700/50 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 backdrop-blur-xl relative z-10">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-3">
                           <div className="flex items-center space-x-2">
                             {isListening ? (
@@ -1484,9 +1642,9 @@ const ChatBot = memo(function ChatBot({
                                 <motion.div
                                   animate={{ scale: [1, 1.3, 1] }}
                                   transition={{ duration: 1, repeat: Infinity }}
-                                  className="w-2 h-2 bg-red-500 rounded-full shadow-sm"
+                                  className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm"
                                 />
-                                <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                                <span className="text-xs font-semibold text-red-600 dark:text-red-400">
                                   Listening
                                 </span>
                               </>
@@ -1498,44 +1656,64 @@ const ChatBot = memo(function ChatBot({
                                     duration: 0.8,
                                     repeat: Infinity,
                                   }}
-                                  className="w-2 h-2 bg-blue-500 rounded-full shadow-sm"
+                                  className="w-2.5 h-2.5 bg-blue-500 rounded-full shadow-sm"
                                 />
-                                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                                   Speaking
                                 </span>
                               </>
                             ) : (
                               <>
-                                <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm" />
-                                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                                <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm" />
+                                <span className="text-xs font-semibold text-green-600 dark:text-green-400">
                                   Ready
                                 </span>
                               </>
                             )}
                           </div>
                           {interimTranscript && (
-                            <div className="flex items-center space-x-1 bg-white/50 dark:bg-gray-800/50 rounded-full px-2 py-1">
-                              <span className="text-xs text-muted-foreground italic max-w-48 truncate">
+                            <div className="flex items-center space-x-2 bg-white/80 dark:bg-gray-800/80 rounded-full px-2 py-1 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50">
+                              <span className="text-xs text-gray-600 dark:text-gray-400 italic max-w-48 truncate">
                                 &ldquo;{interimTranscript}&rdquo;
                               </span>
                             </div>
                           )}
                         </div>
                         {voiceError && (
-                          <div className="flex items-center space-x-1 text-orange-500 text-xs bg-orange-50 dark:bg-orange-900/20 rounded-full px-2 py-1">
+                          <div className="flex items-center space-x-2 text-orange-500 text-xs bg-orange-50 dark:bg-orange-900/20 rounded-full px-2 py-1 backdrop-blur-sm border border-orange-200/50 dark:border-orange-700/50">
                             <VolumeX className="w-3 h-3" />
-                            <span className="max-w-32 truncate">
+                            <span className="max-w-32 truncate font-medium">
                               {voiceError}
                             </span>
                           </div>
                         )}
                       </div>
+                      {/* Voice Mode Controls */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant={isPushToTalk ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setIsPushToTalk(!isPushToTalk)}
+                            className="text-xs h-6 px-2 rounded-lg font-semibold transition-all duration-200"
+                            title="Toggle push-to-talk mode"
+                          >
+                            {isPushToTalk ? "Push to Talk" : "Continuous"}
+                          </Button>
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                          Language:{" "}
+                          {conversationLanguage === "auto"
+                            ? "Auto-detect"
+                            : conversationLanguage.toUpperCase()}
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  {/* Input */}
-                  <div className="p-4 border-t border-border/50 bg-white/90 dark:bg-black/95 backdrop-blur-xl relative z-10">
-                    <div className="flex items-end space-x-3">
+                  {/* Modern Input */}
+                  <div className="p-4 border-t border-white/20 dark:border-gray-700/50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl relative z-10">
+                    <div className="flex items-end space-x-2">
                       <div className="flex-1 relative">
                         <textarea
                           ref={inputRef}
@@ -1544,12 +1722,14 @@ const ChatBot = memo(function ChatBot({
                           onKeyPress={handleKeyPress}
                           placeholder={
                             isVoiceMode
-                              ? "🎙️ Speak to chat..."
+                              ? isPushToTalk
+                                ? "🎙️ Hold space or mic button to speak..."
+                                : "🎙️ Speak to chat..."
                               : "Ask about translations, languages..."
                           }
-                          className="w-full resize-none rounded-xl border border-white/30 dark:border-gray-600/40 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-3 text-sm font-medium tracking-wide placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-purple-500/40 focus:border-blue-500/40 dark:focus:border-purple-500/40 transition-all duration-300 max-h-24 shadow-lg shadow-black/5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                          className="w-full resize-none rounded-xl border border-gray-200/50 dark:border-gray-600/50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-2 text-sm font-medium tracking-wide placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 max-h-20 shadow-lg shadow-gray-200/50 dark:shadow-gray-800/50 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                           rows={1}
-                          disabled={isLoading || isVoiceMode}
+                          disabled={isLoading || (isVoiceMode && !isPushToTalk)}
                         />
                         {isLoading && (
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -1557,17 +1737,17 @@ const ChatBot = memo(function ChatBot({
                           </div>
                         )}
                       </div>
-                      <div className="flex space-x-2">
-                        {/* Voice Mode Toggle */}
+                      <div className="flex space-x-1.5">
+                        {/* Modern Voice Mode Toggle */}
                         <Button
                           variant={isVoiceMode ? "default" : "ghost"}
                           size="icon"
                           onClick={toggleVoiceMode}
                           disabled={isLoading}
-                          className={`h-11 w-11 rounded-xl transition-all duration-300 ${
+                          className={`h-10 w-10 rounded-xl transition-all duration-300 ${
                             isVoiceMode
                               ? "bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg shadow-red-500/25"
-                              : "hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 border border-transparent hover:border-blue-500/20"
+                              : "hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm"
                           }`}
                           title={
                             isVoiceMode ? "Stop voice mode" : "Start voice mode"
@@ -1578,10 +1758,10 @@ const ChatBot = memo(function ChatBot({
                               animate={{ scale: [1, 1.1, 1] }}
                               transition={{ duration: 1, repeat: Infinity }}
                             >
-                              <MicOff className="w-5 h-5" />
+                              <MicOff className="w-4 h-4" />
                             </motion.div>
                           ) : (
-                            <Mic className="w-5 h-5" />
+                            <Mic className="w-4 h-4" />
                           )}
                         </Button>
 
@@ -1592,7 +1772,7 @@ const ChatBot = memo(function ChatBot({
                             size="icon"
                             onClick={startVoiceInput}
                             disabled={isLoading || isListening}
-                            className="h-11 w-11 rounded-xl hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 border border-transparent hover:border-purple-500/20 transition-all duration-300"
+                            className="h-10 w-10 rounded-xl hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm transition-all duration-300"
                             title="Single voice input"
                           >
                             {isListening ? (
@@ -1600,10 +1780,10 @@ const ChatBot = memo(function ChatBot({
                                 animate={{ scale: [1, 1.2, 1] }}
                                 transition={{ duration: 0.5, repeat: Infinity }}
                               >
-                                <Volume2 className="w-5 h-5 text-red-500" />
+                                <Volume2 className="w-4 h-4 text-red-500" />
                               </motion.div>
                             ) : (
-                              <Volume2 className="w-5 h-5" />
+                              <Volume2 className="w-4 h-4" />
                             )}
                           </Button>
                         )}
@@ -1611,12 +1791,14 @@ const ChatBot = memo(function ChatBot({
                         <Button
                           onClick={() => sendMessage(inputMessage)}
                           disabled={
-                            !inputMessage.trim() || isLoading || isVoiceMode
+                            !inputMessage.trim() ||
+                            isLoading ||
+                            (isVoiceMode && !isPushToTalk)
                           }
-                          className="h-11 w-11 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
+                          className="h-10 w-10 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
                           size="icon"
                         >
-                          <Send className="w-5 h-5" />
+                          <Send className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -1646,7 +1828,7 @@ const ChatBot = memo(function ChatBot({
                                   );
                                 }
                               }}
-                              className="text-xs h-6 px-2 font-medium tracking-wide hover:font-semibold transition-all hover:bg-blue-500/10 hover:text-blue-500"
+                              className="text-xs h-6 px-2 font-semibold tracking-wide hover:font-bold transition-all hover:bg-blue-500/10 hover:text-blue-500 rounded-lg"
                             >
                               {isSpeaking ? (
                                 <Pause className="w-3 h-3 mr-1 text-red-500" />
@@ -1661,7 +1843,7 @@ const ChatBot = memo(function ChatBot({
                         variant="ghost"
                         size="sm"
                         onClick={clearChat}
-                        className="text-xs h-6 px-2 font-medium tracking-wide hover:font-semibold transition-all hover:bg-red-500/10 hover:text-red-500"
+                        className="text-xs h-6 px-2 font-semibold tracking-wide hover:font-bold transition-all hover:bg-red-500/10 hover:text-red-500 rounded-lg"
                       >
                         <RotateCcw className="w-3 h-3 mr-1" />
                         Clear Chat
