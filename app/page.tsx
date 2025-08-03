@@ -25,6 +25,8 @@ import {
   Minimize2,
   BarChart3,
 } from "lucide-react";
+import VoiceControl from "@/components/VoiceControl";
+import VoiceFeedback from "@/components/VoiceFeedback";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +63,8 @@ export default function Home() {
     return true;
   });
   const [showMiniBar, setShowMiniBar] = useState(false);
+  const [isVoiceModeActive, setIsVoiceModeActive] = useState(false);
+  const [lastVoiceCommand, setLastVoiceCommand] = useState<string>("");
   // Remove all pipHooks, pipHooksLoaded, and related dynamic import logic
   // Use hooks as originally:
   const { isPipSupported, pipWindow, openPictureInPicture } = useTranslatePiP();
@@ -106,6 +110,19 @@ export default function Home() {
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  const handleVoiceNavigation = (section: string) => {
+    setLastVoiceCommand(section);
+    if (section === "dashboard") {
+      router.push("/dashboard");
+    } else {
+      setActiveComponent(section);
+    }
+  };
+
+  const toggleVoiceMode = () => {
+    setIsVoiceModeActive(!isVoiceModeActive);
   };
 
   useEffect(() => {
@@ -403,6 +420,12 @@ export default function Home() {
                         <Moon className="w-4 h-4 lg:w-5 lg:h-5" />
                       )}
                     </Button>
+                    {/* Voice Control */}
+                    <VoiceControl
+                      onNavigate={handleVoiceNavigation}
+                      isActive={isVoiceModeActive}
+                      onToggle={toggleVoiceMode}
+                    />
                     {/* PiP button at the end */}
                     {isPipSupported && (
                       <Button
@@ -497,6 +520,12 @@ export default function Home() {
                         <Moon className="w-4 h-4" />
                       )}
                     </Button>
+                    {/* Voice Control */}
+                    <VoiceControl
+                      onNavigate={handleVoiceNavigation}
+                      isActive={isVoiceModeActive}
+                      onToggle={toggleVoiceMode}
+                    />
                     {/* Sign Out */}
                     <Button
                       onClick={() => signOut({ callbackUrl: "/login" })}
@@ -553,6 +582,12 @@ export default function Home() {
                         <Moon className="w-3 h-3 sm:w-4 sm:h-4" />
                       )}
                     </Button>
+                    {/* Mobile Voice Control */}
+                    <VoiceControl
+                      onNavigate={handleVoiceNavigation}
+                      isActive={isVoiceModeActive}
+                      onToggle={toggleVoiceMode}
+                    />
                     {/* Mobile Sign Out */}
                     <Button
                       onClick={() => signOut({ callbackUrl: "/login" })}
@@ -848,6 +883,12 @@ export default function Home() {
           currentTranslation={undefined}
           sourceLanguage={undefined}
           targetLanguage={undefined}
+        />
+
+        {/* Voice Feedback */}
+        <VoiceFeedback
+          isActive={isVoiceModeActive}
+          lastCommand={lastVoiceCommand}
         />
       </main>
     </>
