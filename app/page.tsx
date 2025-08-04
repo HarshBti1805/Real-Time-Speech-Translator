@@ -50,6 +50,9 @@ export default function Home() {
   const [voiceRecordingTab, setVoiceRecordingTab] = useState<"visual" | "pdf">(
     "visual"
   );
+  const [mainPageMode, setMainPageMode] = useState<"standard" | "realtime">(
+    "standard"
+  );
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("theme") || "dark";
@@ -112,12 +115,43 @@ export default function Home() {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  const handleVoiceNavigation = (section: string) => {
+  const handleVoiceNavigation = (section: string, tab?: string) => {
     setLastVoiceCommand(section);
     if (section === "dashboard") {
       router.push("/dashboard");
     } else {
       setActiveComponent(section);
+
+      // Handle tab switching for specific sections
+      if (tab) {
+        console.log(`Voice navigation: Switching to ${section} -> ${tab}`);
+        switch (section) {
+          case "main":
+            // Handle main page tab switching (standard/realtime mode)
+            if (tab === "standard" || tab === "realtime") {
+              console.log(`Setting main page mode to: ${tab}`);
+              setMainPageMode(tab);
+            }
+            break;
+          case "fileupload":
+            // Set file upload type based on tab
+            if (tab === "audio") {
+              console.log(`Setting file upload type to: audio`);
+              setFileUploadType("audio");
+            } else if (tab === "video") {
+              console.log(`Setting file upload type to: video`);
+              setFileUploadType("video");
+            }
+            break;
+          case "voicerecording":
+            // Set voice recording tab
+            if (tab === "visual" || tab === "pdf") {
+              console.log(`Setting voice recording tab to: ${tab}`);
+              setVoiceRecordingTab(tab);
+            }
+            break;
+        }
+      }
     }
   };
 
@@ -188,13 +222,23 @@ export default function Home() {
   const renderActiveComponent = () => {
     switch (activeComponent) {
       case "main":
-        return <MainPage />;
+        return <MainPage initialMode={mainPageMode} />;
       case "translate":
         return <Translate />;
       case "fileupload":
-        return <FileUploadPage onFileTypeChange={setFileUploadType} />;
+        return (
+          <FileUploadPage
+            onFileTypeChange={setFileUploadType}
+            initialTab={fileUploadType || "audio"}
+          />
+        );
       case "voicerecording":
-        return <VoiceRecordingPage onTabChange={setVoiceRecordingTab} />;
+        return (
+          <VoiceRecordingPage
+            onTabChange={setVoiceRecordingTab}
+            initialTab={voiceRecordingTab}
+          />
+        );
 
       default:
         return <MainPage />;

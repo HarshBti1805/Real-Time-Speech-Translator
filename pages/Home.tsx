@@ -44,7 +44,11 @@ interface WindowWithWebkitAudioContext extends Window {
   webkitAudioContext?: typeof AudioContext;
 }
 
-export default function MainPage() {
+interface MainPageProps {
+  initialMode?: "standard" | "realtime";
+}
+
+export default function MainPage({ initialMode }: MainPageProps = {}) {
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [baseLanguage, setBaseLanguage] = useState<string>("");
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -52,7 +56,17 @@ export default function MainPage() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [recordingTime, setRecordingTime] = useState<number>(0);
   const [audioLevel, setAudioLevel] = useState<number>(0);
-  const [isRealTimeMode, setIsRealTimeMode] = useState<boolean>(false);
+  const [isRealTimeMode, setIsRealTimeMode] = useState<boolean>(
+    initialMode === "realtime"
+  );
+
+  // Update isRealTimeMode when initialMode prop changes
+  useEffect(() => {
+    console.log(
+      `MainPage: Setting isRealTimeMode to ${initialMode === "realtime"}`
+    );
+    setIsRealTimeMode(initialMode === "realtime");
+  }, [initialMode]);
   const [realtimeTranslation, setRealtimeTranslation] =
     useState<TranslationResult | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null); // For playback

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Camera,
@@ -14,18 +14,26 @@ import VoiceRecording from "@/components/VoiceRecording";
 
 interface VoiceRecordingPageProps {
   onTabChange?: (tab: "visual" | "pdf") => void;
+  initialTab?: "visual" | "pdf";
 }
 
 export default function VoiceRecordingPage({
   onTabChange,
+  initialTab = "visual",
 }: VoiceRecordingPageProps) {
-  const [activeTab, setActiveTab] = useState<"visual" | "pdf">("visual");
+  const [activeTab, setActiveTab] = useState<"visual" | "pdf">(initialTab);
 
   // Update parent component when tab changes
   const handleTabChange = (tab: "visual" | "pdf") => {
     setActiveTab(tab);
     onTabChange?.(tab);
   };
+
+  // Update activeTab when initialTab prop changes
+  useEffect(() => {
+    console.log(`VoiceRecordingPage: Setting activeTab to ${initialTab}`);
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   return (
     <div className="p-6">

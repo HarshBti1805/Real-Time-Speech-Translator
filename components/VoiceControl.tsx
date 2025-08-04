@@ -50,7 +50,7 @@ interface SpeechRecognitionAlternative {
 }
 
 interface VoiceControlProps {
-  onNavigate: (section: string) => void;
+  onNavigate: (section: string, tab?: string) => void;
   isActive: boolean;
   onToggle: () => void;
 }
@@ -236,12 +236,14 @@ export default function VoiceControl({
 
         if (result.success && result.section) {
           console.log(
-            `AI navigation: "${command}" -> ${result.section} (confidence: ${result.confidence})`
+            `AI navigation: "${command}" -> ${result.section}${
+              result.tab ? ` (tab: ${result.tab})` : ""
+            } (confidence: ${result.confidence})`
           );
           console.log(`Reasoning: ${result.reasoning}`);
 
-          // Navigate to the suggested section
-          onNavigate(result.section);
+          // Navigate to the suggested section and tab
+          onNavigate(result.section, result.tab);
           return;
         }
       }
@@ -381,6 +383,39 @@ export default function VoiceControl({
                   <div className="flex items-center gap-1">
                     <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
                     <span className="text-gray-600">Stats</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tab Commands */}
+              <div>
+                <div className="text-xs font-medium text-gray-700 mb-2">
+                  Tab Commands:
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    <span className="text-gray-600">Standard mode</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
+                    <span className="text-gray-600">Real time mode</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    <span className="text-gray-600">Audio upload</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-violet-500 rounded-full"></span>
+                    <span className="text-gray-600">Video upload</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-rose-500 rounded-full"></span>
+                    <span className="text-gray-600">Visual OCR</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
+                    <span className="text-gray-600">PDF processing</span>
                   </div>
                 </div>
               </div>

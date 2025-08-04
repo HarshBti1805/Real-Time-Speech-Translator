@@ -21,6 +21,7 @@ import FileUpload from "@/components/FileUpload";
 
 interface FileUploadPageProps {
   onFileTypeChange?: (type: "audio" | "video" | null) => void;
+  initialTab?: "audio" | "video";
 }
 
 // Video Upload Component
@@ -609,8 +610,9 @@ function VideoUpload() {
 
 export default function FileUploadPage({
   onFileTypeChange,
+  initialTab = "audio",
 }: FileUploadPageProps) {
-  const [activeTab, setActiveTab] = useState<"audio" | "video">("audio");
+  const [activeTab, setActiveTab] = useState<"audio" | "video">(initialTab);
 
   // Call onFileTypeChange when tab changes
   const handleTabChange = (tab: "audio" | "video") => {
@@ -622,6 +624,12 @@ export default function FileUploadPage({
   useEffect(() => {
     onFileTypeChange?.("audio");
   }, [onFileTypeChange]);
+
+  // Update activeTab when initialTab prop changes
+  useEffect(() => {
+    console.log(`FileUploadPage: Setting activeTab to ${initialTab}`);
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   return (
     <div className="p-6">
