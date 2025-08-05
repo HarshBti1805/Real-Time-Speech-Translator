@@ -326,9 +326,9 @@ export default function Translate() {
                   />
                 </div>
               </div>
-              <p className="text-foreground text-lg leading-relaxed bg-muted p-4 rounded-lg border border-border">
+              <div className="text-foreground text-lg leading-relaxed bg-muted p-4 rounded-lg border border-border whitespace-pre-wrap">
                 {translatedText}
-              </p>
+              </div>
             </CardContent>
           </Card>
         )}
