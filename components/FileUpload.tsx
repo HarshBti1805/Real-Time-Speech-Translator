@@ -11,6 +11,7 @@ import {
   X,
   Music,
   Sparkles,
+  FileAudio,
 } from "lucide-react";
 
 export default function FileUpload() {
@@ -245,41 +246,59 @@ export default function FileUpload() {
 
   return (
     <div className="space-y-8">
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700 shadow-xl">
-        <CardHeader className="text-center pb-6">
-          <CardTitle className="text-2xl font-mono mb-4 font-bold text-blue-800 dark:text-blue-200 flex items-center justify-center">
-            <Music className="w-6 h-6 mr-3" />
+      {/* Enhanced Header Card */}
+      <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 border-2 border-blue-200/60 dark:border-blue-700/60 shadow-2xl">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 dark:from-blue-400/10 dark:to-indigo-400/10"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/20 to-transparent rounded-full blur-2xl"></div>
+
+        <CardHeader className="relative text-center pb-6">
+          <div className="flex items-center justify-center mb-4">
+            <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
+              <Music className="w-8 h-8 text-white" />
+            </div>
+          </div>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
             Audio File Transcription
           </CardTitle>
-          <p className="text-blue-600 mb-3 dark:text-blue-300">
-            Upload audio files and generate accurate transcriptions with
-            AI-powered speech recognition
+          <p className="text-lg text-blue-700 dark:text-blue-300 max-w-2xl mx-auto leading-relaxed">
+            Transform your audio files into accurate text transcriptions with
+            AI-powered speech recognition technology.
           </p>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Drag & Drop Zone */}
+      </Card>
+
+      {/* Enhanced Drag & Drop Zone */}
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-blue-200/60 dark:border-blue-700/60 shadow-xl">
+        <CardContent className="p-6">
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
+            className={`relative border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-500 ${
               isDragOver
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                : "border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500"
+                ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 scale-105 shadow-2xl"
+                : "border-blue-300 dark:border-blue-600 hover:border-blue-400 dark:hover:border-blue-500 hover:scale-[1.02] shadow-lg hover:shadow-xl"
             }`}
           >
+            {/* Background Effects */}
+            {isDragOver && (
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-2xl animate-pulse"></div>
+            )}
+
             {audioFile ? (
-              <div className="space-y-4">
+              <div className="relative space-y-6">
                 <div className="flex items-center justify-center">
-                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                    <Music className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  <div className="p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-xl">
+                    <FileAudio className="w-8 h-8 text-white" />
                   </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {audioFile.name}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-700/50 px-4 py-2 rounded-lg">
                     {formatFileSize(audioFile.size)} • {fileType.toUpperCase()}
                   </p>
                 </div>
@@ -287,26 +306,43 @@ export default function FileUpload() {
                   onClick={clearFile}
                   variant="outline"
                   size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  className="bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
                 >
                   <X className="w-4 h-4 mr-1" />
                   Remove File
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex justify-center">
-                  <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full">
-                    <Upload className="w-8 h-8 text-slate-600 dark:text-slate-400" />
+                  <div className="p-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-3xl shadow-2xl transform hover:scale-110 transition-transform duration-300">
+                    <Upload className="w-12 h-12 text-white" />
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                     Drop your audio file here
                   </h3>
-                  <p className="text-slate-500 dark:text-slate-400">
+                  <p className="text-lg text-slate-500 dark:text-slate-400">
                     or click to browse files
                   </p>
+                  <div className="flex flex-wrap gap-2 justify-center mt-4">
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full border border-blue-200 dark:border-blue-700">
+                      MP3
+                    </span>
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full border border-blue-200 dark:border-blue-700">
+                      WAV
+                    </span>
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full border border-blue-200 dark:border-blue-700">
+                      M4A
+                    </span>
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full border border-blue-200 dark:border-blue-700">
+                      FLAC
+                    </span>
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full border border-blue-200 dark:border-blue-700">
+                      OGG
+                    </span>
+                  </div>
                 </div>
                 <input
                   type="file"
@@ -317,143 +353,156 @@ export default function FileUpload() {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
 
-          {/* File Type Display */}
-          {audioFile && (
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
-              <div className="flex items-center justify-between">
+      {/* Enhanced File Type Display */}
+      {audioFile && (
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-blue-200/60 dark:border-blue-700/60 shadow-xl">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                  <Music className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     File Type
                   </p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {fileType.toUpperCase()}
                   </p>
                 </div>
-                <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    Audio File
-                  </span>
-                </div>
+              </div>
+              <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-lg">
+                <span className="text-sm font-bold text-white">Audio File</span>
               </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Progress Bar */}
-          {isProcessing && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Processing...
+      {/* Enhanced Progress Bar */}
+      {isProcessing && (
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-blue-200/60 dark:border-blue-700/60 shadow-xl">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold text-blue-700 dark:text-blue-300 flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                  Processing audio...
                 </span>
-                <span className="text-slate-600 dark:text-slate-400">
+                <span className="text-lg font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full">
                   {uploadProgress}%
                 </span>
               </div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+              <div className="w-full bg-blue-200 dark:bg-blue-700 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-500 ease-out shadow-lg"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Transcribe Button */}
+      {/* Enhanced Transcribe Button */}
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-blue-200/60 dark:border-blue-700/60 shadow-xl">
+        <CardContent className="p-6">
           <Button
             disabled={!audioFile || isProcessing}
             onClick={() => audioFile && handleUpload(audioFile)}
-            className="w-full h-10 cursor-pointer font-mono bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+            className="w-full h-16 cursor-pointer font-bold bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-700 text-white text-xl transition-all duration-300 shadow-2xl hover:shadow-3xl disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl transform hover:scale-[1.02] active:scale-[0.98]"
           >
             {isProcessing ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-4"></div>
                 Processing Audio...
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5 mr-3" />
+                <Sparkles className="w-6 h-6 mr-4" />
                 Transcribe Audio File
               </>
             )}
           </Button>
-
-          {/* Supported Formats */}
-          <div className="text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Supported formats: MP3, WAV, M4A, FLAC, OGG
-            </p>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Result */}
+      {/* Enhanced Result */}
       {transcription && (
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-200 dark:border-green-700 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-green-800 dark:text-green-200 flex items-center">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg mr-3">
-                <FileText className="w-5 h-5 text-green-600 dark:text-green-400" />
+        <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-900/30 dark:via-emerald-900/30 dark:to-teal-900/30 border-2 border-green-200/60 dark:border-green-700/60 shadow-2xl">
+          {/* Background Effects */}
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-400/10 dark:to-emerald-400/10"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/20 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-emerald-400/20 to-transparent rounded-full blur-2xl"></div>
+
+          <CardHeader className="relative">
+            <CardTitle className="text-2xl font-bold text-green-800 dark:text-green-200 flex items-center">
+              <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl mr-4 shadow-lg">
+                <FileText className="w-6 h-6 text-white" />
               </div>
               Transcription Complete
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-green-200 dark:border-green-700 shadow-sm">
+          <CardContent className="relative space-y-6">
+            {/* Enhanced Transcription Display */}
+            <div className="bg-white/90 dark:bg-slate-800/90 p-6 rounded-2xl border border-green-200/60 dark:border-green-700/60 shadow-lg">
               <p className="whitespace-pre-wrap text-slate-800 dark:text-slate-200 leading-relaxed text-lg">
                 {transcription}
               </p>
             </div>
 
-            {/* Action Buttons */}
+            {/* Enhanced Action Buttons */}
             <div className="space-y-4">
               {/* Copy Button */}
               <Button
                 onClick={copyToClipboard}
                 variant="outline"
-                className={`w-full h-12 border-2 text-lg font-medium transition-all duration-300 ${
+                className={`w-full h-14 border-2 text-lg font-semibold transition-all duration-300 ${
                   copySuccess
-                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300"
-                    : "border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500"
+                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 shadow-lg"
+                    : "border-green-300 dark:border-green-600 hover:border-green-400 dark:hover:border-green-500 hover:shadow-lg"
                 }`}
               >
                 {copySuccess ? (
                   <>
-                    <CheckCircle className="w-5 h-5 mr-3" />
+                    <CheckCircle className="w-6 h-6 mr-3" />
                     Copied to Clipboard!
                   </>
                 ) : (
                   <>
-                    <Copy className="w-5 h-5 mr-3" />
+                    <Copy className="w-6 h-6 mr-3" />
                     Copy to Clipboard
                   </>
                 )}
               </Button>
 
-              {/* Download Buttons */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Enhanced Download Buttons */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button
                   onClick={downloadAsText}
                   variant="outline"
-                  className="h-12 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/20 transition-all duration-300"
+                  className="h-14 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/20 transition-all duration-300 font-semibold"
                 >
-                  <FileDown className="w-4 h-4 mr-2" />
+                  <FileDown className="w-5 h-5 mr-2" />
                   TXT
                 </Button>
                 <Button
                   onClick={downloadAsPDF}
                   variant="outline"
-                  className="h-12 border-red-300 text-red-700 hover:bg-red-50 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-900/20 transition-all duration-300"
+                  className="h-14 border-red-300 text-red-700 hover:bg-red-50 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-900/20 transition-all duration-300 font-semibold"
                 >
-                  <FileDown className="w-4 h-4 mr-2" />
+                  <FileDown className="w-5 h-5 mr-2" />
                   HTML
                 </Button>
                 <Button
                   onClick={downloadAsDoc}
                   variant="outline"
-                  className="h-12 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/20 transition-all duration-300"
+                  className="h-14 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/20 transition-all duration-300 font-semibold"
                 >
-                  <FileDown className="w-4 h-4 mr-2" />
+                  <FileDown className="w-5 h-5 mr-2" />
                   DOC
                 </Button>
               </div>

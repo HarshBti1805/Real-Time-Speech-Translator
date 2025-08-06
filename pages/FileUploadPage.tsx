@@ -38,6 +38,7 @@ function VideoUpload() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isMockData, setIsMockData] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const languages = [
     { code: "en", name: "English" },
@@ -228,6 +229,7 @@ function VideoUpload() {
     setVideoPreview(null);
     setSubtitles([]);
     setIsMockData(false);
+    setShowPreview(false);
     if (videoPreview) {
       URL.revokeObjectURL(videoPreview);
     }
@@ -293,171 +295,228 @@ function VideoUpload() {
 
   return (
     <div className="space-y-8">
-      <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-2 border-purple-200 dark:border-purple-700 shadow-xl">
-        <CardHeader className="text-center pb-6">
-          <CardTitle className="text-2xl font-mono mb-4 font-bold text-purple-800 dark:text-purple-200 flex items-center justify-center">
-            <Video className="w-6 h-6 mr-3 " />
-            Video Subtitle Generation
-          </CardTitle>
-          <p className="text-purple-600 mb-3 dark:text-purple-300">
-            Upload videos and generate subtitles with perfect timing in multiple
-            languages
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Language Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-5 rounded-xl border-2 border-purple-200/60 dark:border-purple-700/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-600">
-              <label className="block text-sm font-semibold text-purple-700 dark:text-purple-300 mb-3 flex items-center">
-                <div className="p-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg mr-3">
-                  <Globe className="w-4 h-4 text-white" />
-                </div>
-                Source Language (Speech)
-              </label>
-              <select
-                value={sourceLanguage}
-                onChange={(e) => setSourceLanguage(e.target.value)}
-                className="w-full p-3 border-2 border-purple-200 dark:border-purple-600 rounded-lg bg-white/70 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 font-medium transition-all duration-300 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 focus:outline-none hover:border-purple-300 dark:hover:border-purple-500"
-              >
-                <option value="en-US">English (US)</option>
-                <option value="en-GB">English (UK)</option>
-                <option value="es-ES">Spanish</option>
-                <option value="fr-FR">French</option>
-                <option value="de-DE">German</option>
-                <option value="it-IT">Italian</option>
-                <option value="pt-PT">Portuguese</option>
-                <option value="ru-RU">Russian</option>
-                <option value="ja-JP">Japanese</option>
-                <option value="ko-KR">Korean</option>
-                <option value="zh-CN">Chinese (Simplified)</option>
-                <option value="ar-SA">Arabic</option>
-                <option value="hi-IN">Hindi</option>
-                <option value="tr-TR">Turkish</option>
-                <option value="nl-NL">Dutch</option>
-                <option value="pl-PL">Polish</option>
-                <option value="sv-SE">Swedish</option>
-                <option value="da-DK">Danish</option>
-                <option value="no-NO">Norwegian</option>
-                <option value="fi-FI">Finnish</option>
-                <option value="cs-CZ">Czech</option>
-                <option value="hu-HU">Hungarian</option>
-                <option value="ro-RO">Romanian</option>
-                <option value="bg-BG">Bulgarian</option>
-                <option value="hr-HR">Croatian</option>
-                <option value="sk-SK">Slovak</option>
-                <option value="el-GR">Greek</option>
-                <option value="he-IL">Hebrew</option>
-                <option value="th-TH">Thai</option>
-                <option value="vi-VN">Vietnamese</option>
-                <option value="id-ID">Indonesian</option>
-                <option value="uk-UA">Ukrainian</option>
-                <option value="bn-BD">Bengali</option>
-                <option value="pa-IN">Punjabi</option>
-                <option value="gu-IN">Gujarati</option>
-                <option value="ta-IN">Tamil</option>
-                <option value="te-IN">Telugu</option>
-                <option value="ml-IN">Malayalam</option>
-                <option value="mr-IN">Marathi</option>
-                <option value="ur-PK">Urdu</option>
-                <option value="uz-UZ">Uzbek</option>
-                <option value="kk-KZ">Kazakh</option>
-                <option value="ky-KG">Kyrgyz</option>
-                <option value="mn-MN">Mongolian</option>
-                <option value="ne-NP">Nepali</option>
-                <option value="si-LK">Sinhala</option>
-                <option value="my-MM">Myanmar</option>
-                <option value="km-KH">Khmer</option>
-                <option value="lo-LA">Lao</option>
-                <option value="ka-GE">Georgian</option>
-                <option value="am-ET">Amharic</option>
-                <option value="sw-TZ">Swahili</option>
-                <option value="zu-ZA">Zulu</option>
-                <option value="af-ZA">Afrikaans</option>
-                <option value="is-IS">Icelandic</option>
-                <option value="mt-MT">Maltese</option>
-                <option value="sq-AL">Albanian</option>
-                <option value="mk-MK">Macedonian</option>
-                <option value="bs-BA">Bosnian</option>
-                <option value="sr-RS">Serbian</option>
-                <option value="sl-SI">Slovenian</option>
-                <option value="et-EE">Estonian</option>
-                <option value="lv-LV">Latvian</option>
-                <option value="lt-LT">Lithuanian</option>
-              </select>
-            </div>
+      {/* Enhanced Header Card */}
+      <Card className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-900/30 dark:via-indigo-900/30 dark:to-blue-900/30 border-2 border-purple-200/60 dark:border-purple-700/60 shadow-2xl">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-indigo-500/5 dark:from-purple-400/10 dark:to-indigo-400/10"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/20 to-transparent rounded-full blur-2xl"></div>
 
-            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-5 rounded-xl border-2 border-indigo-200/60 dark:border-indigo-700/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600">
-              <label className="block text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-3 flex items-center">
-                <div className="p-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg mr-3">
-                  <Globe className="w-4 h-4 text-white" />
-                </div>
-                Target Language (Subtitles)
-              </label>
-              <select
-                value={targetLanguage}
-                onChange={(e) => setTargetLanguage(e.target.value)}
-                className="w-full p-3 border-2 border-indigo-200 dark:border-indigo-600 rounded-lg bg-white/70 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 font-medium transition-all duration-300 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 focus:outline-none hover:border-indigo-300 dark:hover:border-indigo-500"
-              >
-                {languages.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </option>
-                ))}
-              </select>
+        <CardHeader className="relative text-center pb-6">
+          <div className="flex items-center justify-center mb-4">
+            <div className="p-4 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl shadow-lg">
+              <Video className="w-8 h-8 text-white" />
             </div>
           </div>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent mb-3">
+            Video Subtitle Generation
+          </CardTitle>
+          <p className="text-lg text-purple-700 dark:text-purple-300 max-w-2xl mx-auto leading-relaxed">
+            Transform your videos with AI-powered subtitle generation. Perfect
+            timing, multiple languages, and professional SRT output.
+          </p>
+        </CardHeader>
+      </Card>
 
-          {/* Drag & Drop Zone */}
+      {/* Language Selection with Enhanced Design */}
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-purple-200/60 dark:border-purple-700/60 shadow-xl">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Source Language */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+              <div className="relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-200/60 dark:border-purple-700/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-600 group-hover:scale-[1.02]">
+                <label className="block text-sm font-bold text-purple-700 dark:text-purple-300 mb-4 flex items-center">
+                  <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl mr-3 shadow-lg">
+                    <Globe className="w-4 h-4 text-white" />
+                  </div>
+                  Source Language (Speech)
+                </label>
+                <select
+                  value={sourceLanguage}
+                  onChange={(e) => setSourceLanguage(e.target.value)}
+                  className="w-full p-4 border-2 border-purple-200 dark:border-purple-600 rounded-xl bg-white/70 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 font-medium transition-all duration-300 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-4 focus:ring-purple-200/50 dark:focus:ring-purple-800/50 focus:outline-none hover:border-purple-300 dark:hover:border-purple-500 shadow-inner"
+                >
+                  <option value="en-US">English (US)</option>
+                  <option value="en-GB">English (UK)</option>
+                  <option value="es-ES">Spanish</option>
+                  <option value="fr-FR">French</option>
+                  <option value="de-DE">German</option>
+                  <option value="it-IT">Italian</option>
+                  <option value="pt-PT">Portuguese</option>
+                  <option value="ru-RU">Russian</option>
+                  <option value="ja-JP">Japanese</option>
+                  <option value="ko-KR">Korean</option>
+                  <option value="zh-CN">Chinese (Simplified)</option>
+                  <option value="ar-SA">Arabic</option>
+                  <option value="hi-IN">Hindi</option>
+                  <option value="tr-TR">Turkish</option>
+                  <option value="nl-NL">Dutch</option>
+                  <option value="pl-PL">Polish</option>
+                  <option value="sv-SE">Swedish</option>
+                  <option value="da-DK">Danish</option>
+                  <option value="no-NO">Norwegian</option>
+                  <option value="fi-FI">Finnish</option>
+                  <option value="cs-CZ">Czech</option>
+                  <option value="hu-HU">Hungarian</option>
+                  <option value="ro-RO">Romanian</option>
+                  <option value="bg-BG">Bulgarian</option>
+                  <option value="hr-HR">Croatian</option>
+                  <option value="sk-SK">Slovak</option>
+                  <option value="el-GR">Greek</option>
+                  <option value="he-IL">Hebrew</option>
+                  <option value="th-TH">Thai</option>
+                  <option value="vi-VN">Vietnamese</option>
+                  <option value="id-ID">Indonesian</option>
+                  <option value="uk-UA">Ukrainian</option>
+                  <option value="bn-BD">Bengali</option>
+                  <option value="pa-IN">Punjabi</option>
+                  <option value="gu-IN">Gujarati</option>
+                  <option value="ta-IN">Tamil</option>
+                  <option value="te-IN">Telugu</option>
+                  <option value="ml-IN">Malayalam</option>
+                  <option value="mr-IN">Marathi</option>
+                  <option value="ur-PK">Urdu</option>
+                  <option value="uz-UZ">Uzbek</option>
+                  <option value="kk-KZ">Kazakh</option>
+                  <option value="ky-KG">Kyrgyz</option>
+                  <option value="mn-MN">Mongolian</option>
+                  <option value="ne-NP">Nepali</option>
+                  <option value="si-LK">Sinhala</option>
+                  <option value="my-MM">Myanmar</option>
+                  <option value="km-KH">Khmer</option>
+                  <option value="lo-LA">Lao</option>
+                  <option value="ka-GE">Georgian</option>
+                  <option value="am-ET">Amharic</option>
+                  <option value="sw-TZ">Swahili</option>
+                  <option value="zu-ZA">Zulu</option>
+                  <option value="af-ZA">Afrikaans</option>
+                  <option value="is-IS">Icelandic</option>
+                  <option value="mt-MT">Maltese</option>
+                  <option value="sq-AL">Albanian</option>
+                  <option value="mk-MK">Macedonian</option>
+                  <option value="bs-BA">Bosnian</option>
+                  <option value="sr-RS">Serbian</option>
+                  <option value="sl-SI">Slovenian</option>
+                  <option value="et-EE">Estonian</option>
+                  <option value="lv-LV">Latvian</option>
+                  <option value="lt-LT">Lithuanian</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Target Language */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-blue-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+              <div className="relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border-2 border-indigo-200/60 dark:border-indigo-700/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600 group-hover:scale-[1.02]">
+                <label className="block text-sm font-bold text-indigo-700 dark:text-indigo-300 mb-4 flex items-center">
+                  <div className="p-2 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-xl mr-3 shadow-lg">
+                    <Globe className="w-4 h-4 text-white" />
+                  </div>
+                  Target Language (Subtitles)
+                </label>
+                <select
+                  value={targetLanguage}
+                  onChange={(e) => setTargetLanguage(e.target.value)}
+                  className="w-full p-4 border-2 border-indigo-200 dark:border-indigo-600 rounded-xl bg-white/70 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 font-medium transition-all duration-300 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-200/50 dark:focus:ring-indigo-800/50 focus:outline-none hover:border-indigo-300 dark:hover:border-indigo-500 shadow-inner"
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Enhanced Drag & Drop Zone */}
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-purple-200/60 dark:border-purple-700/60 shadow-xl">
+        <CardContent className="p-6">
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
+            className={`relative border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-500 ${
               isDragOver
-                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                : "border-purple-300 dark:border-purple-600 hover:border-purple-400 dark:hover:border-purple-500"
+                ? "border-purple-500 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 scale-105 shadow-2xl"
+                : "border-purple-300 dark:border-purple-600 hover:border-purple-400 dark:hover:border-purple-500 hover:scale-[1.02] shadow-lg hover:shadow-xl"
             }`}
           >
+            {/* Background Effects */}
+            {isDragOver && (
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-2xl animate-pulse"></div>
+            )}
+
             {videoFile ? (
-              <div className="space-y-4">
+              <div className="relative space-y-6">
                 <div className="flex items-center justify-center">
-                  <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                    <Video className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  <div className="p-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl shadow-xl">
+                    <Video className="w-8 h-8 text-white" />
                   </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {videoFile.name}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-700/50 px-4 py-2 rounded-lg">
                     {formatFileSize(videoFile.size)} •{" "}
                     {videoFile.type.split("/")[1].toUpperCase()}
                   </p>
                 </div>
-                <Button
-                  onClick={clearVideo}
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Remove Video
-                </Button>
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    onClick={() => setShowPreview(!showPreview)}
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-700 border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300"
+                  >
+                    {showPreview ? "Hide" : "Show"} Preview
+                  </Button>
+                  <Button
+                    onClick={clearVideo}
+                    variant="outline"
+                    size="sm"
+                    className="bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Remove
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex justify-center">
-                  <div className="p-4 bg-purple-100 dark:bg-purple-800 rounded-full">
-                    <Upload className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  <div className="p-8 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-3xl shadow-2xl transform hover:scale-110 transition-transform duration-300">
+                    <Upload className="w-12 h-12 text-white" />
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                     Drop your video file here
                   </h3>
-                  <p className="text-slate-500 dark:text-slate-400">
+                  <p className="text-lg text-slate-500 dark:text-slate-400">
                     or click to browse files
                   </p>
+                  <div className="flex flex-wrap gap-2 justify-center mt-4">
+                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm rounded-full border border-purple-200 dark:border-purple-700">
+                      MP4
+                    </span>
+                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm rounded-full border border-purple-200 dark:border-purple-700">
+                      AVI
+                    </span>
+                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm rounded-full border border-purple-200 dark:border-purple-700">
+                      MOV
+                    </span>
+                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm rounded-full border border-purple-200 dark:border-purple-700">
+                      MKV
+                    </span>
+                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm rounded-full border border-purple-200 dark:border-purple-700">
+                      WebM
+                    </span>
+                  </div>
                 </div>
                 <input
                   type="file"
@@ -468,125 +527,141 @@ function VideoUpload() {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Video Preview */}
-          {videoPreview && (
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
-              <h3 className="font-medium text-slate-700 dark:text-slate-300 mb-3">
+      {/* Enhanced Video Preview */}
+      {videoPreview && showPreview && (
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-purple-200/60 dark:border-purple-700/60 shadow-xl">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center">
+                <Video className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
                 Video Preview
               </h3>
-              <video
-                src={videoPreview}
-                controls
-                className="w-full max-h-64 rounded-lg bg-black"
-              />
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black">
+                <video
+                  src={videoPreview}
+                  controls
+                  className="w-full max-h-80 rounded-2xl"
+                />
+              </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Progress Bar */}
-          {isProcessing && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-purple-600 dark:text-purple-400">
+      {/* Enhanced Progress Bar */}
+      {isProcessing && (
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-purple-200/60 dark:border-purple-700/60 shadow-xl">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold text-purple-700 dark:text-purple-300 flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-3"></div>
                   Generating subtitles...
                 </span>
-                <span className="text-purple-600 dark:text-purple-400">
+                <span className="text-lg font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-4 py-2 rounded-full">
                   {uploadProgress}%
                 </span>
               </div>
-              <div className="w-full bg-purple-200 dark:bg-purple-700 rounded-full h-2">
+              <div className="w-full bg-purple-200 dark:bg-purple-700 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-purple-500 to-indigo-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out shadow-lg"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Generate Subtitles Button */}
+      {/* Enhanced Generate Button */}
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-purple-200/60 dark:border-purple-700/60 shadow-xl">
+        <CardContent className="p-6">
           <Button
             disabled={!videoFile || isProcessing}
             onClick={() => videoFile && handleUpload(videoFile)}
-            className="w-full h-12 cursor-pointer font-mono bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+            className="w-full h-16 cursor-pointer font-bold bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600 hover:from-purple-600 hover:via-indigo-600 hover:to-blue-700 text-white text-xl transition-all duration-300 shadow-2xl hover:shadow-3xl disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl transform hover:scale-[1.02] active:scale-[0.98]"
           >
             {isProcessing ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-4"></div>
                 Processing Video...
               </>
             ) : (
               <>
-                <Video className="w-5 h-5 mr-3" />
+                <Video className="w-6 h-6 mr-4" />
                 Generate Subtitles
               </>
             )}
           </Button>
-
-          {/* Supported Formats */}
-          <div className="text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Supported formats: MP4, AVI, MOV, MKV, WebM
-            </p>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Subtitles Result */}
+      {/* Enhanced Subtitles Result */}
       {subtitles.length > 0 && (
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-200 dark:border-green-700 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-green-800 dark:text-green-200 flex items-center">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg mr-3">
-                <Clock className="w-5 h-5 text-green-600 dark:text-green-400" />
+        <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-900/30 dark:via-emerald-900/30 dark:to-teal-900/30 border-2 border-green-200/60 dark:border-green-700/60 shadow-2xl">
+          {/* Background Effects */}
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-400/10 dark:to-emerald-400/10"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/20 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-emerald-400/20 to-transparent rounded-full blur-2xl"></div>
+
+          <CardHeader className="relative">
+            <CardTitle className="text-2xl font-bold text-green-800 dark:text-green-200 flex items-center">
+              <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl mr-4 shadow-lg">
+                <Clock className="w-6 h-6 text-white" />
               </div>
               Generated Subtitles (
               {languages.find((l) => l.code === targetLanguage)?.name})
               {isMockData && (
-                <span className="ml-3 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-sm rounded-full">
+                <span className="ml-4 px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-sm rounded-full border border-yellow-300 dark:border-yellow-600">
                   Demo Mode
                 </span>
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Subtitles Timeline */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-green-200 dark:border-green-700 shadow-sm max-h-64 overflow-y-auto custom-scrollbar">
-              {subtitles.map((subtitle, index) => (
-                <div
-                  key={index}
-                  className="border-b border-green-100 dark:border-green-800 last:border-b-0 py-3"
-                >
-                  <div className="flex items-center text-sm text-green-600 dark:text-green-400 mb-1">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {formatTime(subtitle.start)} → {formatTime(subtitle.end)}
+          <CardContent className="relative space-y-6">
+            {/* Enhanced Subtitles Timeline */}
+            <div className="bg-white/90 dark:bg-slate-800/90 p-6 rounded-2xl border border-green-200/60 dark:border-green-700/60 shadow-lg max-h-80 overflow-y-auto custom-scrollbar">
+              <div className="space-y-4">
+                {subtitles.map((subtitle, index) => (
+                  <div
+                    key={index}
+                    className="group p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200/60 dark:border-green-700/60 hover:border-green-300 dark:hover:border-green-600 transition-all duration-300 hover:shadow-md"
+                  >
+                    <div className="flex items-center text-sm text-green-600 dark:text-green-400 mb-2 font-medium">
+                      <Clock className="w-4 h-4 mr-2" />
+                      {formatTime(subtitle.start)} → {formatTime(subtitle.end)}
+                    </div>
+                    <p className="text-slate-800 dark:text-slate-200 leading-relaxed text-lg">
+                      {subtitle.text}
+                    </p>
                   </div>
-                  <p className="text-slate-800 dark:text-slate-200 leading-relaxed">
-                    {subtitle.text}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-4">
+            {/* Enhanced Action Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Copy Button */}
               <Button
                 onClick={copySubtitlesToClipboard}
                 variant="outline"
-                className={`w-full h-12 border-2 text-lg font-medium transition-all duration-300 ${
+                className={`h-14 border-2 text-lg font-semibold transition-all duration-300 ${
                   copySuccess
-                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300"
-                    : "border-green-300 dark:border-green-600 hover:border-green-400 dark:hover:border-green-500"
+                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 shadow-lg"
+                    : "border-green-300 dark:border-green-600 hover:border-green-400 dark:hover:border-green-500 hover:shadow-lg"
                 }`}
               >
                 {copySuccess ? (
                   <>
-                    <CheckCircle className="w-5 h-5 mr-3" />
+                    <CheckCircle className="w-6 h-6 mr-3" />
                     Copied to Clipboard!
                   </>
                 ) : (
                   <>
-                    <Copy className="w-5 h-5 mr-3" />
+                    <Copy className="w-6 h-6 mr-3" />
                     Copy All Text
                   </>
                 )}
@@ -595,9 +670,9 @@ function VideoUpload() {
               {/* Download SRT Button */}
               <Button
                 onClick={downloadSRT}
-                className="w-full h-12 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl rounded-xl"
+                className="h-14 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white font-bold text-lg transition-all duration-300 shadow-xl hover:shadow-2xl rounded-xl transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                <Download className="w-5 h-5 mr-3" />
+                <Download className="w-6 h-6 mr-3" />
                 Download SRT File ({targetLanguage.toUpperCase()})
               </Button>
             </div>
@@ -634,46 +709,53 @@ export default function FileUploadPage({
   return (
     <div className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Main Title Card */}
-        <Card className="bg-card/50 border-border backdrop-blur-sm shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent flex items-center justify-center">
-              <div className="flex items-center gap-3">
-                <FileAudio className="w-10 h-10 text-blue-400" />
+        {/* Enhanced Main Title Card */}
+        <Card className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900/30 dark:via-blue-900/30 dark:to-purple-900/30 border-2 border-slate-200/60 dark:border-slate-700/60 shadow-2xl">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-emerald-500/5 dark:from-blue-400/10 dark:via-purple-400/10 dark:to-emerald-400/10"></div>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-400/20 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-purple-400/20 to-transparent rounded-full blur-2xl"></div>
+
+          <CardHeader className="relative text-center">
+            <div className="flex items-center justify-center mb-6">
+              <div className="p-6 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-3xl shadow-2xl">
+                <FileAudio className="w-12 h-12 text-white" />
               </div>
-              <span className="ml-4">Media Processing Hub</span>
+            </div>
+            <CardTitle className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent mb-4">
+              Media Processing Hub
             </CardTitle>
-            <p className="text-muted-foreground text-l mt-3">
+            <p className="text-xl text-slate-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
               Upload audio files for AI transcription or video files for
-              intelligent subtitle generation
+              intelligent subtitle generation with professional-grade results
             </p>
           </CardHeader>
         </Card>
 
-        {/* Tab Navigation */}
-        <Card className="bg-card border-border">
+        {/* Enhanced Tab Navigation */}
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-slate-200/60 dark:border-slate-700/60 shadow-xl">
           <CardContent className="p-0">
-            <div className="flex border-b border-border">
+            <div className="flex">
               <button
                 onClick={() => handleTabChange("audio")}
-                className={`flex-1 flex items-center justify-center p-4 font-medium transition-colors ${
+                className={`flex-1 flex items-center justify-center p-6 font-bold text-lg transition-all duration-300 ${
                   activeTab === "audio"
-                    ? "border-b-2 border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    ? "border-b-4 border-blue-500 text-blue-600 bg-gradient-to-b from-blue-50 to-transparent dark:from-blue-900/30 dark:to-transparent shadow-lg"
+                    : "text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                 }`}
               >
-                <Music className="w-5 h-5 mr-2" />
+                <Music className="w-6 h-6 mr-3" />
                 Audio Transcription
               </button>
               <button
                 onClick={() => handleTabChange("video")}
-                className={`flex-1 flex items-center justify-center p-4 font-medium transition-colors ${
+                className={`flex-1 flex items-center justify-center p-6 font-bold text-lg transition-all duration-300 ${
                   activeTab === "video"
-                    ? "border-b-2 border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-900/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    ? "border-b-4 border-purple-500 text-purple-600 bg-gradient-to-b from-purple-50 to-transparent dark:from-purple-900/30 dark:to-transparent shadow-lg"
+                    : "text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                 }`}
               >
-                <Video className="w-5 h-5 mr-2" />
+                <Video className="w-6 h-6 mr-3" />
                 Video Subtitles
               </button>
             </div>
@@ -683,46 +765,46 @@ export default function FileUploadPage({
         {/* Tab Content */}
         {activeTab === "audio" ? (
           <>
-            {/* Features Overview for Audio */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                {/* Features Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
-                      <Upload className="w-6 h-6 text-white" />
+            {/* Enhanced Features Overview for Audio */}
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-blue-200/60 dark:border-blue-700/60 shadow-xl">
+              <CardContent className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                  <div className="group space-y-4">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                      <Upload className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="font-semibold text-foreground">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
                       File Upload
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                       Upload audio files in various formats for accurate
-                      transcription
+                      transcription with drag-and-drop support
                     </p>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <Sparkles className="w-6 h-6 text-white" />
+                  <div className="group space-y-4">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                      <Sparkles className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="font-semibold text-foreground">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
                       AI Processing
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                       Advanced AI-powered speech recognition with high accuracy
+                      and real-time processing
                     </p>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-white" />
+                  <div className="group space-y-4">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                      <FileText className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="font-semibold text-foreground">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
                       Export Options
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                       Download results in TXT, HTML, or DOC formats for your
-                      needs
+                      professional needs
                     </p>
                   </div>
                 </div>
@@ -732,67 +814,69 @@ export default function FileUploadPage({
             {/* Audio File Upload Section */}
             <FileUpload />
 
-            {/* Instructions for Audio */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <h3 className="font-medium text-foreground/90 mb-4 flex items-center">
-                  <Zap className="w-4 h-4 mr-2" />
+            {/* Enhanced Instructions for Audio */}
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-blue-200/60 dark:border-blue-700/60 shadow-xl">
+              <CardContent className="p-8">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 flex items-center">
+                  <Zap className="w-6 h-6 mr-3 text-blue-500" />
                   How to use Audio File Transcription:
                 </h3>
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-foreground flex items-center">
-                    <FileAudio className="w-4 h-4 mr-2 text-blue-400" />
-                    Audio File Processing
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-2">
-                    <li className="flex items-start">
-                      <span className="text-blue-400 mr-2">•</span>
-                      Drag and drop your audio file or click to browse
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-blue-400 mr-2">•</span>
-                      Supported formats: MP3, WAV, M4A, FLAC, OGG
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-blue-400 mr-2">•</span>
-                      Click &quot;Transcribe Audio File&quot; to start
-                      processing
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-blue-400 mr-2">•</span>
-                      Download results as TXT, HTML, or DOC formats
-                    </li>
-                  </ul>
-                </div>
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-2xl border border-blue-200/60 dark:border-blue-700/60">
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center mb-4">
+                      <FileAudio className="w-5 h-5 mr-3 text-blue-500" />
+                      Audio File Processing
+                    </h4>
+                    <ul className="text-base text-slate-700 dark:text-slate-300 space-y-3">
+                      <li className="flex items-start">
+                        <span className="text-blue-500 mr-3 text-lg">•</span>
+                        Drag and drop your audio file or click to browse
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-500 mr-3 text-lg">•</span>
+                        Supported formats: MP3, WAV, M4A, FLAC, OGG
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-500 mr-3 text-lg">•</span>
+                        Click &quot;Transcribe Audio File&quot; to start
+                        processing
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-500 mr-3 text-lg">•</span>
+                        Download results as TXT, HTML, or DOC formats
+                      </li>
+                    </ul>
+                  </div>
 
-                <div className="mt-6 p-4 bg-muted rounded-lg border border-border">
-                  <div className="flex items-start">
-                    <Upload className="w-5 h-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-foreground">
-                        File Upload Support
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Supports various audio formats with automatic language
-                        detection. Upload your audio files and get accurate
-                        transcriptions powered by advanced AI.
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
-                          MP3
-                        </span>
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
-                          WAV
-                        </span>
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
-                          M4A
-                        </span>
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
-                          FLAC
-                        </span>
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
-                          OGG
-                        </span>
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 rounded-2xl border border-green-200/60 dark:border-green-700/60">
+                    <div className="flex items-start">
+                      <Upload className="w-6 h-6 text-green-500 mr-4 mt-1 flex-shrink-0" />
+                      <div className="space-y-3">
+                        <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                          File Upload Support
+                        </h4>
+                        <p className="text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                          Supports various audio formats with automatic language
+                          detection. Upload your audio files and get accurate
+                          transcriptions powered by advanced AI technology.
+                        </p>
+                        <div className="flex flex-wrap gap-3 mt-4">
+                          <span className="px-4 py-2 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-semibold rounded-full border border-blue-300 dark:border-blue-600">
+                            MP3
+                          </span>
+                          <span className="px-4 py-2 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-semibold rounded-full border border-blue-300 dark:border-blue-600">
+                            WAV
+                          </span>
+                          <span className="px-4 py-2 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-semibold rounded-full border border-blue-300 dark:border-blue-600">
+                            M4A
+                          </span>
+                          <span className="px-4 py-2 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-semibold rounded-full border border-blue-300 dark:border-blue-600">
+                            FLAC
+                          </span>
+                          <span className="px-4 py-2 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-semibold rounded-full border border-blue-300 dark:border-blue-600">
+                            OGG
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -802,41 +886,46 @@ export default function FileUploadPage({
           </>
         ) : (
           <>
-            {/* Features Overview for Video */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
-                      <Video className="w-6 h-6 text-white" />
+            {/* Enhanced Features Overview for Video */}
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-purple-200/60 dark:border-purple-700/60 shadow-xl">
+              <CardContent className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                  <div className="group space-y-4">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                      <Video className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="font-semibold text-foreground">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
                       Video Upload
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Upload video files for automatic subtitle generation
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Upload video files for automatic subtitle generation with
+                      preview support
                     </p>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-white" />
+                  <div className="group space-y-4">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                      <Clock className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="font-semibold text-foreground">Time Sync</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                      Time Sync
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                       Perfect timing synchronization for professional subtitles
+                      with frame accuracy
                     </p>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                      <Globe className="w-6 h-6 text-white" />
+                  <div className="group space-y-4">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                      <Globe className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="font-semibold text-foreground">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
                       Multi-Language
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Generate subtitles in multiple languages with SRT download
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Generate subtitles in multiple languages with professional
+                      SRT download
                     </p>
                   </div>
                 </div>
@@ -846,67 +935,70 @@ export default function FileUploadPage({
             {/* Video Upload Section */}
             <VideoUpload />
 
-            {/* Instructions for Video */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <h3 className="font-medium text-foreground/90 mb-4 flex items-center">
-                  <Zap className="w-4 h-4 mr-2" />
+            {/* Enhanced Instructions for Video */}
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-purple-200/60 dark:border-purple-700/60 shadow-xl">
+              <CardContent className="p-8">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 flex items-center">
+                  <Zap className="w-6 h-6 mr-3 text-purple-500" />
                   How to use Video Subtitle Generation:
                 </h3>
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-foreground flex items-center">
-                    <Video className="w-4 h-4 mr-2 text-purple-400" />
-                    Video Subtitle Process
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-2">
-                    <li className="flex items-start">
-                      <span className="text-purple-400 mr-2">•</span>
-                      Select your preferred subtitle language from the dropdown
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-purple-400 mr-2">•</span>
-                      Drag and drop your video file or click to browse
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-purple-400 mr-2">•</span>
-                      Preview your video before processing
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-purple-400 mr-2">•</span>
-                      Download SRT files compatible with all video players
-                    </li>
-                  </ul>
-                </div>
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-6 rounded-2xl border border-purple-200/60 dark:border-purple-700/60">
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center mb-4">
+                      <Video className="w-5 h-5 mr-3 text-purple-500" />
+                      Video Subtitle Process
+                    </h4>
+                    <ul className="text-base text-slate-700 dark:text-slate-300 space-y-3">
+                      <li className="flex items-start">
+                        <span className="text-purple-500 mr-3 text-lg">•</span>
+                        Select your preferred subtitle language from the
+                        dropdown
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-purple-500 mr-3 text-lg">•</span>
+                        Drag and drop your video file or click to browse
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-purple-500 mr-3 text-lg">•</span>
+                        Preview your video before processing
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-purple-500 mr-3 text-lg">•</span>
+                        Download SRT files compatible with all video players
+                      </li>
+                    </ul>
+                  </div>
 
-                <div className="mt-6 p-4 bg-muted rounded-lg border border-border">
-                  <div className="flex items-start">
-                    <Video className="w-5 h-5 text-purple-400 mr-3 mt-0.5 flex-shrink-0" />
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-foreground">
-                        Professional Subtitle Generation
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Our advanced AI technology generates
-                        professional-quality subtitles with perfect timing.
-                        Support for multiple video formats and languages with
-                        industry-standard SRT output.
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
-                          MP4
-                        </span>
-                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
-                          AVI
-                        </span>
-                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
-                          MOV
-                        </span>
-                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
-                          MKV
-                        </span>
-                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
-                          WebM
-                        </span>
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 rounded-2xl border border-green-200/60 dark:border-green-700/60">
+                    <div className="flex items-start">
+                      <Video className="w-6 h-6 text-green-500 mr-4 mt-1 flex-shrink-0" />
+                      <div className="space-y-3">
+                        <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                          Professional Subtitle Generation
+                        </h4>
+                        <p className="text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                          Our advanced AI technology generates
+                          professional-quality subtitles with perfect timing.
+                          Support for multiple video formats and languages with
+                          industry-standard SRT output.
+                        </p>
+                        <div className="flex flex-wrap gap-3 mt-4">
+                          <span className="px-4 py-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-semibold rounded-full border border-purple-300 dark:border-purple-600">
+                            MP4
+                          </span>
+                          <span className="px-4 py-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-semibold rounded-full border border-purple-300 dark:border-purple-600">
+                            AVI
+                          </span>
+                          <span className="px-4 py-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-semibold rounded-full border border-purple-300 dark:border-purple-600">
+                            MOV
+                          </span>
+                          <span className="px-4 py-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-semibold rounded-full border border-purple-300 dark:border-purple-600">
+                            MKV
+                          </span>
+                          <span className="px-4 py-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-semibold rounded-full border border-purple-300 dark:border-purple-600">
+                            WebM
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
