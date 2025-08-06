@@ -29,6 +29,7 @@ import React from "react";
 import Cropper, { Area } from "react-easy-crop";
 import NextImage from "next/image";
 import PDFProcessor from "./PDFProcessor";
+import toast from "react-hot-toast";
 
 interface VoiceRecordingProps {
   onTabChange?: (tab: "visual" | "pdf") => void;
@@ -51,10 +52,15 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
 
   // Processing states
   const [processingImage, setProcessingImage] = useState(false);
+  const [pastingImage, setPastingImage] = useState(false);
 
   // Camera modal state
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraSettings, setCameraSettings] = useState({
+    mirrorPreview: true, // Mirror the preview like a selfie camera
+    correctCapture: true, // Correct the captured image (un-mirror it)
+  });
 
   // Real-time OCR state - separate from camera capture
   const [realtimeOCROpen, setRealtimeOCROpen] = useState(false);
@@ -120,13 +126,19 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
 
           // Stop the stream
           stream.getTracks().forEach((track) => track.stop());
+
+          // Show success message
+          toast.success(
+            "Screen captured successfully! You can now crop and process the image.",
+            {
+              duration: 3000,
+              position: "top-center",
+            }
+          );
         }
       });
     } catch (error) {
-      console.error("Error accessing screen:", error);
-      alert(
-        "Screen capture failed. Please make sure you've granted permission to access your screen."
-      );
+      handleScreenCaptureError(error, "Screen capture");
     }
   };
 
@@ -212,8 +224,91 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
     return new File([u8arr], filename, { type: mime });
   };
 
+  // Helper function to check clipboard support
+  const isClipboardSupported = () => {
+    return navigator.clipboard && navigator.clipboard.read;
+  };
+
+  // Helper function to handle screen capture errors gracefully
+  const handleScreenCaptureError = (error: unknown, action: string) => {
+    if (error instanceof Error) {
+      if (error.name === "NotAllowedError") {
+        console.log(`${action} permission denied by user`);
+        toast.error(
+          `${action} permission denied. Please allow screen sharing to use this feature.`,
+          {
+            duration: 4000,
+            position: "top-center",
+          }
+        );
+      } else if (
+        error.name === "AbortError" ||
+        error.name === "NotSupportedError"
+      ) {
+        console.log(`${action} cancelled or not supported`);
+        // User cancelled or browser doesn't support screen capture - no need to show error
+        return;
+      } else {
+        console.error(`Unexpected error during ${action}:`, error);
+        toast.error(
+          `${action} failed. Please try again or check your browser permissions.`,
+          {
+            duration: 4000,
+            position: "top-center",
+          }
+        );
+      }
+    } else {
+      console.error(`Unknown error during ${action}:`, error);
+      toast.error(`${action} failed. Please try again.`, {
+        duration: 4000,
+        position: "top-center",
+      });
+    }
+  };
+
   // --- PASTE IMAGE FUNCTIONALITY ---
   const handlePasteImage = useCallback(async () => {
+    setPastingImage(true);
+
+    // Check if clipboard API is supported
+    if (!isClipboardSupported()) {
+      toast.error(
+        (t) => (
+          <div className="flex flex-col space-y-3">
+            <div className="flex items-center space-x-2">
+              <span>❌ Clipboard API not supported</span>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Your browser doesn&apos;t support clipboard image access
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  startSnipping();
+                }}
+                className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+              >
+                📸 Take Screenshot
+              </button>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          duration: 10000,
+          position: "top-center",
+        }
+      );
+      return;
+    }
+
     try {
       const items = await navigator.clipboard.read();
       for (const item of items) {
@@ -237,17 +332,129 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
             setImageEditorOpen(true);
           };
           reader.readAsDataURL(file);
+          toast.success("Image pasted successfully! Opening editor...");
+          setPastingImage(false);
           return;
         }
       }
-      alert("No image found in clipboard. Please copy an image first.");
+
+      // No image found in clipboard - show toast with screenshot option
+      toast.error(
+        (t) => (
+          <div className="flex flex-col space-y-3">
+            <div className="flex items-center space-x-2">
+              <span>📋 No image found in clipboard</span>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Copy an image first, or take a screenshot instead
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  startSnipping();
+                }}
+                className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+              >
+                📸 Take Screenshot
+              </button>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          duration: 8000,
+          position: "top-center",
+        }
+      );
+      setPastingImage(false);
     } catch (error) {
       console.error("Error accessing clipboard:", error);
-      alert(
-        "Failed to access clipboard. Please make sure you have copied an image."
-      );
+
+      // Handle different types of clipboard errors
+      let errorMessage = "Failed to access clipboard.";
+      const showScreenshotOption = true;
+
+      if (error instanceof Error) {
+        if (error.name === "NotAllowedError") {
+          errorMessage =
+            "Clipboard permission denied. Please allow clipboard access.";
+        } else if (error.name === "SecurityError") {
+          errorMessage = "Clipboard access blocked for security reasons.";
+        } else if (error.name === "NotSupportedError") {
+          errorMessage = "Clipboard API not supported in this browser.";
+        }
+      }
+
+      if (showScreenshotOption) {
+        toast.error(
+          (t) => (
+            <div className="flex flex-col space-y-3">
+              <div className="flex items-center space-x-2">
+                <span>❌ {errorMessage}</span>
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Try taking a screenshot instead
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    startSnipping();
+                  }}
+                  className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                >
+                  📸 Take Screenshot
+                </button>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ),
+          {
+            duration: 10000,
+            position: "top-center",
+          }
+        );
+      } else {
+        toast.error(errorMessage, {
+          duration: 5000,
+          position: "top-center",
+        });
+      }
     }
+
+    setPastingImage(false);
   }, []);
+
+  // Keyboard shortcuts for paste functionality
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl+V or Cmd+V for paste
+      if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+        event.preventDefault();
+        toast.success("📋 Attempting to paste image from clipboard...", {
+          duration: 2000,
+          position: "top-center",
+        });
+        handlePasteImage();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handlePasteImage]);
 
   // --- IMAGE EDITOR FUNCTIONS ---
   const applyImageEdits = useCallback(
@@ -372,8 +579,9 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            aspectRatio: { ideal: 16 / 9 },
           },
         });
       } catch (envError) {
@@ -383,8 +591,9 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         );
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            aspectRatio: { ideal: 16 / 9 },
           },
         });
       }
@@ -428,7 +637,22 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       const ctx = canvas.getContext("2d");
 
       if (ctx) {
-        ctx.drawImage(video, 0, 0);
+        if (cameraSettings.correctCapture && cameraSettings.mirrorPreview) {
+          // Correct the mirroring for the captured frame
+          ctx.save();
+          ctx.scale(-1, 1); // Flip horizontally to correct mirroring
+          ctx.drawImage(
+            video,
+            -video.videoWidth,
+            0,
+            video.videoWidth,
+            video.videoHeight
+          );
+          ctx.restore();
+        } else {
+          // Draw normally without correction
+          ctx.drawImage(video, 0, 0);
+        }
         canvas.toBlob(
           async (blob) => {
             if (blob) {
@@ -651,6 +875,15 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                   type: "image/png",
                 });
                 handleImageUpload(file);
+
+                // Show success message
+                toast.success(
+                  "Screenshot captured successfully! Processing image...",
+                  {
+                    duration: 3000,
+                    position: "top-center",
+                  }
+                );
               }
             },
             "image/png",
@@ -661,10 +894,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         stream.getTracks().forEach((track) => track.stop());
       });
     } catch (error) {
-      console.error("Error taking screenshot:", error);
-      alert(
-        "Screenshot failed. Please make sure you've granted permission to access your screen."
-      );
+      handleScreenCaptureError(error, "Screenshot");
     }
   };
 
@@ -676,8 +906,9 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            aspectRatio: { ideal: 16 / 9 },
           },
         });
       } catch (envError) {
@@ -687,8 +918,9 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         );
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            aspectRatio: { ideal: 16 / 9 },
           },
         });
       }
@@ -899,12 +1131,16 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                 {/* Paste & Edit - Functional Card */}
                 <button
                   onClick={handlePasteImage}
-                  disabled={processingImage}
+                  disabled={processingImage || pastingImage}
                   className="group relative p-6 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20 rounded-xl border border-cyan-500/30 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left"
                 >
                   <div className="absolute top-4 right-4 w-3 h-3 bg-cyan-500 rounded-full animate-pulse"></div>
                   <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <Clipboard className="w-8 h-8 text-white" />
+                    {pastingImage ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    ) : (
+                      <Clipboard className="w-8 h-8 text-white" />
+                    )}
                   </div>
                   <h3 className="font-bold text-lg text-foreground mb-3 text-center">
                     Paste & Edit
@@ -913,6 +1149,11 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                     Paste images from clipboard and enhance with advanced
                     editing tools
                   </p>
+                  <div className="mt-2 text-xs text-cyan-600 dark:text-cyan-400 text-center">
+                    Press{" "}
+                    {navigator.platform.includes("Mac") ? "⌘+V" : "Ctrl+V"} to
+                    paste
+                  </div>
                   <div className="mt-4 flex justify-center">
                     <div className="flex gap-1">
                       <div
@@ -1159,6 +1400,10 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
               onClick={() => {
                 setSnippingModalOpen(false);
                 setScreenshotDataUrl(null);
+                toast("Screenshot cancelled. You can try again anytime.", {
+                  duration: 3000,
+                  position: "top-center",
+                });
               }}
               className="absolute top-4 right-4 text-foreground hover:text-red-500 transition-colors duration-300 p-2 rounded-full hover:bg-red-500/10 z-10"
               aria-label="Close snipping modal"
@@ -1221,6 +1466,10 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                   onClick={() => {
                     setSnippingModalOpen(false);
                     setScreenshotDataUrl(null);
+                    toast("Screenshot cancelled. You can try again anytime.", {
+                      duration: 3000,
+                      position: "top-center",
+                    });
                   }}
                   variant="outline"
                   className="border-border text-foreground hover:bg-accent"
@@ -1257,21 +1506,44 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
               ×
             </button>
 
-            <div className="flex items-center gap-2 mb-6">
-              <div className="p-2 rounded-full bg-green-500/20">
-                <Camera className="w-5 h-5 text-green-400" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-full bg-green-500/20">
+                  <Camera className="w-5 h-5 text-green-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground">
+                  Photo Capture
+                </h3>
               </div>
-              <h3 className="text-xl font-semibold text-foreground">
-                Photo Capture
-              </h3>
+
+              {/* Camera Settings Toggle */}
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={cameraSettings.mirrorPreview}
+                    onChange={(e) =>
+                      setCameraSettings((prev) => ({
+                        ...prev,
+                        mirrorPreview: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 rounded border-border"
+                  />
+                  Mirror Preview
+                </label>
+              </div>
             </div>
 
             <video
               ref={cameraVideoRef}
-              className="w-full rounded-xl border border-border/50 mb-6 shadow-lg"
+              className="w-full h-64 rounded-xl border border-border/50 mb-6 shadow-lg object-cover"
               autoPlay
               playsInline
               muted
+              style={{
+                transform: cameraSettings.mirrorPreview ? "scaleX(-1)" : "none",
+              }}
             />
 
             <Button
@@ -1283,7 +1555,26 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                   canvas.height = video.videoHeight;
                   const context = canvas.getContext("2d");
                   if (context) {
-                    context.drawImage(video, 0, 0);
+                    if (
+                      cameraSettings.correctCapture &&
+                      cameraSettings.mirrorPreview
+                    ) {
+                      // Correct the mirroring for the captured image
+                      context.save();
+                      context.scale(-1, 1); // Flip horizontally to correct mirroring
+                      context.drawImage(
+                        video,
+                        -video.videoWidth,
+                        0,
+                        video.videoWidth,
+                        video.videoHeight
+                      );
+                      context.restore();
+                    } else {
+                      // Draw normally without correction
+                      context.drawImage(video, 0, 0);
+                    }
+
                     canvas.toBlob(
                       (blob) => {
                         if (blob) {
@@ -1642,6 +1933,11 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                     autoPlay
                     playsInline
                     muted
+                    style={{
+                      transform: cameraSettings.mirrorPreview
+                        ? "scaleX(-1)"
+                        : "none",
+                    }}
                   />
 
                   {/* OCR Status Overlay */}
