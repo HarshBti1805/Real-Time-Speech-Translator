@@ -53,6 +53,17 @@ interface VoiceControlProps {
   onNavigate: (section: string, tab?: string) => void;
   isActive: boolean;
   onToggle: () => void;
+  // New system control props
+  onToggleSidebar?: () => void;
+  onToggleTheme?: () => void;
+  onToggleChatbot?: () => void;
+  onMinimizeChatbot?: () => void;
+  onCloseChatbot?: () => void;
+  // State props for better control
+  sidebarOpen?: boolean;
+  theme?: string;
+  chatbotOpen?: boolean;
+  chatbotMinimized?: boolean;
 }
 
 interface SpeechRecognitionErrorEvent extends Event {
@@ -64,6 +75,10 @@ export default function VoiceControl({
   onNavigate,
   isActive,
   onToggle,
+  onToggleSidebar,
+  onToggleTheme,
+  onToggleChatbot,
+  onMinimizeChatbot,
 }: VoiceControlProps) {
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -72,8 +87,9 @@ export default function VoiceControl({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const retryCountRef = useRef(0);
 
-  // Voice commands mapping
+  // Voice commands mapping - expanded with system controls
   const voiceCommands = {
+    // Navigation commands
     "audio translator": "main",
     audio: "main",
     "speech translator": "main",
@@ -88,6 +104,45 @@ export default function VoiceControl({
     dashboard: "dashboard",
     analytics: "dashboard",
     stats: "dashboard",
+
+    // System control commands
+    "open sidebar": "toggle_sidebar",
+    "close sidebar": "toggle_sidebar",
+    "toggle sidebar": "toggle_sidebar",
+    sidebar: "toggle_sidebar",
+    "show sidebar": "toggle_sidebar",
+    "hide sidebar": "toggle_sidebar",
+
+    "dark mode": "toggle_theme",
+    "light mode": "toggle_theme",
+    "toggle theme": "toggle_theme",
+    "switch theme": "toggle_theme",
+    "change theme": "toggle_theme",
+    dark: "toggle_theme",
+    light: "toggle_theme",
+
+    "open chatbot": "toggle_chatbot",
+    "close chatbot": "toggle_chatbot",
+    "toggle chatbot": "toggle_chatbot",
+    "show chatbot": "toggle_chatbot",
+    "hide chatbot": "toggle_chatbot",
+    "open ai": "toggle_chatbot",
+    "close ai": "toggle_chatbot",
+    "ai assistant": "toggle_chatbot",
+    "chat assistant": "toggle_chatbot",
+
+    "minimize chatbot": "minimize_chatbot",
+    "minimize ai": "minimize_chatbot",
+    "minimize assistant": "minimize_chatbot",
+    "collapse chatbot": "minimize_chatbot",
+    "collapse ai": "minimize_chatbot",
+
+    "maximize chatbot": "maximize_chatbot",
+    "maximize ai": "maximize_chatbot",
+    "expand chatbot": "maximize_chatbot",
+    "expand ai": "maximize_chatbot",
+    "full chatbot": "maximize_chatbot",
+    "full ai": "maximize_chatbot",
   };
 
   const startListening = useCallback(() => {
@@ -255,6 +310,14 @@ export default function VoiceControl({
       for (const [phrase, section] of Object.entries(voiceCommands)) {
         if (command.includes(phrase)) {
           console.log(`Voice command matched: "${phrase}" -> ${section}`);
+
+          // Handle system control commands
+          if (section.startsWith("toggle_")) {
+            handleSystemControl(section);
+            return;
+          }
+
+          // Handle navigation commands
           onNavigate(section);
           return;
         }
@@ -264,6 +327,14 @@ export default function VoiceControl({
       for (const [phrase, section] of Object.entries(voiceCommands)) {
         if (phrase.includes(command) || command.includes(phrase)) {
           console.log(`Voice command partial match: "${phrase}" -> ${section}`);
+
+          // Handle system control commands
+          if (section.startsWith("toggle_")) {
+            handleSystemControl(section);
+            return;
+          }
+
+          // Handle navigation commands
           onNavigate(section);
           return;
         }
@@ -277,12 +348,65 @@ export default function VoiceControl({
       for (const [phrase, section] of Object.entries(voiceCommands)) {
         if (command.includes(phrase)) {
           console.log(`Fallback match: "${phrase}" -> ${section}`);
+
+          // Handle system control commands
+          if (section.startsWith("toggle_")) {
+            handleSystemControl(section);
+            return;
+          }
+
+          // Handle navigation commands
           onNavigate(section);
           return;
         }
       }
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Handle system control commands
+  const handleSystemControl = (action: string) => {
+    console.log(`Executing system control: ${action}`);
+
+    switch (action) {
+      case "toggle_sidebar":
+        if (onToggleSidebar) {
+          console.log("Toggling sidebar");
+          onToggleSidebar();
+        }
+        break;
+
+      case "toggle_theme":
+        if (onToggleTheme) {
+          console.log("Toggling theme");
+          onToggleTheme();
+        }
+        break;
+
+      case "toggle_chatbot":
+        if (onToggleChatbot) {
+          console.log("Toggling chatbot");
+          onToggleChatbot();
+        }
+        break;
+
+      case "minimize_chatbot":
+        if (onMinimizeChatbot) {
+          console.log("Minimizing chatbot");
+          onMinimizeChatbot();
+        }
+        break;
+
+      case "maximize_chatbot":
+        if (onMinimizeChatbot) {
+          console.log("Maximizing chatbot (calling minimize to toggle)");
+          onMinimizeChatbot();
+        }
+        break;
+
+      default:
+        console.log(`Unknown system control action: ${action}`);
     }
   };
 
@@ -383,6 +507,31 @@ export default function VoiceControl({
                   <div className="flex items-center gap-1">
                     <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
                     <span className="text-gray-600">Stats</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Controls */}
+              <div>
+                <div className="text-xs font-medium text-gray-700 mb-2">
+                  System Controls:
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-teal-500 rounded-full"></span>
+                    <span className="text-gray-600">Toggle sidebar</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                    <span className="text-gray-600">Dark/Light mode</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-lime-500 rounded-full"></span>
+                    <span className="text-gray-600">Open AI assistant</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                    <span className="text-gray-600">Minimize AI</span>
                   </div>
                 </div>
               </div>

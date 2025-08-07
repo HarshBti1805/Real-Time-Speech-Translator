@@ -11,6 +11,11 @@ interface EnhancedChatBotProps {
   currentTranslation?: string;
   sourceLanguage?: string;
   targetLanguage?: string;
+  // Chatbot state control props
+  isOpen?: boolean;
+  isMinimized?: boolean;
+  onToggle?: () => void;
+  onMinimize?: () => void;
 }
 
 // Loading fallback component
@@ -30,12 +35,20 @@ export default function EnhancedChatBot(props: EnhancedChatBotProps) {
       currentTranslation: props.currentTranslation,
       sourceLanguage: props.sourceLanguage,
       targetLanguage: props.targetLanguage,
+      isOpen: props.isOpen,
+      isMinimized: props.isMinimized,
+      onToggle: props.onToggle,
+      onMinimize: props.onMinimize,
     }),
     [
       props.currentMode,
       props.currentTranslation,
       props.sourceLanguage,
       props.targetLanguage,
+      props.isOpen,
+      props.isMinimized,
+      props.onToggle,
+      props.onMinimize,
     ]
   );
 

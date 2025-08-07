@@ -147,6 +147,11 @@ interface ChatBotProps {
   currentTranslation?: string;
   sourceLanguage?: string;
   targetLanguage?: string;
+  // External state control props
+  isOpen?: boolean;
+  isMinimized?: boolean;
+  onToggle?: () => void;
+  onMinimize?: () => void;
 }
 
 // Conversation mode presets
@@ -198,10 +203,24 @@ const ChatBot = memo(function ChatBot({
   currentTranslation,
   sourceLanguage,
   targetLanguage,
+  isOpen: externalIsOpen,
+  isMinimized: externalIsMinimized,
+  onToggle: externalOnToggle,
+  onMinimize: externalOnMinimize,
 }: ChatBotProps) {
   const { data: session } = useSession();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const [internalIsMinimized, setInternalIsMinimized] = useState(false);
+
+  // Use external state if provided, otherwise use internal state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const isMinimized =
+    externalIsMinimized !== undefined
+      ? externalIsMinimized
+      : internalIsMinimized;
+
+  const setIsOpen = externalOnToggle || setInternalIsOpen;
+  const setIsMinimized = externalOnMinimize || setInternalIsMinimized;
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);

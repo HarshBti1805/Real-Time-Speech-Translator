@@ -68,6 +68,9 @@ export default function Home() {
   const [showMiniBar, setShowMiniBar] = useState(false);
   const [isVoiceModeActive, setIsVoiceModeActive] = useState(false);
   const [lastVoiceCommand, setLastVoiceCommand] = useState<string>("");
+  // Chatbot state management for voice control
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [chatbotMinimized, setChatbotMinimized] = useState(false);
   // Remove all pipHooks, pipHooksLoaded, and related dynamic import logic
   // Use hooks as originally:
   const { isPipSupported, pipWindow, openPictureInPicture } = useTranslatePiP();
@@ -113,6 +116,18 @@ export default function Home() {
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  // Chatbot control functions for voice commands
+  const toggleChatbot = () => {
+    setChatbotOpen(!chatbotOpen);
+    if (chatbotOpen) {
+      setChatbotMinimized(false);
+    }
+  };
+
+  const minimizeChatbot = () => {
+    setChatbotMinimized(!chatbotMinimized);
   };
 
   const handleVoiceNavigation = (section: string, tab?: string) => {
@@ -469,6 +484,10 @@ export default function Home() {
                       onNavigate={handleVoiceNavigation}
                       isActive={isVoiceModeActive}
                       onToggle={toggleVoiceMode}
+                      onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                      onToggleTheme={toggleTheme}
+                      onToggleChatbot={toggleChatbot}
+                      onMinimizeChatbot={minimizeChatbot}
                     />
                     {/* PiP button at the end */}
                     {isPipSupported && (
@@ -569,6 +588,10 @@ export default function Home() {
                       onNavigate={handleVoiceNavigation}
                       isActive={isVoiceModeActive}
                       onToggle={toggleVoiceMode}
+                      onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                      onToggleTheme={toggleTheme}
+                      onToggleChatbot={toggleChatbot}
+                      onMinimizeChatbot={minimizeChatbot}
                     />
                     {/* Sign Out */}
                     <Button
@@ -631,6 +654,10 @@ export default function Home() {
                       onNavigate={handleVoiceNavigation}
                       isActive={isVoiceModeActive}
                       onToggle={toggleVoiceMode}
+                      onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                      onToggleTheme={toggleTheme}
+                      onToggleChatbot={toggleChatbot}
+                      onMinimizeChatbot={minimizeChatbot}
                     />
                     {/* Mobile Sign Out */}
                     <Button
@@ -927,6 +954,10 @@ export default function Home() {
           currentTranslation={undefined}
           sourceLanguage={undefined}
           targetLanguage={undefined}
+          isOpen={chatbotOpen}
+          isMinimized={chatbotMinimized}
+          onToggle={toggleChatbot}
+          onMinimize={minimizeChatbot}
         />
 
         {/* Voice Feedback */}
