@@ -112,14 +112,35 @@ export default function VoiceControl({
     sidebar: "toggle_sidebar",
     "show sidebar": "toggle_sidebar",
     "hide sidebar": "toggle_sidebar",
+    "close the sidebar": "toggle_sidebar",
+    "close the sidebars": "toggle_sidebar",
+    "open the sidebar": "toggle_sidebar",
+    "show the sidebar": "toggle_sidebar",
+    "hide the sidebar": "toggle_sidebar",
 
     "dark mode": "toggle_theme",
     "light mode": "toggle_theme",
     "toggle theme": "toggle_theme",
     "switch theme": "toggle_theme",
     "change theme": "toggle_theme",
+    "switch to dark mode": "toggle_theme",
+    "switch to light mode": "toggle_theme",
+    "change to dark mode": "toggle_theme",
+    "change to light mode": "toggle_theme",
     dark: "toggle_theme",
     light: "toggle_theme",
+    "dark theme": "toggle_theme",
+    "light theme": "toggle_theme",
+    "go dark": "toggle_theme",
+    "go light": "toggle_theme",
+    "set dark mode": "toggle_theme",
+    "set light mode": "toggle_theme",
+    "enable dark mode": "toggle_theme",
+    "enable light mode": "toggle_theme",
+    "turn on dark mode": "toggle_theme",
+    "turn on light mode": "toggle_theme",
+    "turn off dark mode": "toggle_theme",
+    "turn off light mode": "toggle_theme",
 
     "open chatbot": "toggle_chatbot",
     "close chatbot": "toggle_chatbot",
@@ -130,12 +151,20 @@ export default function VoiceControl({
     "close ai": "toggle_chatbot",
     "ai assistant": "toggle_chatbot",
     "chat assistant": "toggle_chatbot",
+    "open the chatbot": "toggle_chatbot",
+    "close the chatbot": "toggle_chatbot",
+    "show the chatbot": "toggle_chatbot",
+    "hide the chatbot": "toggle_chatbot",
+    "open the ai": "toggle_chatbot",
+    "close the ai": "toggle_chatbot",
 
     "minimize chatbot": "minimize_chatbot",
     "minimize ai": "minimize_chatbot",
     "minimize assistant": "minimize_chatbot",
     "collapse chatbot": "minimize_chatbot",
     "collapse ai": "minimize_chatbot",
+    "minimize the chatbot": "minimize_chatbot",
+    "minimize the ai": "minimize_chatbot",
 
     "maximize chatbot": "maximize_chatbot",
     "maximize ai": "maximize_chatbot",
@@ -143,6 +172,8 @@ export default function VoiceControl({
     "expand ai": "maximize_chatbot",
     "full chatbot": "maximize_chatbot",
     "full ai": "maximize_chatbot",
+    "maximize the chatbot": "maximize_chatbot",
+    "maximize the ai": "maximize_chatbot",
   };
 
   const startListening = useCallback(() => {
@@ -275,8 +306,45 @@ export default function VoiceControl({
     console.log("Processing voice command:", command);
     setIsProcessing(true);
 
+    // Normalize the command for better matching
+    const normalizedCommand = command.toLowerCase().trim();
+    console.log("Normalized command:", normalizedCommand);
+
     try {
-      // First try AI-powered navigation
+      // First check for system control commands (these should take priority)
+      for (const [phrase, section] of Object.entries(voiceCommands)) {
+        const phraseLower = phrase.toLowerCase();
+        const isMatch =
+          normalizedCommand.includes(phraseLower) ||
+          phraseLower.includes(normalizedCommand);
+
+        if (isMatch) {
+          console.log(
+            `Voice command matched: "${phrase}" -> ${section} (phrase: "${phraseLower}", command: "${normalizedCommand}")`
+          );
+
+          // Special debugging for light mode commands
+          if (
+            phraseLower.includes("light") ||
+            normalizedCommand.includes("light")
+          ) {
+            console.log("🔍 Light mode command detected!");
+          }
+
+          // Handle system control commands first
+          if (section.startsWith("toggle_")) {
+            console.log(`Executing system control: ${section}`);
+            handleSystemControl(section);
+            return;
+          }
+        }
+      }
+
+      console.log(
+        "No system control commands matched, trying AI navigation..."
+      );
+
+      // If no system control commands matched, try AI-powered navigation
       const response = await fetch("/api/voice-navigation", {
         method: "POST",
         headers: {
@@ -303,40 +371,24 @@ export default function VoiceControl({
         }
       }
 
-      // Fallback to keyword matching if AI fails
+      // Fallback to keyword matching for navigation commands only
       console.log("AI navigation failed, falling back to keyword matching");
 
-      // Check for exact matches first
+      // Check for exact matches for navigation commands
       for (const [phrase, section] of Object.entries(voiceCommands)) {
-        if (command.includes(phrase)) {
+        const phraseLower = phrase.toLowerCase();
+        const isMatch =
+          normalizedCommand.includes(phraseLower) ||
+          phraseLower.includes(normalizedCommand);
+
+        if (isMatch) {
           console.log(`Voice command matched: "${phrase}" -> ${section}`);
 
-          // Handle system control commands
-          if (section.startsWith("toggle_")) {
-            handleSystemControl(section);
+          // Only handle navigation commands here (system controls already handled above)
+          if (!section.startsWith("toggle_")) {
+            onNavigate(section);
             return;
           }
-
-          // Handle navigation commands
-          onNavigate(section);
-          return;
-        }
-      }
-
-      // Check for partial matches
-      for (const [phrase, section] of Object.entries(voiceCommands)) {
-        if (phrase.includes(command) || command.includes(phrase)) {
-          console.log(`Voice command partial match: "${phrase}" -> ${section}`);
-
-          // Handle system control commands
-          if (section.startsWith("toggle_")) {
-            handleSystemControl(section);
-            return;
-          }
-
-          // Handle navigation commands
-          onNavigate(section);
-          return;
         }
       }
 
@@ -346,7 +398,12 @@ export default function VoiceControl({
 
       // Fallback to keyword matching on error
       for (const [phrase, section] of Object.entries(voiceCommands)) {
-        if (command.includes(phrase)) {
+        const phraseLower = phrase.toLowerCase();
+        const isMatch =
+          normalizedCommand.includes(phraseLower) ||
+          phraseLower.includes(normalizedCommand);
+
+        if (isMatch) {
           console.log(`Fallback match: "${phrase}" -> ${section}`);
 
           // Handle system control commands
@@ -379,8 +436,14 @@ export default function VoiceControl({
 
       case "toggle_theme":
         if (onToggleTheme) {
-          console.log("Toggling theme");
+          console.log("Toggling theme - executing theme toggle function");
+          console.log(
+            "Current theme state should be toggled from current value"
+          );
           onToggleTheme();
+          console.log("Theme toggle function executed successfully");
+        } else {
+          console.error("Theme toggle function not provided");
         }
         break;
 
