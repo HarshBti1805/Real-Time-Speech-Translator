@@ -38,11 +38,44 @@ export function useTranslatePiP() {
         }
       ).documentPictureInPicture.requestWindow({
         width: 950,
-        height: 150,
+        height: 160,
       });
       const pipDocument = newPipWindow.document;
       pipDocument.head.innerHTML = `
         <style>
+          :root {
+            --bg: #0b0b10;
+            --fg: #e5e7eb;
+            --surface: rgba(35, 35, 52, 0.5);
+            --surface-strong: rgba(35, 35, 52, 0.7);
+            --border: #2f2f3e;
+            --accent: #6366f1;
+            --accent-2: #a21caf;
+            --accent-3: #22c55e;
+            --danger: #ef4444;
+            --muted: #9aa0aa;
+            --shadow: 0 10px 30px rgba(0,0,0,0.35);
+            --scrollbar-track: #171822;
+            --scrollbar-thumb: #30324a;
+            --scrollbar-thumb-hover: #6b6bf1;
+          }
+          body.light {
+            --bg: #f7f7fb;
+            --fg: #1f2937;
+            --surface: rgba(248, 250, 252, 0.6);
+            --surface-strong: rgba(248, 250, 252, 0.85);
+            --border: #e5e7eb;
+            --accent: #6366f1;
+            --accent-2: #c026d3;
+            --accent-3: #16a34a;
+            --danger: #ef4444;
+            --muted: #6b7280;
+            --shadow: 0 10px 28px rgba(99,102,241,0.18);
+            --scrollbar-track: #e6e8f4;
+            --scrollbar-thumb: #c7ccff;
+            --scrollbar-thumb-hover: #9aa5ff;
+          }
+
           @font-face {
             font-family: 'Product Sans';
             src: url('/fonts/ProductSans-Regular.ttf') format('truetype');
@@ -62,36 +95,38 @@ export function useTranslatePiP() {
             align-items: center;
             margin: 0;
             padding: 0;
-            background: #18181b;
-            color: #fff;
+            background: radial-gradient(1200px 120px at 10% 100%, #111327 0%, transparent 60%),
+                        radial-gradient(1000px 120px at 90% 0%, #1a1027 0%, transparent 60%),
+                        var(--bg);
+            color: var(--fg);
             transition: background 0.2s, color 0.2s;
           }
           body.light {
-            background: #f8fafc;
-            color: #222;
+            background: radial-gradient(1200px 120px at 0% 100%, #eef2ff 0%, transparent 60%),
+                        radial-gradient(1000px 120px at 100% 0%, #ffe4f6 0%, transparent 60%),
+                        var(--bg);
+            color: var(--fg);
           }
+
           .pip-bar {
             display: flex;
             flex-direction: column;
             justify-content: center;
-            background: linear-gradient(135deg, #232329 60%, #3b2f5e 100%);
-            color: #fff;
+            background: linear-gradient(135deg, var(--surface) 55%, var(--surface-strong) 100%);
+            color: var(--fg);
             border-radius: 18px;
-            box-shadow: 0 6px 32px 0 rgba(64,0,128,0.22);
-            padding: 16px 32px;
-            min-height: 90px;
-            margin: 8px;
+            box-shadow: var(--shadow);
+            padding: 14px 22px;
+            min-height: 96px;
+            margin: 10px;
             gap: 12px;
             min-width: 0;
-            border: 2px solid #363646;
+            border: 1px solid var(--border);
             font-family: 'JetBrains Mono', sans-serif;
+            backdrop-filter: blur(10px) saturate(120%);
+            -webkit-backdrop-filter: blur(10px) saturate(120%);
           }
-          body.light .pip-bar {
-            background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
-            color: #222;
-            border: 2px solid #e5e7eb;
-            box-shadow: 0 6px 32px 0 rgba(64,0,128,0.10);
-          }
+
           .pip-row {
             display: flex;
             align-items: center;
@@ -106,11 +141,12 @@ export function useTranslatePiP() {
             align-items: center;
             gap: 12px;
           }
+
           .pip-original {
-            font-size: 1.08em;
+            font-size: 1.06em;
             font-weight: 600;
             margin: 0;
-            width: 200px;
+            width: 260px;
             height: 2.6em;
             overflow-x: auto;
             overflow-y: auto;
@@ -119,147 +155,125 @@ export function useTranslatePiP() {
             word-break: break-word;
             line-height: 1.3;
             font-family: 'Product Sans', sans-serif;
-            border-radius: 8px;
-            padding: 2px 6px;
+            border-radius: 10px;
+            padding: 3px 8px;
             scrollbar-width: thin;
             scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
             background: none;
           }
           body.light .pip-original {
-            color: #222;
-            background: #f3f4f6;
+            color: var(--fg);
           }
+
           .pip-translated {
-            color: #a5e2ff;
+            color: #bfe7ff;
             background: none;
             height: 2.6em;
-            width: 200px;
+            width: 260px;
             display: block;
             overflow-y: auto;
             overflow-x: hidden;
             white-space: pre-wrap;
             word-break: break-word;
-            border-radius: 8px;
-            padding: 2px 6px;
+            border-radius: 10px;
+            padding: 3px 8px;
             scrollbar-width: thin;
             scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
           }
           body.light .pip-translated {
-            color: #2563eb;
-            background: #e0e7ff;
+            color: #1f3cff;
+            background: #eef2ff;
             border: 1px solid #c7d2fe;
           }
-                    .pip-translated::-webkit-scrollbar {
+          .pip-translated::-webkit-scrollbar,
+          .pip-original::-webkit-scrollbar {
             width: 8px;
             background: var(--scrollbar-track);
             border-radius: 6px;
           }
-          body.light .pip-translated::-webkit-scrollbar {
-            width: 8px;
-            background: var(--scrollbar-track);
-            border-radius: 6px;
-          }
-          .pip-translated::-webkit-scrollbar-thumb {
+          .pip-translated::-webkit-scrollbar-thumb,
+          .pip-original::-webkit-scrollbar-thumb {
             background: var(--scrollbar-thumb);
             border-radius: 6px;
             border: 1px solid var(--scrollbar-track);
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
           }
-          .pip-translated::-webkit-scrollbar-thumb:hover {
+          .pip-translated::-webkit-scrollbar-thumb:hover,
+          .pip-original::-webkit-scrollbar-thumb:hover {
             background: var(--scrollbar-thumb-hover);
           }
-          .pip-arrow {
-            font-size: 1.1em;
-            margin: 0 6px;
-            opacity: 0.7;
-          }
+
           .pip-quick {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 10px;
             font-family: 'JetBrains Mono', sans-serif;
-            margin-top: 4px;
+            margin-top: 2px;
           }
           .pip-quick input, .pip-quick select {
-            border: none;
-            border-radius: 8px;
-            background: #232334;
-            color: #fff;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--surface) 60%, var(--surface-strong) 100%);
+            color: var(--fg);
             font-size: 15px;
             font-family: 'JetBrains Mono', sans-serif;
-            box-shadow: 0 1px 4px #0002;
-            padding: 7px 14px;
-            transition: box-shadow 0.2s, outline 0.2s, background 0.2s;
+            box-shadow: 0 1px 4px #0003;
+            padding: 8px 14px;
+            transition: box-shadow 0.2s, outline 0.2s, background 0.2s, border 0.2s;
             outline: 2px solid transparent;
           }
-          body.light .pip-quick input, body.light .pip-quick select {
-            background: #f3f4f6;
-            color: #222;
-            border: 1.5px solid #a5b4fc;
-          }
-          body.light .pip-quick input:focus, body.light .pip-quick select:focus {
-            outline: 2px solid #6366f1;
-            background: #e0e7ff;
-            box-shadow: 0 2px 12px #6366f133;
+          .pip-quick input:focus, .pip-quick select:focus {
+            outline: 2px solid var(--accent);
+            box-shadow: 0 2px 14px rgba(99,102,241,0.25);
           }
           .pip-quick input::placeholder {
-            color: #aaa;
+            color: var(--muted);
             font-family: 'JetBrains Mono', sans-serif;
             font-size: 13px;
           }
-          body.light .pip-quick input::placeholder {
-            color: #666;
-          }
           .pip-quick select {
-            min-width: 100px;
-            background: linear-gradient(90deg, #232334 60%, #363646 100%);
-            color: #fff;
-            border: 1.5px solid #6366f1;
-            font-size: 14px;
-            font-family: 'JetBrains Mono', sans-serif;
+            min-width: 120px;
+            color-scheme: dark;
           }
-          .pip-quick button {
-            background: linear-gradient(90deg, #6366f1 0%, #a21caf 100%);
+          body.light .pip-quick select { color-scheme: light; }
+
+          .pip-theme {
+            margin-left: auto;
+            font-size: 18px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: linear-gradient(135deg, var(--surface) 60%, var(--surface-strong) 100%);
+            color: var(--fg);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+          }
+          .pip-theme:hover { transform: translateY(-1px); }
+
+          .pip-clear, .pip-copy {
+            background: linear-gradient(135deg, var(--danger) 0%, var(--accent-2) 100%);
             border: none;
-            border-radius: 8px;
-            padding: 6px 12px;
+            border-radius: 10px;
+            padding: 8px 12px;
             cursor: pointer;
             font-size: 15px;
             color: #fff;
             font-family: 'JetBrains Mono', sans-serif;
-            font-weight: 600;
-            box-shadow: 0 2px 8px #6366f133;
+            font-weight: 700;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.25);
             transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
           }
-          body.light .pip-quick button {
-            background: linear-gradient(90deg, #818cf8 0%, #c026d3 100%);
-            color: #fff;
+          .pip-copy {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
           }
-          body.light .pip-quick button:hover {
-            background: linear-gradient(90deg, #6366f1 0%, #a21caf 100%);
+          .pip-clear:hover, .pip-copy:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
           }
-          .pip-theme {
-            margin-left: auto;
-            font-size: 18px;
-            padding: 6px 10px;
-          }
-          body.light .pip-theme {
-            background: #e0e7ff;
-            color: #222;
-          }
-          .pip-clear {
-            background: linear-gradient(90deg, #ef4444 0%, #a21caf 100%);
-          }
-          body.light .pip-clear {
-            background: linear-gradient(90deg, #f87171 0%, #c026d3 100%);
-            color: #fff;
-          }
-          .pip-clear:hover {
-            background: linear-gradient(90deg, #f87171 0%, #c026d3 100%);
-          }
+
           .pip-swap {
-            background: linear-gradient(135deg, #6366f1 0%, #a21caf 100%);
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
             border: none;
             border-radius: 50%;
             width: 44px;
@@ -271,126 +285,58 @@ export function useTranslatePiP() {
             justify-content: center;
             font-size: 22px;
             color: #fff;
-            box-shadow: 0 2px 12px #6366f155;
+            box-shadow: 0 2px 12px rgba(99,102,241,0.35);
             transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
             cursor: pointer;
             margin: 0 10px;
             position: relative;
           }
           .pip-swap:hover {
-            background: linear-gradient(135deg, #818cf8 0%, #c026d3 100%);
+            background: linear-gradient(135deg, #7c83ff 0%, var(--accent-2) 100%);
             transform: scale(1.12) rotate(90deg);
-            box-shadow: 0 4px 18px #818cf888;
+            box-shadow: 0 4px 18px rgba(99,102,241,0.45);
           }
-          .pip-swap:active {
-            transform: scale(0.98) rotate(180deg);
-          }
-          .pip-swap svg {
-            width: 26px;
-            height: 26px;
-            pointer-events: none;
-          }
-          /* Custom select styles */
+          .pip-swap:active { transform: scale(0.98) rotate(180deg); }
+          .pip-swap svg { width: 26px; height: 26px; pointer-events: none; }
+
           .pip-col select {
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
-            background: linear-gradient(135deg, #232334 60%, #363646 100%);
-            color: #fff;
-            border: 2px solid #6366f1;
+            background: linear-gradient(135deg, var(--surface) 60%, var(--surface-strong) 100%);
+            color: var(--fg);
+            border: 1.5px solid var(--border);
             border-radius: 10px;
             padding: 8px 36px 8px 14px;
             font-size: 16px;
             font-family: 'JetBrains Mono', sans-serif;
             font-weight: 600;
-            box-shadow: 0 2px 8px #6366f122;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             transition: border 0.2s, box-shadow 0.2s;
             outline: none;
             position: relative;
             min-width: 120px;
             margin: 0 4px;
-            background-color: #232334;
-            color-scheme: dark;
           }
-          .pip-col select option {
-            background: #232334;
-            color: #fff;
-          }
+          .pip-col select option { background: var(--surface-strong); color: var(--fg); }
           .pip-col select:focus {
-            border: 2px solid #a21caf;
-            box-shadow: 0 0 0 2px #a21caf44;
-            background: linear-gradient(135deg, #232334 60%, #6366f1 100%);
+            border: 1.5px solid var(--accent-2);
+            box-shadow: 0 0 0 2px rgba(162, 28, 175, 0.25);
+            background: linear-gradient(135deg, var(--surface) 60%, var(--accent) 100%);
           }
-          .pip-col select:hover {
-            border: 2px solid #818cf8;
-          }
-          .pip-col select::-ms-expand {
-            display: none;
-          }
-          .pip-col {
-            position: relative;
-          }
-          .pip-col select::after {
-            content: '';
-            position: absolute;
-            right: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-left: 7px solid transparent;
-            border-right: 7px solid transparent;
-            border-top: 8px solid #6366f1;
-            pointer-events: none;
-          }
-          /* Light mode overrides */
-          body.light .pip-swap {
-            background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
-            color: #222;
-            box-shadow: 0 2px 12px #a5b4fc55;
-          }
-          body.light .pip-swap:hover {
-            background: linear-gradient(135deg, #6366f1 0%, #c026d3 100%);
-            color: #fff;
-            box-shadow: 0 4px 18px #818cf888;
-          }
-          body.light .pip-col select {
-            background: linear-gradient(135deg, #f3f4f6 60%, #e0e7ff 100%);
-            color: #222;
-            border: 2px solid #a5b4fc;
-            box-shadow: 0 2px 8px #a5b4fc22;
-            background-color: #f3f4f6;
-            color-scheme: light;
-          }
-          body.light .pip-col select option {
-            background: #f3f4f6;
-            color: #222;
-          }
-          body.light .pip-col select:focus {
-            border: 2px solid #6366f1;
-            box-shadow: 0 0 0 2px #6366f144;
-            background: linear-gradient(135deg, #e0e7ff 60%, #a5b4fc 100%);
-          }
-          body.light .pip-col select:hover {
-            border: 2px solid #6366f1;
-          }
-          body.light .pip-col select::after {
-            border-top: 8px solid #6366f1;
-          }
+          .pip-col select:hover { border: 1.5px solid #818cf8; }
+          .pip-col select::-ms-expand { display: none; }
+
           .pip-original, .pip-translated {
-            scrollbar-width: none; /* Hide scrollbar for Firefox */
-            -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+            scrollbar-width: thin;
+            -ms-overflow-style: none;
           }
-          .pip-original::-webkit-scrollbar, .pip-translated::-webkit-scrollbar {
-            display: none; /* Hide scrollbar for Chrome, Safari, Opera */
-            width: 0 !important;
-            background: transparent !important;
-          }
+
           .pip-tts-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(90deg, #6366f1 0%, #a21caf 100%);
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
             border: none;
             border-radius: 50%;
             width: 36px;
@@ -398,27 +344,24 @@ export function useTranslatePiP() {
             margin-left: 6px;
             cursor: pointer;
             transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
-            box-shadow: 0 2px 8px #6366f133;
+            box-shadow: 0 2px 8px rgba(99,102,241,0.3);
             color: #fff;
             position: relative;
           }
           .pip-tts-btn:hover {
-            background: linear-gradient(90deg, #818cf8 0%, #c026d3 100%);
+            background: linear-gradient(135deg, #7c83ff 0%, var(--accent-2) 100%);
             transform: scale(1.08);
-            box-shadow: 0 4px 18px #818cf888;
+            box-shadow: 0 4px 18px rgba(99,102,241,0.4);
           }
-          .pip-tts-btn svg {
-            width: 22px;
-            height: 22px;
-            pointer-events: none;
-          }
+          .pip-tts-btn svg { width: 22px; height: 22px; pointer-events: none; }
           .pip-tts-tooltip {
             visibility: hidden;
             opacity: 0;
-            background: #232334;
-            color: #fff;
+            background: var(--surface-strong);
+            color: var(--fg);
             text-align: center;
-            border-radius: 6px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
             padding: 4px 10px;
             position: absolute;
             z-index: 10;
@@ -429,18 +372,36 @@ export function useTranslatePiP() {
             white-space: nowrap;
             transition: opacity 0.2s;
             pointer-events: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
           }
-          .pip-tts-btn:hover .pip-tts-tooltip {
-            visibility: visible;
-            opacity: 1;
+          .pip-tts-btn:hover .pip-tts-tooltip { visibility: visible; opacity: 1; }
+
+          .pip-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--muted);
           }
-          body.light .pip-tts-btn {
-            background: linear-gradient(90deg, #818cf8 0%, #c026d3 100%);
-            color: #fff;
+          .pip-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--accent-3);
+            box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
           }
-          body.light .pip-tts-tooltip {
-            background: #e0e7ff;
-            color: #222;
+          .pip-dot.translating {
+            background: var(--accent);
+            animation: pip-pulse 1.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+          }
+          .pip-dot.error { background: var(--danger); box-shadow: 0 0 0 0 rgba(239,68,68,0.45); }
+          .pip-dot.success { background: var(--accent-3); box-shadow: 0 0 0 0 rgba(34,197,94,0.45); }
+
+          @keyframes pip-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(99,102,241,0); }
+            100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
           }
         </style>
       `;
@@ -449,7 +410,8 @@ export function useTranslatePiP() {
           <div class="pip-row pip-top">
             <div class="pip-col">
               <span class="pip-original" id="originalText">${currentTranslation.original}</span>
-              <select id="fromLang">
+              <select id="fromLang" aria-label="Source language">
+                <option value="auto">Auto Detect</option>
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
                 <option value="fr">French</option>
@@ -490,7 +452,7 @@ export function useTranslatePiP() {
               </svg>
             </button>
             <div class="pip-col">
-              <select id="toLang">
+              <select id="toLang" aria-label="Target language">
                 <option value="es">Spanish</option>
                 <option value="en">English</option>
                 <option value="fr">French</option>
@@ -540,7 +502,7 @@ export function useTranslatePiP() {
               </button>
 
               <button class="pip-copy" id="copySourceBtn" title="Copy source">📋</button>
-              <input type="text" id="quickInput" placeholder="Type to translate...">
+              <input type="text" id="quickInput" placeholder="Type to translate..." aria-label="Type to translate" />
               <button class="pip-copy" id="copyBtn" title="Copy translation">📋</button>
               <button class="pip-tts-btn" id="ttsTranslatedBtn" title="Listen to translation">
                 <svg viewBox="2 2 21 21" fill="none" stroke="currentColor" stroke-width="2"
@@ -553,16 +515,16 @@ export function useTranslatePiP() {
               </button>
               <button class="pip-clear" id="clearBtn" title="Clear input">✖</button>
             </div>
-            <div class="pip-status">
+            <div class="pip-status" role="status">
               <div class="pip-dot" id="statusDot"></div>
-              <span id="statusText"></span>
+              <span id="statusText" aria-live="polite"></span>
             </div>
           </div>
         </div>
       `;
       // Set initial dropdown values
       (pipDocument.getElementById("fromLang") as HTMLSelectElement).value =
-        "en";
+        "auto";
       (pipDocument.getElementById("toLang") as HTMLSelectElement).value = "es";
       // Update language labels
       const updateLangLabels = () => {
@@ -680,6 +642,18 @@ export function useTranslatePiP() {
             pipDocument.getElementById("translatedText") as HTMLElement
           ).textContent = "";
           setStatus("ready");
+        }
+      });
+      // Enter-to-translate
+      (
+        pipDocument.getElementById("quickInput") as HTMLInputElement
+      ).addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const text = (
+            pipDocument.getElementById("quickInput") as HTMLInputElement
+          ).value;
+          if (text.trim()) translateText(text);
         }
       });
       // Theme toggle
