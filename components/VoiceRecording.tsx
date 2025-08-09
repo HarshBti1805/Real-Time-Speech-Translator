@@ -39,6 +39,11 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
   // Tab state for choosing between Visual OCR and PDF Processing
   const [activeTab, setActiveTab] = useState<"visual" | "pdf">("visual");
 
+  // Browser environment check
+  const [isBrowser, setIsBrowser] = useState(false);
+  const [cameraAvailable, setCameraAvailable] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(true);
+
   // Notify parent component when tab changes
   const handleTabChange = (tab: "visual" | "pdf") => {
     setActiveTab(tab);
@@ -101,6 +106,199 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const realtimeOCRVideoRef = useRef<HTMLVideoElement | null>(null);
 
+  // Check browser environment and camera availability on mount
+  useEffect(() => {
+    setIsBrowser(true);
+
+    // Check if camera is available
+    if (navigator.mediaDevices) {
+      // Check if any video devices are available
+      navigator.mediaDevices
+        .enumerateDevices()
+        .then((devices) => {
+          const videoDevices = devices.filter(
+            (device) => device.kind === "videoinput"
+          );
+          setCameraAvailable(videoDevices.length > 0);
+          setCameraLoading(false);
+        })
+        .catch(() => {
+          setCameraAvailable(false);
+          setCameraLoading(false);
+        });
+    } else {
+      setCameraAvailable(false);
+      setCameraLoading(false);
+    }
+  }, []);
+
+  // Error handling utility functions
+  const setError = (type: string, message: string) => {
+    // Show error as toast instead of modal
+    toast.error(
+      (t) => (
+        <div className="flex flex-col space-y-3">
+          <div className="flex items-center space-x-2">
+            <span>❌ {getErrorTitle(type)}</span>
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {message}
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+            >
+              Dismiss
+            </button>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: 8000,
+        position: "top-center",
+      }
+    );
+  };
+
+  const getErrorTitle = (type: string): string => {
+    switch (type) {
+      case "camera":
+        return "Camera Error";
+      case "realtimeOCR":
+        return "Real-time OCR Error";
+      case "imageProcessing":
+        return "Image Processing Error";
+      case "screenCapture":
+        return "Screen Capture Error";
+      case "fileUpload":
+        return "File Upload Error";
+      case "network":
+        return "Network Error";
+      case "general":
+        return "General Error";
+      default:
+        return "Error";
+    }
+  };
+
+  const handleCameraError = (error: unknown, context: string) => {
+    console.error(`Camera error in ${context}:`, error);
+
+    let errorMessage = "An unexpected camera error occurred.";
+
+    if (error instanceof DOMException) {
+      switch (error.name) {
+        case "NotAllowedError":
+          errorMessage =
+            "Camera access denied. Please allow camera permissions in your browser settings and try again.";
+          break;
+        case "NotFoundError":
+          errorMessage =
+            "No camera found on your device. Please connect a camera and try again.";
+          break;
+        case "NotReadableError":
+          errorMessage =
+            "Camera is already in use by another application. Please close other camera apps and try again.";
+          break;
+        case "OverconstrainedError":
+          errorMessage =
+            "Camera doesn't support the requested settings. Trying with default settings...";
+          break;
+        case "SecurityError":
+          errorMessage =
+            "Camera access blocked due to security restrictions. Please check your browser settings.";
+          break;
+        case "AbortError":
+          errorMessage = "Camera access was aborted. Please try again.";
+          break;
+        default:
+          errorMessage = `Camera error: ${error.message}`;
+      }
+    } else if (error instanceof Error) {
+      // Handle specific error messages that might indicate device not found
+      if (
+        error.message.includes("request device not found") ||
+        error.message.includes("device not found") ||
+        error.message.includes("no device")
+      ) {
+        errorMessage =
+          "No camera device found. Please ensure your camera is connected and not being used by another application.";
+      } else if (error.message.includes("permission")) {
+        errorMessage =
+          "Camera permission denied. Please allow camera access in your browser settings.";
+      } else if (error.message.includes("not supported")) {
+        errorMessage =
+          "Camera access not supported in this environment. Please use a modern browser.";
+      } else {
+        errorMessage = error.message;
+      }
+    }
+
+    setError("camera", errorMessage);
+  };
+
+  const handleNetworkError = (error: unknown, context: string) => {
+    console.error(`Network error in ${context}:`, error);
+
+    let errorMessage = "A network error occurred.";
+
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      errorMessage =
+        "Network connection failed. Please check your internet connection and try again.";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    setError("network", errorMessage);
+  };
+
+  const handleImageProcessingError = (error: unknown, context: string) => {
+    console.error(`Image processing error in ${context}:`, error);
+
+    let errorMessage = "Failed to process image.";
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    setError("imageProcessing", errorMessage);
+  };
+
+  const handleScreenCaptureError = (error: unknown, action: string) => {
+    console.error(`Screen capture error in ${action}:`, error);
+
+    let errorMessage = "Failed to capture screen.";
+
+    if (error instanceof DOMException) {
+      switch (error.name) {
+        case "NotAllowedError":
+          errorMessage =
+            "Screen capture permission denied. Please allow screen sharing and try again.";
+          break;
+        case "NotFoundError":
+          errorMessage = "No screen or window found to capture.";
+          break;
+        case "NotReadableError":
+          errorMessage =
+            "Screen capture failed. The selected screen may be protected or in use.";
+          break;
+        default:
+          errorMessage = `Screen capture error: ${error.message}`;
+      }
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    setError("screenCapture", errorMessage);
+  };
+
   // --- SNIPPING TOOL LOGIC ---
   const startSnipping = async () => {
     try {
@@ -162,7 +360,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       setScreenshotDataUrl(null);
       setCroppedAreaPixels(null);
     } catch (error) {
-      console.error("Error processing cropped image:", error);
+      handleImageProcessingError(error, "cropped image processing");
     }
   };
 
@@ -171,100 +369,86 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
     imageSrc: string,
     pixelCrop: Area
   ): Promise<string | null> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const image = new Image();
+
       image.addEventListener("load", () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
 
-        if (!ctx) {
-          resolve(null);
-          return;
-        }
-
-        canvas.width = pixelCrop.width;
-        canvas.height = pixelCrop.height;
-
-        ctx.drawImage(
-          image,
-          pixelCrop.x,
-          pixelCrop.y,
-          pixelCrop.width,
-          pixelCrop.height,
-          0,
-          0,
-          pixelCrop.width,
-          pixelCrop.height
-        );
-
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          } else {
-            resolve(null);
+          if (!ctx) {
+            reject(new Error("Failed to get canvas context"));
+            return;
           }
-        }, "image/png");
+
+          canvas.width = pixelCrop.width;
+          canvas.height = pixelCrop.height;
+
+          ctx.drawImage(
+            image,
+            pixelCrop.x,
+            pixelCrop.y,
+            pixelCrop.width,
+            pixelCrop.height,
+            0,
+            0,
+            pixelCrop.width,
+            pixelCrop.height
+          );
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () =>
+                reject(new Error("Failed to read cropped image"));
+              reader.readAsDataURL(blob);
+            } else {
+              reject(new Error("Failed to create blob from canvas"));
+            }
+          }, "image/png");
+        } catch (error) {
+          reject(error);
+        }
       });
+
+      image.addEventListener("error", () => {
+        reject(new Error("Failed to load image for cropping"));
+      });
+
       image.src = imageSrc;
     });
   };
 
   // Helper function to convert dataURL to File
   const dataURLtoFile = (dataurl: string, filename: string): File => {
-    const arr = dataurl.split(",");
-    const mime = arr[0].match(/:(.*?);/)![1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
+    try {
+      const arr = dataurl.split(",");
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      if (!mimeMatch) {
+        throw new Error("Invalid data URL format");
+      }
+      const mime = mimeMatch[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename, { type: mime });
+    } catch (error) {
+      throw new Error(
+        `Failed to convert data URL to file: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
-    return new File([u8arr], filename, { type: mime });
   };
 
   // Helper function to check clipboard support
   const isClipboardSupported = () => {
     return navigator.clipboard && navigator.clipboard.read;
-  };
-
-  // Helper function to handle screen capture errors gracefully
-  const handleScreenCaptureError = (error: unknown, action: string) => {
-    if (error instanceof Error) {
-      if (error.name === "NotAllowedError") {
-        console.log(`${action} permission denied by user`);
-        toast.error(
-          `${action} permission denied. Please allow screen sharing to use this feature.`,
-          {
-            duration: 4000,
-            position: "top-center",
-          }
-        );
-      } else if (
-        error.name === "AbortError" ||
-        error.name === "NotSupportedError"
-      ) {
-        console.log(`${action} cancelled or not supported`);
-        // User cancelled or browser doesn't support screen capture - no need to show error
-        return;
-      } else {
-        console.error(`Unexpected error during ${action}:`, error);
-        toast.error(
-          `${action} failed. Please try again or check your browser permissions.`,
-          {
-            duration: 4000,
-            position: "top-center",
-          }
-        );
-      }
-    } else {
-      console.error(`Unknown error during ${action}:`, error);
-      toast.error(`${action} failed. Please try again.`, {
-        duration: 4000,
-        position: "top-center",
-      });
-    }
   };
 
   // --- PASTE IMAGE FUNCTIONALITY ---
@@ -601,15 +785,15 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       setRealtimeOCRStream(stream);
       setRealtimeOCROpen(true);
     } catch (error) {
-      console.error("Error accessing camera for real-time OCR:", error);
-      alert(
-        "Camera access denied. Please check your browser permissions and try again."
-      );
+      handleCameraError(error, "real-time OCR camera");
     }
   }, []);
 
   const startRealtimeOCR = useCallback(async () => {
-    if (!realtimeOCRVideoRef.current) return;
+    if (!realtimeOCRVideoRef.current) {
+      setError("realtimeOCR", "Video element not ready. Please try again.");
+      return;
+    }
 
     setRealtimeOCR(true);
     const video = realtimeOCRVideoRef.current;
@@ -689,6 +873,10 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                     }
                   } else {
                     console.error("OCR API returned error:", data.error);
+                    setError(
+                      "realtimeOCR",
+                      `OCR processing failed: ${data.error || "Unknown error"}`
+                    );
                   }
                 } else {
                   const errorText = await response.text();
@@ -697,9 +885,13 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                     response.status,
                     errorText
                   );
+                  setError(
+                    "realtimeOCR",
+                    `OCR API request failed: ${response.status} - ${errorText}`
+                  );
                 }
               } catch (error) {
-                console.error("Real-time OCR error:", error);
+                handleNetworkError(error, "real-time OCR");
               } finally {
                 setIsProcessingFrame(false);
               }
@@ -713,7 +905,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
 
     const interval = setInterval(processFrame, 2000); // Process every 2 seconds for better stability
     setOcrInterval(interval);
-  }, []);
+  }, [cameraSettings.correctCapture, cameraSettings.mirrorPreview]);
 
   const stopRealtimeOCR = useCallback(() => {
     setRealtimeOCR(false);
@@ -743,6 +935,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       const handleLoadedMetadata = () => {
         video.play().catch((error) => {
           console.error("Error playing camera video:", error);
+          handleCameraError(error, "video playback");
         });
       };
 
@@ -769,6 +962,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
           })
           .catch((error) => {
             console.error("Error playing real-time OCR video:", error);
+            handleCameraError(error, "real-time OCR video playback");
           });
       };
 
@@ -799,17 +993,39 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
   // --- MAIN FUNCTIONS ---
   const handleImageUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert("Please select a valid image file.");
+      setError(
+        "fileUpload",
+        "Please select a valid image file (JPEG, PNG, GIF, etc.)."
+      );
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Check file size (limit to 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError(
+        "fileUpload",
+        "File size too large. Please select an image smaller than 10MB."
+      );
+      return;
+    }
 
-    await processImageWithAI(file);
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.onerror = () => {
+        setError(
+          "fileUpload",
+          "Failed to read the image file. Please try again."
+        );
+      };
+      reader.readAsDataURL(file);
+
+      await processImageWithAI(file);
+    } catch (error) {
+      handleImageProcessingError(error, "file upload");
+    }
   };
 
   const processImageWithAI = async (file: File) => {
@@ -839,12 +1055,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         throw new Error(data.error || "Failed to extract text");
       }
     } catch (error) {
-      console.error("Error processing image:", error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Failed to process image. Please try again."
-      );
+      handleImageProcessingError(error, "image processing");
     } finally {
       setProcessingImage(false);
     }
@@ -900,14 +1111,44 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
 
   const startCamera = async () => {
     try {
+      // Check if we're in a browser environment and mediaDevices is available
+      if (!isBrowser) {
+        throw new Error(
+          "Please wait for the page to fully load before accessing the camera."
+        );
+      }
+
+      if (!navigator.mediaDevices) {
+        throw new Error(
+          "Camera access not supported in this environment. Please use a modern browser."
+        );
+      }
+
+      // Check if camera is available
+      if (!cameraAvailable) {
+        throw new Error(
+          "No camera devices found. Please ensure your camera is connected and not being used by another application."
+        );
+      }
+
+      // Check if camera permissions are already granted
+      const permissions = await navigator.permissions.query({
+        name: "camera" as PermissionName,
+      });
+      if (permissions.state === "denied") {
+        throw new Error(
+          "Camera access denied. Please enable camera permissions in your browser settings."
+        );
+      }
+
       // Try environment camera first, fallback to any available camera
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "environment",
-            width: { ideal: 1920, min: 1280 },
-            height: { ideal: 1080, min: 720 },
+            width: { ideal: 1280, min: 640 },
+            height: { ideal: 720, min: 480 },
             aspectRatio: { ideal: 16 / 9 },
           },
         });
@@ -916,22 +1157,27 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
           "Environment camera not available, trying any camera:",
           envError
         );
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1920, min: 1280 },
-            height: { ideal: 1080, min: 720 },
-            aspectRatio: { ideal: 16 / 9 },
-          },
-        });
+
+        // Try with minimal constraints first
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+        } catch {
+          // If minimal constraints fail, try with specific dimensions
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280, min: 640 },
+              height: { ideal: 720, min: 480 },
+            },
+          });
+        }
       }
 
       setCameraStream(stream);
       setCameraModalOpen(true);
     } catch (error) {
-      console.error("Error accessing camera:", error);
-      alert(
-        "Camera access denied. Please check your browser permissions and try again."
-      );
+      handleCameraError(error, "camera access");
     }
   };
 
@@ -946,15 +1192,25 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      toast.success("Text copied to clipboard!");
     } catch (error) {
       console.error("Failed to copy text to clipboard:", error);
       // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        toast.success("Text copied to clipboard!");
+      } catch (fallbackError) {
+        console.error("Fallback copy also failed:", fallbackError);
+        setError(
+          "general",
+          "Failed to copy text to clipboard. Please try selecting and copying manually."
+        );
+      }
     }
   };
 
@@ -1175,32 +1431,81 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                 {/* Photo Capture - Functional Card */}
                 <button
                   onClick={startCamera}
-                  disabled={processingImage}
-                  className="group relative p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-xl border border-green-500/30 hover:border-green-500/50 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                  disabled={
+                    processingImage || !cameraAvailable || cameraLoading
+                  }
+                  className={`group relative p-6 rounded-xl border transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left ${
+                    cameraLoading
+                      ? "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-500/30"
+                      : cameraAvailable
+                      ? "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-500/30 hover:border-green-500/50"
+                      : "bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20 border-gray-500/30"
+                  }`}
                 >
-                  <div className="absolute top-4 right-4 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <Camera className="w-8 h-8 text-white" />
+                  <div
+                    className={`absolute top-4 right-4 w-3 h-3 rounded-full ${
+                      cameraLoading
+                        ? "bg-blue-500 animate-pulse"
+                        : cameraAvailable
+                        ? "bg-green-500 animate-pulse"
+                        : "bg-gray-400"
+                    }`}
+                  ></div>
+                  <div
+                    className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg transition-transform duration-300 ${
+                      cameraLoading
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-500"
+                        : cameraAvailable
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500 group-hover:scale-110"
+                        : "bg-gradient-to-r from-gray-400 to-slate-400"
+                    }`}
+                  >
+                    {cameraLoading ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Camera className="w-8 h-8 text-white" />
+                    )}
                   </div>
                   <h3 className="font-bold text-lg text-foreground mb-3 text-center">
-                    Photo Capture
+                    {cameraLoading ? "Checking Camera..." : "Photo Capture"}
                   </h3>
                   <p className="text-sm text-muted-foreground text-center leading-relaxed">
-                    Take high-quality photos with your camera for precise OCR
-                    processing
+                    {cameraLoading
+                      ? "Detecting available camera devices..."
+                      : cameraAvailable
+                      ? "Take high-quality photos with your camera for precise OCR processing"
+                      : "Camera not available. Please ensure your camera is connected and permissions are granted."}
                   </p>
                   <div className="mt-4 flex justify-center">
                     <div className="flex gap-1">
                       <div
-                        className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+                        className={`w-2 h-2 rounded-full animate-bounce ${
+                          cameraLoading
+                            ? "bg-blue-500"
+                            : cameraAvailable
+                            ? "bg-green-500"
+                            : "bg-gray-400"
+                        }`}
                         style={{ animationDelay: "0ms" }}
                       ></div>
                       <div
-                        className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+                        className={`w-2 h-2 rounded-full animate-bounce ${
+                          cameraLoading
+                            ? "bg-blue-500"
+                            : cameraAvailable
+                            ? "bg-green-500"
+                            : "bg-gray-400"
+                        }`}
                         style={{ animationDelay: "150ms" }}
                       ></div>
                       <div
-                        className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+                        className={`w-2 h-2 rounded-full animate-bounce ${
+                          cameraLoading
+                            ? "bg-blue-500"
+                            : cameraAvailable
+                            ? "bg-green-500"
+                            : "bg-gray-400"
+                        }`}
                         style={{ animationDelay: "300ms" }}
                       ></div>
                     </div>
