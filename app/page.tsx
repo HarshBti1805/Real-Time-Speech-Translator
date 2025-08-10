@@ -269,9 +269,9 @@ export default function Home() {
       case "fileupload":
         // Return different heights based on file upload type
         if (fileUploadType === "audio") {
-          return "1607px";
+          return "2440px";
         } else if (fileUploadType === "video") {
-          return "1806px";
+          return "2680px";
         }
         // Default height when no file type is selected yet
         return "1604px";
