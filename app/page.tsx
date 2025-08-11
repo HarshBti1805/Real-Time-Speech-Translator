@@ -263,24 +263,24 @@ export default function Home() {
   const getSidebarHeight = () => {
     switch (activeComponent) {
       case "main":
-        return "1005px";
+        return "1085px";
       case "translate":
         return "1222px";
       case "fileupload":
         // Return different heights based on file upload type
         if (fileUploadType === "audio") {
-          return "2440px";
+          return "2515px";
         } else if (fileUploadType === "video") {
-          return "2680px";
+          return "2754px";
         }
         // Default height when no file type is selected yet
         return "1604px";
       case "voicerecording":
         // Return different heights based on voice recording tab
         if (voiceRecordingTab === "visual") {
-          return "1483px";
+          return "1829px";
         } else if (voiceRecordingTab === "pdf") {
-          return "1874px";
+          return "2732px";
         }
         // Default height when no tab is selected yet
         return "1545px";
