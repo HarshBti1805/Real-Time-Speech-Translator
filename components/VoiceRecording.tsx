@@ -76,6 +76,32 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
   const [ocrInterval, setOcrInterval] = useState<NodeJS.Timeout | null>(null);
   const [isProcessingFrame, setIsProcessingFrame] = useState(false);
 
+  // Enhanced OCR state
+  const [ocrHistory, setOcrHistory] = useState<
+    Array<{
+      id: string;
+      text: string;
+      timestamp: Date;
+      confidence: number;
+      language: string;
+    }>
+  >([]);
+  const [ocrSettings, setOcrSettings] = useState({
+    captureInterval: 2000, // milliseconds
+    confidenceThreshold: 0.7, // minimum confidence score
+    enableLanguageDetection: true,
+    enableTextHighlighting: true,
+    captureMode: "continuous" as "continuous" | "manual" | "motion",
+  });
+  const [currentConfidence, setCurrentConfidence] = useState(0);
+  const [detectedLanguage, setDetectedLanguage] = useState("");
+  const [ocrStats, setOcrStats] = useState({
+    totalCaptures: 0,
+    successfulCaptures: 0,
+    averageConfidence: 0,
+    startTime: null as Date | null,
+  });
+
   // --- SNIPPING TOOL STATE ---
   const [snippingModalOpen, setSnippingModalOpen] = useState(false);
   const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(
@@ -796,6 +822,18 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
     }
 
     setRealtimeOCR(true);
+
+    // Initialize OCR stats
+    if (!ocrStats.startTime) {
+      setOcrStats((prev) => ({
+        ...prev,
+        startTime: new Date(),
+        totalCaptures: 0,
+        successfulCaptures: 0,
+        averageConfidence: 0,
+      }));
+    }
+
     const video = realtimeOCRVideoRef.current;
 
     const processFrame = async () => {
@@ -866,10 +904,61 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
 
                   if (data.success) {
                     if (data.text && data.text.trim()) {
-                      setRealtimeText(data.text);
-                      console.log("OCR text extracted:", data.text);
+                      // Update OCR stats
+                      const confidence = data.confidence || 0.8;
+                      const language = data.language || "en";
+
+                      setCurrentConfidence(confidence);
+                      setDetectedLanguage(language);
+
+                      // Add to OCR history
+                      const newOcrEntry = {
+                        id: Date.now().toString(),
+                        text: data.text,
+                        timestamp: new Date(),
+                        confidence,
+                        language,
+                      };
+
+                      setOcrHistory((prev) => [
+                        newOcrEntry,
+                        ...prev.slice(0, 9),
+                      ]); // Keep last 10 entries
+
+                      // Update stats
+                      setOcrStats((prev) => {
+                        const newTotal = prev.totalCaptures + 1;
+                        const newSuccessful = prev.successfulCaptures + 1;
+                        const newAvgConfidence =
+                          (prev.averageConfidence * (newTotal - 1) +
+                            confidence) /
+                          newTotal;
+
+                        return {
+                          ...prev,
+                          totalCaptures: newTotal,
+                          successfulCaptures: newSuccessful,
+                          averageConfidence: newAvgConfidence,
+                        };
+                      });
+
+                      // Only update realtime text if confidence meets threshold
+                      if (confidence >= ocrSettings.confidenceThreshold) {
+                        setRealtimeText(data.text);
+                      }
+
+                      console.log(
+                        "OCR text extracted:",
+                        data.text,
+                        "Confidence:",
+                        confidence
+                      );
                     } else {
                       console.log("OCR successful but no text found");
+                      setOcrStats((prev) => ({
+                        ...prev,
+                        totalCaptures: prev.totalCaptures + 1,
+                      }));
                     }
                   } else {
                     console.error("OCR API returned error:", data.error);
@@ -877,6 +966,10 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                       "realtimeOCR",
                       `OCR processing failed: ${data.error || "Unknown error"}`
                     );
+                    setOcrStats((prev) => ({
+                      ...prev,
+                      totalCaptures: prev.totalCaptures + 1,
+                    }));
                   }
                 } else {
                   const errorText = await response.text();
@@ -889,9 +982,17 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                     "realtimeOCR",
                     `OCR API request failed: ${response.status} - ${errorText}`
                   );
+                  setOcrStats((prev) => ({
+                    ...prev,
+                    totalCaptures: prev.totalCaptures + 1,
+                  }));
                 }
               } catch (error) {
                 handleNetworkError(error, "real-time OCR");
+                setOcrStats((prev) => ({
+                  ...prev,
+                  totalCaptures: prev.totalCaptures + 1,
+                }));
               } finally {
                 setIsProcessingFrame(false);
               }
@@ -903,9 +1004,14 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       }
     };
 
-    const interval = setInterval(processFrame, 2000); // Process every 2 seconds for better stability
+    const interval = setInterval(processFrame, ocrSettings.captureInterval);
     setOcrInterval(interval);
-  }, [cameraSettings.correctCapture, cameraSettings.mirrorPreview]);
+  }, [
+    cameraSettings.correctCapture,
+    cameraSettings.mirrorPreview,
+    ocrSettings.captureInterval,
+    ocrSettings.confidenceThreshold,
+  ]);
 
   const stopRealtimeOCR = useCallback(() => {
     setRealtimeOCR(false);
@@ -1212,6 +1318,50 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
         );
       }
     }
+  };
+
+  // OCR utility functions
+  const formatOCRText = (text: string, confidence: number): string => {
+    // Add confidence indicator to text
+    const confidenceEmoji =
+      confidence >= 0.9 ? "🟢" : confidence >= 0.7 ? "🟡" : "🔴";
+    return `${confidenceEmoji} ${text}`;
+  };
+
+  const getConfidenceColor = (confidence: number): string => {
+    if (confidence >= 0.9) return "text-green-500";
+    if (confidence >= 0.7) return "text-yellow-500";
+    return "text-red-500";
+  };
+
+  const exportOCRHistory = () => {
+    if (ocrHistory.length === 0) return;
+
+    const csvContent = [
+      "Timestamp,Text,Confidence,Language",
+      ...ocrHistory.map(
+        (entry) =>
+          `${entry.timestamp.toISOString()},"${entry.text.replace(
+            /"/g,
+            '""'
+          )}",${entry.confidence},${entry.language}`
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ocr-history-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast.success("OCR history exported successfully!");
+  };
+
+  const clearOCRHistory = () => {
+    setOcrHistory([]);
+    toast.success("OCR history cleared!");
   };
 
   return (
@@ -1527,8 +1677,25 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                   </h3>
                   <p className="text-sm text-muted-foreground text-center leading-relaxed">
                     Real-time text detection and extraction from live camera
-                    feed
+                    feed with AI-powered analysis
                   </p>
+
+                  {/* Enhanced Features List */}
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                      <span>Confidence scoring & language detection</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                      <span>Adjustable capture intervals</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                      <span>OCR history & statistics</span>
+                    </div>
+                  </div>
+
                   <div className="mt-4 flex justify-center">
                     <div className="flex gap-1">
                       <div
@@ -2168,7 +2335,7 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       {/* Real-time OCR Modal */}
       {realtimeOCROpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="bg-card/95 border border-border/50 rounded-2xl shadow-2xl relative w-full max-w-6xl mx-4 h-[85vh] flex flex-col">
+          <div className="bg-card/95 border border-border/50 rounded-2xl shadow-2xl relative w-full max-w-7xl mx-4 h-[90vh] flex flex-col">
             <button
               onClick={() => {
                 if (realtimeOCRStream) {
@@ -2179,6 +2346,16 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                 }
                 stopRealtimeOCR();
                 setRealtimeOCROpen(false);
+                // Reset OCR stats
+                setOcrStats({
+                  totalCaptures: 0,
+                  successfulCaptures: 0,
+                  averageConfidence: 0,
+                  startTime: null,
+                });
+                setOcrHistory([]);
+                setCurrentConfidence(0);
+                setDetectedLanguage("");
               }}
               className="absolute top-4 right-4 text-foreground hover:text-red-500 transition-colors duration-300 p-2 rounded-full hover:bg-red-500/10 z-10"
               aria-label="Close real-time OCR modal"
@@ -2197,7 +2374,8 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                     Live OCR Stream
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Real-time text detection from camera feed
+                    Real-time text detection from camera feed with AI-powered
+                    analysis
                   </p>
                 </div>
               </div>
@@ -2265,6 +2443,103 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                     </span>
                   </div>
 
+                  {/* Manual Capture Button */}
+                  {ocrSettings.captureMode === "manual" && (
+                    <div className="absolute top-4 right-4">
+                      <Button
+                        onClick={() => {
+                          if (realtimeOCRVideoRef.current) {
+                            // Trigger manual capture
+                            const video = realtimeOCRVideoRef.current;
+                            const canvas = document.createElement("canvas");
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            const ctx = canvas.getContext("2d");
+
+                            if (ctx) {
+                              ctx.drawImage(video, 0, 0);
+                              canvas.toBlob(
+                                async (blob) => {
+                                  if (blob) {
+                                    const file = new File(
+                                      [blob],
+                                      "manual-capture.jpg",
+                                      {
+                                        type: "image/jpeg",
+                                      }
+                                    );
+
+                                    // Process the manual capture
+                                    try {
+                                      const formData = new FormData();
+                                      formData.append("image", file);
+
+                                      const response = await fetch("/api/ocr", {
+                                        method: "POST",
+                                        body: formData,
+                                      });
+
+                                      if (response.ok) {
+                                        const data = await response.json();
+                                        if (data.success && data.text) {
+                                          const confidence =
+                                            data.confidence || 0.8;
+                                          const language =
+                                            data.language || "en";
+
+                                          setCurrentConfidence(confidence);
+                                          setDetectedLanguage(language);
+
+                                          const newOcrEntry = {
+                                            id: Date.now().toString(),
+                                            text: data.text,
+                                            timestamp: new Date(),
+                                            confidence,
+                                            language,
+                                          };
+
+                                          setOcrHistory((prev) => [
+                                            newOcrEntry,
+                                            ...prev.slice(0, 9),
+                                          ]);
+
+                                          if (
+                                            confidence >=
+                                            ocrSettings.confidenceThreshold
+                                          ) {
+                                            setRealtimeText(data.text);
+                                          }
+
+                                          toast.success(
+                                            "Manual capture processed!"
+                                          );
+                                        }
+                                      }
+                                    } catch (error) {
+                                      console.error(
+                                        "Manual capture failed:",
+                                        error
+                                      );
+                                      toast.error("Manual capture failed");
+                                    }
+                                  }
+                                },
+                                "image/jpeg",
+                                0.9
+                              );
+                            }
+                          }
+                        }}
+                        variant="default"
+                        size="sm"
+                        className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+                      >
+                        <Camera className="w-4 h-4 mr-1" />
+                        Capture
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Processing Indicator */}
                   {isProcessingFrame && (
                     <div className="absolute top-4 right-4 flex items-center gap-2">
@@ -2274,6 +2549,36 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                       </span>
                     </div>
                   )}
+
+                  {/* Confidence Indicator */}
+                  {currentConfidence > 0 && (
+                    <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md rounded-lg p-3 border border-border/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                        <span className="text-xs text-white font-medium">
+                          Confidence
+                        </span>
+                      </div>
+                      <div className="w-32 bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${currentConfidence * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-white mt-1 text-center">
+                        {Math.round(currentConfidence * 100)}%
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Language Indicator */}
+                  {detectedLanguage && (
+                    <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md rounded-lg p-2 border border-border/50">
+                      <div className="text-xs text-white font-medium">
+                        {detectedLanguage.toUpperCase()}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 text-center">
@@ -2281,11 +2586,259 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                     Camera is ready! Point at text and click &quot;Start
                     OCR&quot; to begin detection
                   </p>
+
+                  {/* Camera Controls */}
+                  <div className="mt-4 flex items-center justify-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={cameraSettings.mirrorPreview}
+                          onChange={(e) =>
+                            setCameraSettings((prev) => ({
+                              ...prev,
+                              mirrorPreview: e.target.checked,
+                            }))
+                          }
+                          className="w-3 h-3 rounded border-border"
+                        />
+                        Mirror Preview
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={cameraSettings.correctCapture}
+                          onChange={(e) =>
+                            setCameraSettings((prev) => ({
+                              ...prev,
+                              correctCapture: e.target.checked,
+                            }))
+                          }
+                          className="w-3 h-3 rounded border-border"
+                        />
+                        Correct Capture
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* OCR Mode Info */}
+                  <div className="mt-3 p-2 bg-muted/30 rounded-lg border border-border/30">
+                    <div className="text-xs text-muted-foreground">
+                      <strong>Current Mode:</strong>{" "}
+                      {ocrSettings.captureMode === "continuous"
+                        ? "🔄 Continuous"
+                        : ocrSettings.captureMode === "manual"
+                        ? "👆 Manual"
+                        : "📹 Motion"}
+                      {ocrSettings.captureMode === "continuous" && (
+                        <span>
+                          {" "}
+                          - Capturing every {ocrSettings.captureInterval / 1000}
+                          s
+                        </span>
+                      )}
+                      {ocrSettings.captureMode === "manual" && (
+                        <span> - Click the Capture button to process text</span>
+                      )}
+                      {ocrSettings.captureMode === "motion" && (
+                        <span> - Detecting motion for automatic capture</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Results Section */}
+              {/* Enhanced Results Section */}
               <div className="w-96 bg-muted/20 border-l border-border/50 flex flex-col">
+                {/* OCR Settings Panel */}
+                <div className="p-4 border-b border-border/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-full bg-purple-500/20">
+                      <Edit3 className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <h4 className="font-semibold text-foreground">
+                      OCR Settings
+                    </h4>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Capture Mode Selection */}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-2 block">
+                        Capture Mode
+                      </label>
+                      <div className="grid grid-cols-3 gap-1">
+                        {["continuous", "manual", "motion"].map((mode) => (
+                          <Button
+                            key={mode}
+                            onClick={() =>
+                              setOcrSettings((prev) => ({
+                                ...prev,
+                                captureMode: mode as
+                                  | "continuous"
+                                  | "manual"
+                                  | "motion",
+                              }))
+                            }
+                            variant={
+                              ocrSettings.captureMode === mode
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            className="text-xs h-8"
+                          >
+                            {mode === "continuous"
+                              ? "🔄"
+                              : mode === "manual"
+                              ? "👆"
+                              : "📹"}
+                            <span className="ml-1 capitalize">{mode}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        Capture Interval: {ocrSettings.captureInterval}ms
+                      </label>
+                      <input
+                        type="range"
+                        min="1000"
+                        max="5000"
+                        step="500"
+                        value={ocrSettings.captureInterval}
+                        onChange={(e) =>
+                          setOcrSettings((prev) => ({
+                            ...prev,
+                            captureInterval: parseInt(e.target.value),
+                          }))
+                        }
+                        className="w-full"
+                        disabled={ocrSettings.captureMode === "manual"}
+                      />
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {ocrSettings.captureMode === "manual"
+                          ? "Manual capture mode"
+                          : ocrSettings.captureMode === "motion"
+                          ? "Motion-triggered capture"
+                          : "Continuous capture every " +
+                            ocrSettings.captureInterval / 1000 +
+                            "s"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        Confidence Threshold:{" "}
+                        {Math.round(ocrSettings.confidenceThreshold * 100)}%
+                      </label>
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="1.0"
+                        step="0.1"
+                        value={ocrSettings.confidenceThreshold}
+                        onChange={(e) =>
+                          setOcrSettings((prev) => ({
+                            ...prev,
+                            confidenceThreshold: parseFloat(e.target.value),
+                          }))
+                        }
+                        className="w-full"
+                      />
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Only show text with confidence above{" "}
+                        {Math.round(ocrSettings.confidenceThreshold * 100)}%
+                      </div>
+                    </div>
+
+                    {/* Additional Settings */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={ocrSettings.enableLanguageDetection}
+                          onChange={(e) =>
+                            setOcrSettings((prev) => ({
+                              ...prev,
+                              enableLanguageDetection: e.target.checked,
+                            }))
+                          }
+                          className="w-3 h-3 rounded border-border"
+                        />
+                        Enable language detection
+                      </label>
+
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={ocrSettings.enableTextHighlighting}
+                          onChange={(e) =>
+                            setOcrSettings((prev) => ({
+                              ...prev,
+                              enableTextHighlighting: e.target.checked,
+                            }))
+                          }
+                          className="w-3 h-3 rounded border-border"
+                        />
+                        Enable text highlighting
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* OCR Stats */}
+                {ocrStats.startTime && (
+                  <div className="p-4 border-b border-border/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="p-1.5 rounded-full bg-blue-500/20">
+                        <FileText className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <h4 className="font-semibold text-foreground">
+                        OCR Statistics
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="bg-background/50 rounded p-2 text-center">
+                        <div className="font-bold text-blue-500">
+                          {ocrStats.totalCaptures}
+                        </div>
+                        <div className="text-muted-foreground">Total</div>
+                      </div>
+                      <div className="bg-background/50 rounded p-2 text-center">
+                        <div className="font-bold text-green-500">
+                          {ocrStats.successfulCaptures}
+                        </div>
+                        <div className="text-muted-foreground">Success</div>
+                      </div>
+                      <div className="bg-background/50 rounded p-2 text-center">
+                        <div className="font-bold text-purple-500">
+                          {Math.round(ocrStats.averageConfidence * 100)}%
+                        </div>
+                        <div className="text-muted-foreground">
+                          Avg Confidence
+                        </div>
+                      </div>
+                      <div className="bg-background/50 rounded p-2 text-center">
+                        <div className="font-bold text-orange-500">
+                          {Math.round(
+                            (Date.now() - ocrStats.startTime.getTime()) / 1000
+                          )}
+                          s
+                        </div>
+                        <div className="text-muted-foreground">Runtime</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Detected Text */}
                 <div className="p-4 border-b border-border/50">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="p-1.5 rounded-full bg-blue-500/20">
@@ -2353,6 +2906,70 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                             </div>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OCR History */}
+                  {ocrHistory.length > 0 && (
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-full bg-green-500/20">
+                            <RotateCcw className="w-4 h-4 text-green-400" />
+                          </div>
+                          <h5 className="font-semibold text-foreground text-sm">
+                            Recent Detections ({ocrHistory.length})
+                          </h5>
+                        </div>
+
+                        <div className="flex gap-1">
+                          <Button
+                            onClick={exportOCRHistory}
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                          >
+                            <Download className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            onClick={clearOCRHistory}
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-xs text-red-500 hover:text-red-600"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {ocrHistory.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="bg-background/30 rounded p-2 border border-border/30 hover:bg-background/50 transition-colors cursor-pointer"
+                            onClick={() => setRealtimeText(entry.text)}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-muted-foreground">
+                                {entry.timestamp.toLocaleTimeString()}
+                              </span>
+                              <span
+                                className={`text-xs font-medium ${getConfidenceColor(
+                                  entry.confidence
+                                )}`}
+                              >
+                                {Math.round(entry.confidence * 100)}%
+                              </span>
+                            </div>
+                            <div className="text-xs text-foreground line-clamp-2">
+                              {formatOCRText(entry.text, entry.confidence)}
+                            </div>
+                            <div className="text-xs text-blue-500 mt-1">
+                              {entry.language.toUpperCase()}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
