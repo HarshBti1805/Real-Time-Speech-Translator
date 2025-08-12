@@ -4,7 +4,6 @@ interface OTPData {
   otp: string;
   email: string;
   name: string;
-  password: string;
   expiresAt: number;
 }
 
