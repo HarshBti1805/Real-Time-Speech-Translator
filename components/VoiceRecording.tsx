@@ -821,6 +821,37 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       return;
     }
 
+    const video = realtimeOCRVideoRef.current;
+
+    // Check if video is actually playing and has valid dimensions
+    if (
+      video.readyState < 2 ||
+      video.videoWidth === 0 ||
+      video.videoHeight === 0
+    ) {
+      console.log("Video not ready, waiting for metadata...", {
+        readyState: video.readyState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+      });
+
+      // Wait for video to be ready
+      const waitForVideo = () => {
+        if (
+          video.readyState >= 2 &&
+          video.videoWidth > 0 &&
+          video.videoHeight > 0
+        ) {
+          console.log("Video is now ready, starting OCR...");
+          startRealtimeOCR();
+        } else {
+          setTimeout(waitForVideo, 100);
+        }
+      };
+      waitForVideo();
+      return;
+    }
+
     setRealtimeOCR(true);
 
     // Initialize OCR stats
@@ -834,15 +865,23 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       }));
     }
 
-    const video = realtimeOCRVideoRef.current;
+    console.log("Starting real-time OCR with video dimensions:", {
+      width: video.videoWidth,
+      height: video.videoHeight,
+    });
 
     const processFrame = async () => {
       if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
-        console.log("Video not ready:", {
+        console.log("Video not ready in processFrame:", {
           video: !!video,
           videoWidth: video?.videoWidth,
           videoHeight: video?.videoHeight,
         });
+        return;
+      }
+
+      if (isProcessingFrame) {
+        console.log("Skipping frame - already processing");
         return;
       }
 
@@ -853,154 +892,173 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
 
       setIsProcessingFrame(true);
 
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
 
-      if (ctx) {
-        if (cameraSettings.correctCapture && cameraSettings.mirrorPreview) {
-          // Correct the mirroring for the captured frame
-          ctx.save();
-          ctx.scale(-1, 1); // Flip horizontally to correct mirroring
-          ctx.drawImage(
-            video,
-            -video.videoWidth,
-            0,
-            video.videoWidth,
-            video.videoHeight
-          );
-          ctx.restore();
-        } else {
-          // Draw normally without correction
-          ctx.drawImage(video, 0, 0);
-        }
-        canvas.toBlob(
-          async (blob) => {
-            if (blob) {
-              try {
-                // Create a File object from the blob
-                const file = new File([blob], "camera-frame.jpg", {
-                  type: "image/jpeg",
-                });
+        if (ctx) {
+          // Clear canvas first
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                console.log("Sending frame to OCR API, file size:", file.size);
+          if (cameraSettings.correctCapture && cameraSettings.mirrorPreview) {
+            // Correct the mirroring for the captured frame
+            ctx.save();
+            ctx.scale(-1, 1); // Flip horizontally to correct mirroring
+            ctx.drawImage(
+              video,
+              -video.videoWidth,
+              0,
+              video.videoWidth,
+              video.videoHeight
+            );
+            ctx.restore();
+          } else {
+            // Draw normally without correction
+            ctx.drawImage(video, 0, 0);
+          }
 
-                // Create FormData and append the file
-                const formData = new FormData();
-                formData.append("image", file);
+          canvas.toBlob(
+            async (blob) => {
+              if (blob) {
+                try {
+                  // Create a File object from the blob
+                  const file = new File([blob], "camera-frame.jpg", {
+                    type: "image/jpeg",
+                  });
 
-                const response = await fetch("/api/ocr", {
-                  method: "POST",
-                  body: formData,
-                  // Don't set Content-Type header - let browser set it with boundary for FormData
-                });
+                  console.log(
+                    "Sending frame to OCR API, file size:",
+                    file.size
+                  );
 
-                console.log("OCR API response status:", response.status);
+                  // Create FormData and append the file
+                  const formData = new FormData();
+                  formData.append("image", file);
 
-                if (response.ok) {
-                  const data = await response.json();
-                  console.log("OCR API response data:", data);
+                  const response = await fetch("/api/ocr", {
+                    method: "POST",
+                    body: formData,
+                  });
 
-                  if (data.success) {
-                    if (data.text && data.text.trim()) {
-                      // Update OCR stats
-                      const confidence = data.confidence || 0.8;
-                      const language = data.language || "en";
+                  console.log("OCR API response status:", response.status);
 
-                      setCurrentConfidence(confidence);
-                      setDetectedLanguage(language);
+                  if (response.ok) {
+                    const data = await response.json();
+                    console.log("OCR API response data:", data);
 
-                      // Add to OCR history
-                      const newOcrEntry = {
-                        id: Date.now().toString(),
-                        text: data.text,
-                        timestamp: new Date(),
-                        confidence,
-                        language,
-                      };
+                    if (data.success) {
+                      if (data.text && data.text.trim()) {
+                        // Update OCR stats
+                        const confidence = data.confidence || 0.8;
+                        const language = data.language || "en";
 
-                      setOcrHistory((prev) => [
-                        newOcrEntry,
-                        ...prev.slice(0, 9),
-                      ]); // Keep last 10 entries
+                        setCurrentConfidence(confidence);
+                        setDetectedLanguage(language);
 
-                      // Update stats
-                      setOcrStats((prev) => {
-                        const newTotal = prev.totalCaptures + 1;
-                        const newSuccessful = prev.successfulCaptures + 1;
-                        const newAvgConfidence =
-                          (prev.averageConfidence * (newTotal - 1) +
-                            confidence) /
-                          newTotal;
-
-                        return {
-                          ...prev,
-                          totalCaptures: newTotal,
-                          successfulCaptures: newSuccessful,
-                          averageConfidence: newAvgConfidence,
+                        // Add to OCR history
+                        const newOcrEntry = {
+                          id: Date.now().toString(),
+                          text: data.text,
+                          timestamp: new Date(),
+                          confidence,
+                          language,
                         };
-                      });
 
-                      // Only update realtime text if confidence meets threshold
-                      if (confidence >= ocrSettings.confidenceThreshold) {
-                        setRealtimeText(data.text);
+                        setOcrHistory((prev) => [
+                          newOcrEntry,
+                          ...prev.slice(0, 9),
+                        ]); // Keep last 10 entries
+
+                        // Update stats
+                        setOcrStats((prev) => {
+                          const newTotal = prev.totalCaptures + 1;
+                          const newSuccessful = prev.successfulCaptures + 1;
+                          const newAvgConfidence =
+                            (prev.averageConfidence * (newTotal - 1) +
+                              confidence) /
+                            newTotal;
+
+                          return {
+                            ...prev,
+                            totalCaptures: newTotal,
+                            successfulCaptures: newSuccessful,
+                            averageConfidence: newAvgConfidence,
+                          };
+                        });
+
+                        // Only update realtime text if confidence meets threshold
+                        if (confidence >= ocrSettings.confidenceThreshold) {
+                          setRealtimeText(data.text);
+                        }
+
+                        console.log(
+                          "OCR text extracted:",
+                          data.text,
+                          "Confidence:",
+                          confidence
+                        );
+                      } else {
+                        console.log("OCR successful but no text found");
+                        setOcrStats((prev) => ({
+                          ...prev,
+                          totalCaptures: prev.totalCaptures + 1,
+                        }));
                       }
-
-                      console.log(
-                        "OCR text extracted:",
-                        data.text,
-                        "Confidence:",
-                        confidence
-                      );
                     } else {
-                      console.log("OCR successful but no text found");
+                      console.error("OCR API returned error:", data.error);
+                      setError(
+                        "realtimeOCR",
+                        `OCR processing failed: ${
+                          data.error || "Unknown error"
+                        }`
+                      );
                       setOcrStats((prev) => ({
                         ...prev,
                         totalCaptures: prev.totalCaptures + 1,
                       }));
                     }
                   } else {
-                    console.error("OCR API returned error:", data.error);
+                    const errorText = await response.text();
+                    console.error(
+                      "OCR API request failed:",
+                      response.status,
+                      errorText
+                    );
                     setError(
                       "realtimeOCR",
-                      `OCR processing failed: ${data.error || "Unknown error"}`
+                      `OCR API request failed: ${response.status} - ${errorText}`
                     );
                     setOcrStats((prev) => ({
                       ...prev,
                       totalCaptures: prev.totalCaptures + 1,
                     }));
                   }
-                } else {
-                  const errorText = await response.text();
-                  console.error(
-                    "OCR API request failed:",
-                    response.status,
-                    errorText
-                  );
-                  setError(
-                    "realtimeOCR",
-                    `OCR API request failed: ${response.status} - ${errorText}`
-                  );
+                } catch (error) {
+                  handleNetworkError(error, "real-time OCR");
                   setOcrStats((prev) => ({
                     ...prev,
                     totalCaptures: prev.totalCaptures + 1,
                   }));
+                } finally {
+                  setIsProcessingFrame(false);
                 }
-              } catch (error) {
-                handleNetworkError(error, "real-time OCR");
-                setOcrStats((prev) => ({
-                  ...prev,
-                  totalCaptures: prev.totalCaptures + 1,
-                }));
-              } finally {
+              } else {
+                console.error("Failed to create blob from canvas");
                 setIsProcessingFrame(false);
               }
-            }
-          },
-          "image/jpeg",
-          0.8
-        );
+            },
+            "image/jpeg",
+            0.8
+          );
+        } else {
+          console.error("Failed to get canvas context");
+          setIsProcessingFrame(false);
+        }
+      } catch (error) {
+        console.error("Error in processFrame:", error);
+        setIsProcessingFrame(false);
       }
     };
 
@@ -1060,11 +1118,26 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
       video.srcObject = realtimeOCRStream;
 
       const handleLoadedMetadata = () => {
+        console.log("Real-time OCR video metadata loaded:", {
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          readyState: video.readyState,
+        });
+
         video
           .play()
           .then(() => {
-            console.log("Real-time OCR video started playing");
-            // Don't auto-start OCR - let user manually start it
+            console.log("Real-time OCR video started playing successfully");
+            // Ensure video is fully ready before allowing OCR to start
+            if (
+              video.readyState >= 2 &&
+              video.videoWidth > 0 &&
+              video.videoHeight > 0
+            ) {
+              console.log("Video is fully ready for OCR processing");
+            } else {
+              console.log("Video not fully ready yet, waiting...");
+            }
           })
           .catch((error) => {
             console.error("Error playing real-time OCR video:", error);
@@ -1072,10 +1145,30 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
           });
       };
 
+      const handleCanPlay = () => {
+        console.log("Real-time OCR video can play:", {
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          readyState: video.readyState,
+        });
+      };
+
+      const handlePlaying = () => {
+        console.log("Real-time OCR video is now playing:", {
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          readyState: video.readyState,
+        });
+      };
+
       video.addEventListener("loadedmetadata", handleLoadedMetadata);
+      video.addEventListener("canplay", handleCanPlay);
+      video.addEventListener("playing", handlePlaying);
 
       return () => {
         video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        video.removeEventListener("canplay", handleCanPlay);
+        video.removeEventListener("playing", handlePlaying);
       };
     }
   }, [realtimeOCRStream]);
@@ -2429,23 +2522,54 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
                       className={`w-3 h-3 rounded-full ${
                         realtimeOCR
                           ? "bg-green-500 animate-pulse"
-                          : "bg-blue-500"
+                          : realtimeOCRVideoRef.current?.readyState &&
+                            realtimeOCRVideoRef.current.readyState >= 2
+                          ? "bg-blue-500"
+                          : "bg-yellow-500 animate-pulse"
                       }`}
                     ></div>
                     <span
                       className={`text-sm font-medium px-3 py-1 rounded-full backdrop-blur-md ${
                         realtimeOCR
                           ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                          : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          : realtimeOCRVideoRef.current?.readyState &&
+                            realtimeOCRVideoRef.current.readyState >= 2
+                          ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          : "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
                       }`}
                     >
-                      {realtimeOCR ? "OCR Active" : "Camera Ready"}
+                      {realtimeOCR
+                        ? "OCR Active"
+                        : realtimeOCRVideoRef.current?.readyState &&
+                          realtimeOCRVideoRef.current.readyState >= 2
+                        ? "Camera Ready"
+                        : "Initializing Camera..."}
                     </span>
                   </div>
 
+                  {/* Video Status Indicator */}
+                  {realtimeOCRVideoRef.current && (
+                    <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md rounded-lg p-2 border border-border/50">
+                      <div className="text-xs text-white font-medium">
+                        Video:{" "}
+                        {realtimeOCRVideoRef.current.readyState &&
+                        realtimeOCRVideoRef.current.readyState >= 2
+                          ? "Ready"
+                          : "Loading..."}
+                      </div>
+                      {realtimeOCRVideoRef.current.videoWidth &&
+                        realtimeOCRVideoRef.current.videoWidth > 0 && (
+                          <div className="text-xs text-white/80">
+                            {realtimeOCRVideoRef.current.videoWidth}×
+                            {realtimeOCRVideoRef.current.videoHeight}
+                          </div>
+                        )}
+                    </div>
+                  )}
+
                   {/* Manual Capture Button */}
                   {ocrSettings.captureMode === "manual" && (
-                    <div className="absolute top-4 right-4">
+                    <div className="absolute top-16 right-4">
                       <Button
                         onClick={() => {
                           if (realtimeOCRVideoRef.current) {
@@ -2583,8 +2707,10 @@ export default function VoiceRecording({ onTabChange }: VoiceRecordingProps) {
 
                 <div className="mt-4 text-center">
                   <p className="text-sm text-muted-foreground">
-                    Camera is ready! Point at text and click &quot;Start
-                    OCR&quot; to begin detection
+                    {realtimeOCRVideoRef.current?.readyState &&
+                    realtimeOCRVideoRef.current.readyState >= 2
+                      ? 'Camera is ready! Point at text and click "Start OCR" to begin detection'
+                      : "Camera is initializing... Please wait for the video to load before starting OCR"}
                   </p>
 
                   {/* Camera Controls */}
