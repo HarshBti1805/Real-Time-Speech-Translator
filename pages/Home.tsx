@@ -79,6 +79,9 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
   // Check if system audio capture is supported
   useEffect(() => {
     const checkSystemAudioSupport = async () => {
+      // Only run this check in the browser
+      if (typeof window === "undefined") return;
+
       try {
         // Simple check if getDisplayMedia is available
         if (
@@ -1186,6 +1189,14 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
 
                       <Button
                         onClick={async () => {
+                          // Only run this in the browser
+                          if (typeof window === "undefined") {
+                            toast.error(
+                              "This feature is only available in the browser"
+                            );
+                            return;
+                          }
+
                           try {
                             toast.success(
                               "🧪 Testing System Audio Capture - Click OK to continue. A browser popup will appear. Look for 'Share system audio' option. If you see it, click Cancel to test. If you don't see it, your browser may not support it. This is just a test - no actual recording will start.",

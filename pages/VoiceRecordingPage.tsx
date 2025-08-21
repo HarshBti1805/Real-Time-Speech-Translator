@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import dynamic from "next/dynamic";
 import {
   Camera,
   Zap,
@@ -10,7 +11,21 @@ import {
   Languages,
   Brain,
 } from "lucide-react";
-import VoiceRecording from "@/components/VoiceRecording";
+
+// Dynamically import VoiceRecording with no SSR to prevent browser API errors
+const VoiceRecording = dynamic(() => import("@/components/VoiceRecording"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center p-12">
+      <div className="text-center space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <p className="text-muted-foreground">
+          Loading Voice Recording Component...
+        </p>
+      </div>
+    </div>
+  ),
+});
 
 interface VoiceRecordingPageProps {
   onTabChange?: (tab: "visual" | "pdf") => void;
