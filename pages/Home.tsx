@@ -20,6 +20,7 @@ import { TTSListenButton } from "@/components/ui/TTSListenButton";
 import { CustomAudioPlayer } from "@/components/ui/CustomAudioPlayer";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import toast from "react-hot-toast";
 
 // Type definitions
 interface TranslationResult {
@@ -299,28 +300,53 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
         // Capture system audio (Zoom, Google Meet, etc.)
         try {
           // Show user guidance before starting capture
-          const userConfirmed = confirm(
-            "🎯 System Audio Capture Setup:\n\n" +
-              "BEFORE clicking OK, make sure you have:\n" +
-              "• An active Zoom/Meet call, or\n" +
-              "• Music/video playing, or\n" +
-              "• Any audio source active\n\n" +
-              "Then click OK to start the capture process."
-          );
+          const userConfirmed = await new Promise<boolean>((resolve) => {
+            toast
+              .promise(
+                new Promise<boolean>((innerResolve) => {
+                  const confirmed = confirm(
+                    "🎯 System Audio Capture Setup:\n\n" +
+                      "BEFORE clicking OK, make sure you have:\n" +
+                      "• An active Zoom/Meet call, or\n" +
+                      "• Music/video playing, or\n" +
+                      "• Any audio source active\n\n" +
+                      "Then click OK to start the capture process."
+                  );
+                  innerResolve(confirmed);
+                }),
+                {
+                  loading: "Preparing system audio capture...",
+                  success: "Setup confirmed! Starting capture...",
+                  error: "Setup cancelled",
+                }
+              )
+              .then((result) => resolve(result as boolean));
+          });
 
           if (!userConfirmed) {
             console.log("User cancelled system audio capture");
+            toast.error("System audio capture cancelled");
             return;
           }
 
           // Show step-by-step guidance
-          alert(
-            "📋 Next Steps:\n\n" +
-              "1. A popup will appear asking what to share\n" +
-              "2. Choose 'Share system audio' (recommended)\n" +
-              "3. OR select a specific tab/window with audio\n" +
-              "4. Make sure the audio is playing and not muted\n\n" +
-              "Click OK to continue..."
+          toast.promise(
+            new Promise<void>((resolve) => {
+              setTimeout(() => {
+                toast.success(
+                  "📋 Next Steps - A popup will appear asking what to share. Choose 'Share system audio' (recommended) or select a specific tab/window with audio.",
+                  {
+                    duration: 5000,
+                  }
+                );
+                resolve();
+              }, 1000);
+            }),
+            {
+              loading: "Preparing capture interface...",
+              success: "Ready for selection!",
+              error: "Failed to prepare interface",
+            }
           );
 
           // Try different approaches for system audio capture
@@ -395,15 +421,12 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                     stream = systemAudioStream;
                     console.log("Using alternative audio capture method");
 
-                    // Show success message
-                    alert(
-                      "✅ Alternative audio capture started!\n\n" +
-                        "Using fallback method for system audio.\n" +
-                        "You should now see audio levels when there's sound.\n" +
-                        "If you don't see audio levels:\n" +
-                        "• Make sure audio is playing in the selected source\n" +
-                        "• Check that the audio isn't muted\n" +
-                        "• Try speaking or playing music to test"
+                    // Show success message with toast
+                    toast.success(
+                      "✅ Alternative Audio Capture Started! Using fallback method for system audio. You should now see audio levels when there's sound.",
+                      {
+                        duration: 6000,
+                      }
                     );
 
                     // Skip the rest of the function since we have a stream
@@ -499,44 +522,54 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
             console.log("System audio capture started successfully");
           }
 
-          // Show success message with next steps
-          alert(
-            "✅ System audio capture started!\n\n" +
-              "You should now see audio levels when there's sound.\n" +
-              "If you don't see audio levels:\n" +
-              "• Make sure audio is playing in the selected source\n" +
-              "• Check that the audio isn't muted\n" +
-              "• Try speaking or playing music to test"
+          // Show success message with toast
+          toast.success(
+            "✅ System Audio Capture Started! You should now see audio levels when there's sound. If you don't see audio levels, make sure audio is playing in the selected source.",
+            {
+              duration: 6000,
+            }
           );
         } catch (error) {
           console.error("Failed to capture system audio:", error);
 
-          let errorMessage = "Failed to capture system audio.\n\n";
+          let errorMessage = "Failed to capture system audio.";
+          let toastType: "error" | "warning" = "error";
 
           if (error instanceof Error) {
             if (error.name === "NotAllowedError") {
-              errorMessage +=
+              errorMessage =
                 "Permission denied. Please allow access when prompted.";
+              toastType = "warning";
             } else if (error.name === "NotFoundError") {
-              errorMessage +=
-                "No audio source found. Please make sure to:\n" +
-                "• Select 'Share system audio' or a specific tab/window\n" +
-                "• Choose a tab that has active audio (like Zoom, Google Meet)\n" +
-                "• Make sure the audio is playing/active";
+              errorMessage =
+                "No audio source found. Please make sure to select 'Share system audio' or a specific tab with audio.";
+              toastType = "warning";
             } else if (error.name === "NotSupportedError") {
-              errorMessage +=
+              errorMessage =
                 "Your browser doesn't support system audio capture.";
+              toastType = "error";
             } else {
-              errorMessage += `Error: ${error.message}`;
+              errorMessage = `Error: ${error.message}`;
+              toastType = "error";
             }
           } else {
-            errorMessage += "Unknown error occurred. Please try again.";
+            errorMessage = "Unknown error occurred. Please try again.";
+            toastType = "error";
           }
 
           errorMessage +=
             "\n\nTip: Try selecting 'Share system audio' instead of a specific tab.";
 
-          alert(errorMessage);
+          if (toastType === "error") {
+            toast.error("❌ System Audio Capture Failed - " + errorMessage, {
+              duration: 8000,
+            });
+          } else {
+            toast.error("⚠️ System Audio Capture Issue - " + errorMessage, {
+              duration: 8000,
+            });
+          }
+
           return;
         }
       } else {
@@ -975,21 +1008,30 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="bg-card/50 border-border backdrop-blur-sm shadow-lg">
-            <CardContent className="p-6">
-              <div className="text-center space-y-4">
-                <div className="flex items-center justify-center mb-4">
-                  <Headphones className="w-5 h-5 text-blue-400 mr-2" />
-                  <h3 className="text-lg font-semibold text-foreground">
+          <Card className="bg-gradient-to-br from-card/80 via-card/60 to-muted/20 border-border/50 backdrop-blur-xl shadow-2xl">
+            <CardContent className="p-8">
+              <div className="text-center space-y-6">
+                <motion.div
+                  className="flex items-center justify-center mb-6"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl animate-pulse"></div>
+                    <Headphones className="w-8 h-8 text-blue-400 relative z-10" />
+                  </div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent ml-3">
                     Audio Source
                   </h3>
-                </div>
+                </motion.div>
 
                 <div className="flex justify-center">
-                  <div className="bg-muted/50 rounded-lg p-1 flex backdrop-blur-sm border border-border/50">
+                  <div className="bg-gradient-to-r from-muted/30 via-muted/20 to-muted/30 rounded-2xl p-2 flex backdrop-blur-xl border border-border/30 shadow-inner">
                     <motion.div
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.98 }}
+                      className="relative"
                     >
                       <Button
                         onClick={() => setAudioSource("microphone")}
@@ -997,56 +1039,63 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                         variant={
                           audioSource === "microphone" ? "default" : "ghost"
                         }
-                        className={`transition-all duration-300 ${
+                        className={`transition-all duration-500 ${
                           audioSource === "microphone"
-                            ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                        }`}
+                            ? "bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 text-white shadow-2xl shadow-blue-500/30 border-0 px-8 py-4 text-lg font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50 px-8 py-4 text-lg font-medium border border-border/30"
+                        } rounded-xl`}
                       >
                         <motion.div
                           animate={{
                             scale:
                               audioSource === "microphone" ? [1, 1.1, 1] : 1,
+                            rotate:
+                              audioSource === "microphone" ? [0, 5, -5, 0] : 0,
                           }}
                           transition={{
-                            duration: 1.5,
+                            duration: 2,
                             repeat: audioSource === "microphone" ? Infinity : 0,
                           }}
+                          className="mr-3"
                         >
-                          <Mic className="w-4 h-4 mr-2" />
+                          <Mic className="w-5 h-5" />
                         </motion.div>
                         Microphone
                       </Button>
                     </motion.div>
 
                     <motion.div
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.98 }}
+                      className="relative ml-2"
                     >
                       <Button
                         onClick={() => setAudioSource("system")}
                         disabled={isRecording || !isSystemAudioSupported}
                         variant={audioSource === "system" ? "default" : "ghost"}
-                        className={`transition-all duration-300 ${
+                        className={`transition-all duration-500 ${
                           audioSource === "system"
-                            ? "bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg shadow-green-500/25"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                            ? "bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 text-white shadow-2xl shadow-emerald-500/30 border-0 px-8 py-4 text-lg font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50 px-8 py-4 text-lg font-medium border border-border/30"
                         } ${
                           !isSystemAudioSupported
                             ? "opacity-50 cursor-not-allowed"
                             : ""
-                        }`}
+                        } rounded-xl`}
                       >
                         <motion.div
                           animate={{
                             scale: audioSource === "system" ? [1, 1.1, 1] : 1,
+                            rotate:
+                              audioSource === "system" ? [0, -5, 5, 0] : 0,
                           }}
                           transition={{
-                            duration: 1.5,
+                            duration: 2,
                             repeat: audioSource === "system" ? Infinity : 0,
                           }}
+                          className="mr-3"
                         >
-                          <Monitor className="w-4 h-4 mr-2" />
+                          <Monitor className="w-5 h-5" />
                         </motion.div>
                         System Audio
                       </Button>
@@ -1056,184 +1105,180 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
 
                 {audioSource === "system" && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-sm text-muted-foreground bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 max-w-md mx-auto"
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-emerald-500/10 border border-blue-500/20 rounded-2xl p-6 max-w-2xl mx-auto backdrop-blur-sm"
                   >
-                    <div className="flex items-center justify-center mb-2">
-                      <Monitor className="w-4 h-4 text-blue-400 mr-2" />
-                      <span className="font-medium text-blue-300">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-lg animate-pulse"></div>
+                        <Monitor className="w-6 h-6 text-blue-400 relative z-10" />
+                      </div>
+                      <span className="font-bold text-blue-300 ml-3 text-lg">
                         System Audio Mode
                       </span>
                     </div>
-                    <p className="text-xs mb-2">
+                    <p className="text-sm text-blue-200/80 mb-4 leading-relaxed">
                       Select a tab or window with audio (Zoom, Google Meet,
                       etc.) when prompted. Works with both Standard and
                       Real-Time modes.
                     </p>
-                    <div className="text-xs bg-blue-500/20 p-2 rounded border border-blue-500/30">
-                      <strong>💡 Pro Tip:</strong> Choose &quot;Share system
-                      audio&quot; for best results, or select a specific tab
-                      that has active audio playing.
+                    <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 p-4 rounded-xl border border-blue-500/30">
+                      <div className="flex items-center justify-center mb-2">
+                        <span className="text-blue-300 text-lg">💡</span>
+                        <span className="font-semibold text-blue-200 ml-2">
+                          Pro Tip
+                        </span>
+                      </div>
+                      <p className="text-xs text-blue-200/80 text-center">
+                        Choose &quot;Share system audio&quot; for best results,
+                        or select a specific tab that has active audio playing.
+                      </p>
                     </div>
-                    <Button
-                      onClick={() => {
-                        alert(
-                          "🔧 System Audio Troubleshooting:\n\n" +
-                            "1. Make sure you have an active audio source (Zoom call, music playing, etc.)\n" +
-                            "2. When prompted, choose 'Share system audio' for best results\n" +
-                            "3. If that doesn't work, try selecting a specific tab with audio\n" +
-                            "4. Make sure the audio is actually playing (not muted)\n" +
-                            "5. Try refreshing the page if you encounter issues\n\n" +
-                            "💡 Tip: Start a Zoom call or play some music first, then try capturing."
-                        );
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 text-xs border-blue-500/30 text-blue-300 hover:bg-blue-500/20"
-                    >
-                      🔧 Need Help?
-                    </Button>
 
-                    <Button
-                      onClick={async () => {
-                        try {
-                          alert(
-                            "🧪 Testing System Audio Capture:\n\n" +
-                              "1. Click OK to continue\n" +
-                              "2. A browser popup will appear\n" +
-                              "3. Look for 'Share system audio' option\n" +
-                              "4. If you see it, click Cancel to test\n" +
-                              "5. If you don't see it, your browser may not support it\n\n" +
-                              "This is just a test - no actual recording will start."
+                    <div className="flex justify-center gap-3 mt-4">
+                      <Button
+                        onClick={() => {
+                          toast.success(
+                            "🔧 System Audio Troubleshooting - Make sure you have an active audio source (Zoom call, music playing, etc.). When prompted, choose 'Share system audio' for best results. If that doesn't work, try selecting a specific tab with audio. Make sure the audio is actually playing (not muted). Try refreshing the page if you encounter issues. Tip: Start a Zoom call or play some music first, then try capturing.",
+                            {
+                              duration: 8000,
+                            }
                           );
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="border-blue-500/30 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400/50 transition-all duration-300"
+                      >
+                        🔧 Need Help?
+                      </Button>
 
-                          // Try different approaches for testing
-                          let testStream: MediaStream;
-
+                      <Button
+                        onClick={async () => {
                           try {
-                            // First try: Standard audio constraints
-                            testStream =
-                              await navigator.mediaDevices.getDisplayMedia({
-                                video: false,
-                                audio: true,
-                              });
-                          } catch (error1) {
-                            console.log(
-                              "Standard test failed, trying alternative:",
-                              error1
+                            toast.success(
+                              "🧪 Testing System Audio Capture - Click OK to continue. A browser popup will appear. Look for 'Share system audio' option. If you see it, click Cancel to test. If you don't see it, your browser may not support it. This is just a test - no actual recording will start.",
+                              {
+                                duration: 6000,
+                              }
                             );
 
+                            // Try different approaches for testing
+                            let testStream: MediaStream;
+
                             try {
-                              // Second try: No audio constraints
+                              // First try: Standard audio constraints
                               testStream =
                                 await navigator.mediaDevices.getDisplayMedia({
                                   video: false,
-                                  audio: {},
+                                  audio: true,
                                 });
-                            } catch (error2) {
+                            } catch (error1) {
                               console.log(
-                                "Alternative test failed, trying video with audio:",
-                                error2
+                                "Standard test failed, trying alternative:",
+                                error1
                               );
 
                               try {
-                                // Third try: Video with audio
+                                // Second try: No audio constraints
                                 testStream =
                                   await navigator.mediaDevices.getDisplayMedia({
-                                    video: true,
-                                    audio: true,
+                                    video: false,
+                                    audio: {},
                                   });
-                              } catch (error3) {
+                              } catch (error2) {
                                 console.log(
-                                  "Video with audio test failed, trying minimal:",
-                                  error3
+                                  "Alternative test failed, trying video with audio:",
+                                  error2
                                 );
 
-                                // Fourth try: Minimal constraints
-                                testStream =
-                                  await navigator.mediaDevices.getDisplayMedia(
-                                    {}
+                                try {
+                                  // Third try: Video with audio
+                                  testStream =
+                                    await navigator.mediaDevices.getDisplayMedia(
+                                      {
+                                        video: true,
+                                        audio: true,
+                                      }
+                                    );
+                                } catch (error3) {
+                                  console.log(
+                                    "Video with audio test failed, trying minimal:",
+                                    error3
                                   );
+
+                                  // Fourth try: Minimal constraints
+                                  testStream =
+                                    await navigator.mediaDevices.getDisplayMedia(
+                                      {}
+                                    );
+                                }
                               }
                             }
-                          }
 
-                          // Stop the test stream immediately
-                          testStream
-                            .getTracks()
-                            .forEach((track) => track.stop());
+                            // Stop the test stream immediately
+                            testStream
+                              .getTracks()
+                              .forEach((track) => track.stop());
 
-                          alert(
-                            "✅ Test Successful!\n\n" +
-                              "Your browser supports system audio capture.\n" +
-                              "You should have seen options like:\n" +
-                              "• Share system audio\n" +
-                              "• Select specific tabs/windows\n\n" +
-                              "Now try the actual recording feature!"
-                          );
-                        } catch (error) {
-                          console.error("Test failed:", error);
-                          let errorMsg = "❌ Test Failed\n\n";
+                            toast.success(
+                              "✅ Test Successful! Your browser supports system audio capture. You should have seen options like 'Share system audio' and 'Select specific tabs/windows'. Now try the actual recording feature!",
+                              {
+                                duration: 6000,
+                              }
+                            );
+                          } catch (error) {
+                            console.error("Test failed:", error);
+                            let errorMsg = "❌ Test Failed - ";
 
-                          if (error instanceof Error) {
-                            if (error.name === "NotAllowedError") {
-                              errorMsg +=
-                                "Permission denied. This is normal for a test.\n\n";
-                              errorMsg +=
-                                "Your browser supports system audio capture!\n";
-                              errorMsg +=
-                                "Try the actual recording feature now.";
-                            } else if (error.name === "NotFoundError") {
-                              errorMsg +=
-                                "No audio source found. This is normal for a test.\n\n";
-                              errorMsg +=
-                                "Your browser supports system audio capture!\n";
-                              errorMsg +=
-                                "Try the actual recording feature with active audio.";
-                            } else if (error.name === "NotSupportedError") {
-                              errorMsg +=
-                                "Not supported error. This might be a browser limitation.\n\n";
-                              errorMsg +=
-                                "Try updating your browser or use Microphone mode instead.";
+                            if (error instanceof Error) {
+                              if (error.name === "NotAllowedError") {
+                                errorMsg +=
+                                  "Permission denied. This is normal for a test. Your browser supports system audio capture! Try the actual recording feature now.";
+                              } else if (error.name === "NotFoundError") {
+                                errorMsg +=
+                                  "No audio source found. This is normal for a test. Your browser supports system audio capture! Try the actual recording feature with active audio.";
+                              } else if (error.name === "NotSupportedError") {
+                                errorMsg +=
+                                  "Not supported error. This might be a browser limitation. Try updating your browser or use Microphone mode instead.";
+                              } else {
+                                errorMsg += `Error: ${error.message}. This might be a browser compatibility issue. Try updating your browser or use Microphone mode.`;
+                              }
                             } else {
-                              errorMsg += `Error: ${error.message}\n\n`;
                               errorMsg +=
-                                "This might be a browser compatibility issue.\n";
-                              errorMsg +=
-                                "Try updating your browser or use Microphone mode.";
+                                "Unknown error occurred. Try updating your browser or use Microphone mode.";
                             }
-                          } else {
-                            errorMsg += "Unknown error occurred.\n";
-                            errorMsg +=
-                              "Try updating your browser or use Microphone mode.";
-                          }
 
-                          alert(errorMsg);
-                        }
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 ml-2 text-xs border-green-500/30 text-green-300 hover:bg-green-500/20"
-                    >
-                      🧪 Test Feature
-                    </Button>
+                            toast.error(errorMsg, {
+                              duration: 8000,
+                            });
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="border-green-500/30 text-green-300 hover:bg-green-500/20 hover:border-green-400/50 transition-all duration-300"
+                      >
+                        🧪 Test Feature
+                      </Button>
+                    </div>
                   </motion.div>
                 )}
 
                 {!isSystemAudioSupported && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-sm text-muted-foreground bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 max-w-md mx-auto"
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="bg-gradient-to-br from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-500/20 rounded-2xl p-6 max-w-2xl mx-auto backdrop-blur-sm"
                   >
-                    <div className="flex items-center justify-center mb-2">
-                      <span className="text-yellow-400">⚠️</span>
-                      <span className="font-medium text-yellow-300 ml-2">
+                    <div className="flex items-center justify-center mb-4">
+                      <span className="text-yellow-400 text-2xl mr-3">⚠️</span>
+                      <span className="font-bold text-yellow-300 text-lg">
                         System Audio Not Supported
                       </span>
                     </div>
-                    <p className="text-xs">
+                    <p className="text-sm text-yellow-200/80 text-center leading-relaxed">
                       Your browser doesn&apos;t support system audio capture.
                       Use microphone mode instead.
                     </p>
