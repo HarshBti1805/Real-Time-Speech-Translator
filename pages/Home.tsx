@@ -302,55 +302,10 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
       if (audioSource === "system") {
         // Capture system audio (Zoom, Google Meet, etc.)
         try {
-          // Show user guidance before starting capture
-          const userConfirmed = await new Promise<boolean>((resolve) => {
-            toast
-              .promise(
-                new Promise<boolean>((innerResolve) => {
-                  const confirmed = confirm(
-                    "🎯 System Audio Capture Setup:\n\n" +
-                      "BEFORE clicking OK, make sure you have:\n" +
-                      "• An active Zoom/Meet call, or\n" +
-                      "• Music/video playing, or\n" +
-                      "• Any audio source active\n\n" +
-                      "Then click OK to start the capture process."
-                  );
-                  innerResolve(confirmed);
-                }),
-                {
-                  loading: "Preparing system audio capture...",
-                  success: "Setup confirmed! Starting capture...",
-                  error: "Setup cancelled",
-                }
-              )
-              .then((result) => resolve(result as boolean));
+          // Show brief guidance without confirmation dialog
+          toast.success("🎯 Starting system audio capture...", {
+            duration: 3000,
           });
-
-          if (!userConfirmed) {
-            console.log("User cancelled system audio capture");
-            toast.error("System audio capture cancelled");
-            return;
-          }
-
-          // Show step-by-step guidance
-          toast.promise(
-            new Promise<void>((resolve) => {
-              setTimeout(() => {
-                toast.success(
-                  "📋 Next Steps - A popup will appear asking what to share. Choose 'Share system audio' (recommended) or select a specific tab/window with audio.",
-                  {
-                    duration: 5000,
-                  }
-                );
-                resolve();
-              }, 1000);
-            }),
-            {
-              loading: "Preparing capture interface...",
-              success: "Ready for selection!",
-              error: "Failed to prepare interface",
-            }
-          );
 
           // Try different approaches for system audio capture
           let displayStream: MediaStream;
@@ -425,12 +380,9 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                     console.log("Using alternative audio capture method");
 
                     // Show success message with toast
-                    toast.success(
-                      "✅ Alternative Audio Capture Started! Using fallback method for system audio. You should now see audio levels when there's sound.",
-                      {
-                        duration: 6000,
-                      }
-                    );
+                    toast.success("✅ Alternative audio capture started", {
+                      duration: 3000,
+                    });
 
                     // Skip the rest of the function since we have a stream
                     streamRef.current = stream;
@@ -526,50 +478,35 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
           }
 
           // Show success message with toast
-          toast.success(
-            "✅ System Audio Capture Started! You should now see audio levels when there's sound. If you don't see audio levels, make sure audio is playing in the selected source.",
-            {
-              duration: 6000,
-            }
-          );
+          toast.success("✅ System audio capture started", {
+            duration: 3000,
+          });
         } catch (error) {
           console.error("Failed to capture system audio:", error);
 
-          let errorMessage = "Failed to capture system audio.";
           let toastType: "error" | "warning" = "error";
 
           if (error instanceof Error) {
             if (error.name === "NotAllowedError") {
-              errorMessage =
-                "Permission denied. Please allow access when prompted.";
               toastType = "warning";
             } else if (error.name === "NotFoundError") {
-              errorMessage =
-                "No audio source found. Please make sure to select 'Share system audio' or a specific tab with audio.";
               toastType = "warning";
             } else if (error.name === "NotSupportedError") {
-              errorMessage =
-                "Your browser doesn't support system audio capture.";
               toastType = "error";
             } else {
-              errorMessage = `Error: ${error.message}`;
               toastType = "error";
             }
           } else {
-            errorMessage = "Unknown error occurred. Please try again.";
             toastType = "error";
           }
 
-          errorMessage +=
-            "\n\nTip: Try selecting 'Share system audio' instead of a specific tab.";
-
           if (toastType === "error") {
-            toast.error("❌ System Audio Capture Failed - " + errorMessage, {
-              duration: 8000,
+            toast.error("❌ System audio capture failed", {
+              duration: 4000,
             });
           } else {
-            toast.error("⚠️ System Audio Capture Issue - " + errorMessage, {
-              duration: 8000,
+            toast.error("⚠️ System audio capture issue", {
+              duration: 4000,
             });
           }
 
@@ -1132,9 +1069,9 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                       <Button
                         onClick={() => {
                           toast.success(
-                            "🎤 Microphone Mode Tips - Speak clearly and at a normal volume. Position yourself close to the microphone for best results. Avoid background noise and ensure your microphone permissions are enabled. Works great for one-on-one conversations and clear speech recognition.",
+                            "🎤 Speak clearly, close to mic, avoid background noise",
                             {
-                              duration: 6000,
+                              duration: 4000,
                             }
                           );
                         }}
@@ -1174,9 +1111,9 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                       <Button
                         onClick={() => {
                           toast.success(
-                            "🔧 System Audio Troubleshooting - Make sure you have an active audio source (Zoom call, music playing, etc.). When prompted, choose 'Share system audio' for best results. If that doesn't work, try selecting a specific tab with audio. Make sure the audio is actually playing (not muted). Try refreshing the page if you encounter issues. Tip: Start a Zoom call or play some music first, then try capturing.",
+                            "🔧 Ensure audio source is active, choose 'Share system audio'",
                             {
-                              duration: 8000,
+                              duration: 4000,
                             }
                           );
                         }}
@@ -1199,9 +1136,9 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
 
                           try {
                             toast.success(
-                              "🧪 Testing System Audio Capture - Click OK to continue. A browser popup will appear. Look for 'Share system audio' option. If you see it, click Cancel to test. If you don't see it, your browser may not support it. This is just a test - no actual recording will start.",
+                              "🧪 Testing system audio capture...",
                               {
-                                duration: 6000,
+                                duration: 3000,
                               }
                             );
 
@@ -1264,35 +1201,33 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                               .forEach((track) => track.stop());
 
                             toast.success(
-                              "✅ Test Successful! Your browser supports system audio capture. You should have seen options like 'Share system audio' and 'Select specific tabs/windows'. Now try the actual recording feature!",
+                              "✅ Test successful! Browser supports system audio capture",
                               {
-                                duration: 6000,
+                                duration: 4000,
                               }
                             );
                           } catch (error) {
                             console.error("Test failed:", error);
-                            let errorMsg = "❌ Test Failed - ";
+                            let errorMsg = "❌ Test failed - ";
 
                             if (error instanceof Error) {
                               if (error.name === "NotAllowedError") {
                                 errorMsg +=
-                                  "Permission denied. This is normal for a test. Your browser supports system audio capture! Try the actual recording feature now.";
+                                  "Permission denied (normal for test)";
                               } else if (error.name === "NotFoundError") {
                                 errorMsg +=
-                                  "No audio source found. This is normal for a test. Your browser supports system audio capture! Try the actual recording feature with active audio.";
+                                  "No audio source found (normal for test)";
                               } else if (error.name === "NotSupportedError") {
-                                errorMsg +=
-                                  "Not supported error. This might be a browser limitation. Try updating your browser or use Microphone mode instead.";
+                                errorMsg += "Browser limitation - try updating";
                               } else {
-                                errorMsg += `Error: ${error.message}. This might be a browser compatibility issue. Try updating your browser or use Microphone mode.`;
+                                errorMsg += "Browser compatibility issue";
                               }
                             } else {
-                              errorMsg +=
-                                "Unknown error occurred. Try updating your browser or use Microphone mode.";
+                              errorMsg += "Unknown error";
                             }
 
                             toast.error(errorMsg, {
-                              duration: 8000,
+                              duration: 5000,
                             });
                           }
                         }}
