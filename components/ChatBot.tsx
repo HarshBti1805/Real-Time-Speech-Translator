@@ -3,7 +3,14 @@
 import React, { useState, useRef, useEffect, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   MessageCircle,
   X,
@@ -1104,9 +1111,8 @@ const ChatBot = memo(function ChatBot({
       <AnimatePresence>
         {!isOpen && (
           <motion.div
-            initial={{ scale: 0, opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{
-              scale: 1,
               opacity: 1,
               y: 0,
               transition: {
@@ -1116,33 +1122,13 @@ const ChatBot = memo(function ChatBot({
               },
             }}
             exit={{
-              scale: 0,
               opacity: 0,
               y: 20,
               transition: { duration: 0.2 },
             }}
-            whileHover={{
-              scale: 1.05,
-              transition: { duration: 0.2 },
-            }}
-            whileTap={{ scale: 0.95 }}
             className="fixed bottom-6 right-6 z-50"
           >
-            <motion.div
-              animate={{
-                boxShadow: [
-                  "0 0 20px rgba(59, 130, 246, 0.3)",
-                  "0 0 30px rgba(147, 51, 234, 0.4)",
-                  "0 0 20px rgba(59, 130, 246, 0.3)",
-                ],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="rounded-full"
-            >
+            <div className="rounded-full">
               <Button
                 onClick={() => {
                   setIsOpen(true);
@@ -1163,73 +1149,25 @@ const ChatBot = memo(function ChatBot({
                 className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 shadow-2xl text-white border-0 transition-all duration-300 relative overflow-hidden group"
                 size="icon"
               >
-                {/* Animated background */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100"
-                  animate={{
-                    background: [
-                      "linear-gradient(45deg, rgb(59, 130, 246), rgb(147, 51, 234), rgb(236, 72, 153))",
-                      "linear-gradient(90deg, rgb(147, 51, 234), rgb(236, 72, 153), rgb(59, 130, 246))",
-                      "linear-gradient(135deg, rgb(236, 72, 153), rgb(59, 130, 246), rgb(147, 51, 234))",
-                      "linear-gradient(45deg, rgb(59, 130, 246), rgb(147, 51, 234), rgb(236, 72, 153))",
-                    ],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                />
+                {/* Static background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100" />
 
                 {/* Icon with pulse animation */}
-                <motion.div
-                  animate={{
-                    scale: [1, 1.1, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="relative z-10"
-                >
+                <div className="relative z-10">
                   <MessageCircle className="w-7 h-7" />
-                </motion.div>
+                </div>
 
                 {/* Sparkles with staggered animation */}
-                <motion.div
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 180, 360],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute -top-1 -right-1 z-20"
-                >
+                <div className="absolute -top-1 -right-1 z-20">
                   <Sparkles className="w-4 h-4 text-yellow-300 drop-shadow-lg" />
-                </motion.div>
+                </div>
 
                 {/* Secondary sparkle */}
-                <motion.div
-                  animate={{
-                    scale: [1, 0.8, 1],
-                    opacity: [1, 0.5, 1],
-                  }}
-                  transition={{
-                    duration: 2.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 1,
-                  }}
-                  className="absolute -bottom-1 -left-1 z-20"
-                >
+                <div className="absolute -bottom-1 -left-1 z-20">
                   <Sparkles className="w-3 h-3 text-blue-200 drop-shadow-lg" />
-                </motion.div>
+                </div>
               </Button>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1240,43 +1178,35 @@ const ChatBot = memo(function ChatBot({
           <motion.div
             key="chat-dialog"
             initial={{
-              scale: 0.9,
+              scale: 0.95,
               opacity: 0,
-              y: 40,
-              rotateX: -15,
+              y: 20,
             }}
             animate={{
               scale: 1,
               opacity: 1,
               y: 0,
-              rotateX: 0,
               transition: {
                 type: "spring",
                 stiffness: 300,
                 damping: 25,
-                duration: 0.4,
+                duration: 0.3,
               },
             }}
             exit={{
-              scale: 0.9,
+              scale: 0.95,
               opacity: 0,
-              y: 40,
-              rotateX: -15,
-              transition: { duration: 0.3 },
-            }}
-            whileHover={{
-              scale: 1.01,
+              y: 20,
               transition: { duration: 0.2 },
             }}
             className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex justify-center sm:justify-end w-full sm:w-auto"
-            style={{ perspective: "1000px" }}
           >
             <Card
               className={`${
                 isMinimized
                   ? "w-96 h-20 max-w-[calc(100vw-3rem)] mx-auto sm:mx-0"
                   : "w-[calc(100vw-2rem)] max-w-[480px] sm:w-[480px] h-[calc(100vh-8rem)] max-h-[600px] sm:h-[600px] mx-auto sm:mx-0"
-              } shadow-2xl shadow-blue-500/20 dark:shadow-purple-500/30 border border-white/20 dark:border-gray-800/60 bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl transition-all duration-500 ease-out overflow-hidden relative ring-1 ring-white/30 dark:ring-gray-700/50 flex flex-col`}
+              } shadow-2xl shadow-blue-500/20 dark:shadow-purple-500/30 border border-white/20 dark:border-gray-800/60 bg-white/95 dark:bg-gray-950/95 transition-all duration-500 ease-out overflow-hidden relative ring-1 ring-white/30 dark:ring-gray-700/50 flex flex-col`}
             >
               {/* Modern gradient background */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-indigo-50/30 to-purple-50/50 dark:from-gray-950/80 dark:via-black/60 dark:to-gray-900/80 rounded-lg" />
@@ -1290,7 +1220,7 @@ const ChatBot = memo(function ChatBot({
                   isMinimized
                     ? "pb-2 pt-3 px-4 border-b-0"
                     : "pb-3 pt-3 px-4 border-b border-white/20 dark:border-gray-700/50"
-                } bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl relative z-20 !block !visible !opacity-100 flex-shrink-0`}
+                } bg-white/90 dark:bg-gray-900/90 relative z-20 !block !visible !opacity-100 flex-shrink-0`}
                 style={
                   {
                     display: "block",
@@ -1308,22 +1238,7 @@ const ChatBot = memo(function ChatBot({
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25 relative overflow-hidden">
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
-                        animate={{
-                          background: [
-                            "linear-gradient(45deg, rgb(59, 130, 246), rgb(147, 51, 234), rgb(236, 72, 153))",
-                            "linear-gradient(90deg, rgb(147, 51, 234), rgb(236, 72, 153), rgb(59, 130, 246))",
-                            "linear-gradient(135deg, rgb(236, 72, 153), rgb(59, 130, 246), rgb(147, 51, 234))",
-                            "linear-gradient(45deg, rgb(59, 130, 246), rgb(147, 51, 234), rgb(236, 72, 153))",
-                          ],
-                        }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400" />
                       <Bot className="w-4 h-4 text-white relative z-10" />
                     </div>
                     {!isMinimized && (
@@ -1345,16 +1260,7 @@ const ChatBot = memo(function ChatBot({
                         <CardTitle className="text-base font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                           TranslateHub AI
                         </CardTitle>
-                        <motion.div
-                          animate={{ rotate: [0, 360] }}
-                          transition={{
-                            duration: 8,
-                            repeat: Infinity,
-                            ease: "linear",
-                          }}
-                        >
-                          <Sparkles className="w-4 h-4 text-purple-400" />
-                        </motion.div>
+                        <Sparkles className="w-4 h-4 text-purple-400" />
                       </div>
                     )}
                   </div>
@@ -1406,130 +1312,126 @@ const ChatBot = memo(function ChatBot({
               {!isMinimized && (
                 <>
                   {/* Modern Conversation Mode Selector */}
-                  <div className="px-4 py-3 border-b border-white/20 dark:border-gray-700/50 bg-gradient-to-r from-white/90 via-blue-50/30 to-purple-50/30 dark:from-gray-900/90 dark:via-blue-900/20 dark:to-purple-900/20 backdrop-blur-xl relative z-10">
+                  <div className="px-4 py-3 border-b border-white/20 dark:border-gray-700/50 bg-gradient-to-r from-white/90 via-blue-50/30 to-purple-50/30 dark:from-gray-900/90 dark:via-blue-900/20 dark:to-purple-900/20 relative z-10">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                         Mode
                       </h4>
                       <div className="flex items-center space-x-3">
                         <div className="relative group">
-                          <select
+                          <Select
                             value={conversationMode}
-                            onChange={(e) =>
-                              setConversationMode(e.target.value)
-                            }
-                            className="text-xs px-4 py-2.5 bg-white/95 dark:bg-gray-800/95 border border-gray-200/70 dark:border-gray-600/70 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 backdrop-blur-sm transition-all duration-300 appearance-none cursor-pointer pr-8 font-medium shadow-sm hover:shadow-md group-hover:border-blue-300/50 dark:group-hover:border-blue-500/50"
+                            onValueChange={setConversationMode}
                           >
-                            {conversationModes.map((mode) => (
-                              <option
-                                key={mode.id}
-                                value={mode.id}
-                                className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                              >
-                                {mode.icon} {mode.name}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 pointer-events-none transition-transform duration-200 group-hover:scale-110">
-                            <svg
-                              className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors duration-200"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2.5}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </div>
+                            <SelectTrigger className="w-[180px] font-mono bg-gradient-to-r from-white to-blue-50/40 dark:from-gray-800 dark:to-blue-900/20 border border-gray-200/80 dark:border-gray-600/80 rounded-xl focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60 transition-all duration-300 shadow-lg hover:shadow-xl group-hover:border-blue-400/80 dark:group-hover:border-blue-500/80 hover:from-blue-50/30 hover:to-blue-100/50 dark:hover:from-gray-700 dark:hover:to-blue-900/30">
+                              <SelectValue placeholder="Select Mode" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white/95 dark:bg-gray-800/95 border border-gray-200/50 dark:border-gray-600/50 shadow-xl">
+                              <SelectGroup>
+                                {conversationModes.map((mode) => (
+                                  <SelectItem
+                                    key={mode.id}
+                                    value={mode.id}
+                                    className="font-mono text-sm hover:bg-blue-100/50 dark:hover:bg-blue-900/30 focus:bg-blue-100/50 dark:focus:bg-blue-900/30"
+                                  >
+                                    {mode.icon} {mode.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="relative group">
-                          <select
+                          <Select
                             value={conversationLanguage}
-                            onChange={(e) =>
-                              setConversationLanguage(e.target.value)
-                            }
-                            className="text-xs font-mono px-4 py-2.5 bg-white/95 dark:bg-gray-800/95 border border-gray-200/70 dark:border-gray-600/70 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 backdrop-blur-sm transition-all duration-300 appearance-none cursor-pointer pr-8 font-medium shadow-sm hover:shadow-md group-hover:border-blue-300/50 dark:group-hover:border-blue-500/50"
+                            onValueChange={setConversationLanguage}
                           >
-                            <option
-                              value="auto"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🌐 Auto
-                            </option>
-                            <option
-                              value="en"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇺🇸 English
-                            </option>
-                            <option
-                              value="es"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇪🇸 Spanish
-                            </option>
-                            <option
-                              value="fr"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇫🇷 French
-                            </option>
-                            <option
-                              value="de"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇩🇪 German
-                            </option>
-                            <option
-                              value="it"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇮🇹 Italian
-                            </option>
-                            <option
-                              value="pt"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇵🇹 Portuguese
-                            </option>
-                            <option
-                              value="ja"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇯🇵 Japanese
-                            </option>
-                            <option
-                              value="ko"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇰🇷 Korean
-                            </option>
-                            <option
-                              value="zh"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1"
-                            >
-                              🇨🇳 Chinese
-                            </option>
-                          </select>
-                          <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 pointer-events-none transition-transform duration-200 group-hover:scale-110">
-                            <svg
-                              className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors duration-200"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2.5}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </div>
+                            <SelectTrigger className="w-[180px] font-mono bg-gradient-to-r from-white to-purple-50/40 dark:from-gray-800 dark:to-purple-900/20 border border-gray-200/80 dark:border-gray-600/80 rounded-xl focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60 transition-all duration-300 shadow-lg hover:shadow-xl group-hover:border-purple-400/80 dark:group-hover:border-purple-500/80 hover:from-purple-50/30 hover:to-purple-100/50 dark:hover:from-gray-700 dark:hover:to-purple-900/30">
+                              <SelectValue placeholder="Select Language" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white/95 dark:bg-gray-800/95 border border-gray-200/50 dark:border-gray-600/50 shadow-xl">
+                              <SelectGroup>
+                                <SelectItem
+                                  value="auto"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🌐 Auto-detect
+                                </SelectItem>
+                                <SelectItem
+                                  value="en"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇺🇸 English
+                                </SelectItem>
+                                <SelectItem
+                                  value="es"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇪🇸 Español
+                                </SelectItem>
+                                <SelectItem
+                                  value="fr"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇫🇷 Français
+                                </SelectItem>
+                                <SelectItem
+                                  value="de"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇩🇪 Deutsch
+                                </SelectItem>
+                                <SelectItem
+                                  value="it"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇮🇹 Italiano
+                                </SelectItem>
+                                <SelectItem
+                                  value="pt"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇵🇹 Português
+                                </SelectItem>
+                                <SelectItem
+                                  value="ja"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇯🇵 日本語
+                                </SelectItem>
+                                <SelectItem
+                                  value="ko"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇰🇷 한국어
+                                </SelectItem>
+                                <SelectItem
+                                  value="zh"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇨🇳 中文
+                                </SelectItem>
+                                <SelectItem
+                                  value="hi"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇮🇳 हिंदी
+                                </SelectItem>
+                                <SelectItem
+                                  value="ar"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇸🇦 العربية
+                                </SelectItem>
+                                <SelectItem
+                                  value="ru"
+                                  className="font-mono text-sm hover:bg-purple-100/50 dark:hover:bg-purple-900/30 focus:bg-purple-100/50 dark:focus:bg-purple-900/30"
+                                >
+                                  🇷🇺 Русский
+                                </SelectItem>
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>
@@ -1542,9 +1444,9 @@ const ChatBot = memo(function ChatBot({
                         return (
                           <motion.div
                             key={message.id}
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: index * 0.05 }}
                             className={`flex w-full ${
                               message.role === "user"
                                 ? "justify-end"
@@ -1552,7 +1454,7 @@ const ChatBot = memo(function ChatBot({
                             } ${index === 0 ? "mt-2" : ""}`}
                           >
                             <div
-                              className={`max-w-[70%] sm:max-w-[75%] min-w-0 rounded-2xl p-3 backdrop-blur-xl border shadow-xl group ${
+                              className={`max-w-[70%] sm:max-w-[75%] min-w-0 rounded-2xl p-3 border shadow-xl group ${
                                 message.role === "user"
                                   ? "bg-gradient-to-br from-blue-500/95 to-purple-600/95 text-white border-white/30 shadow-blue-500/25"
                                   : "bg-white/95 dark:bg-gray-800/95 text-gray-900 dark:text-gray-100 border-gray-200/50 dark:border-gray-600/50 shadow-gray-200/50 dark:shadow-gray-800/50"
@@ -1670,11 +1572,11 @@ const ChatBot = memo(function ChatBot({
                       })}
                       {isLoading && (
                         <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
                           className="flex justify-start"
                         >
-                          <div className="bg-white/95 dark:bg-gray-800/95 text-gray-900 dark:text-gray-100 rounded-2xl p-3 max-w-[85%] backdrop-blur-xl border border-gray-200/50 dark:border-gray-600/50 shadow-xl shadow-gray-200/50 dark:shadow-gray-800/50">
+                          <div className="bg-white/95 dark:bg-gray-800/95 text-gray-900 dark:text-gray-100 rounded-2xl p-3 max-w-[85%] border border-gray-200/50 dark:border-gray-600/50 shadow-xl shadow-gray-200/50 dark:shadow-gray-800/50">
                             <div className="flex items-center space-x-3">
                               <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-sm">
                                 <Bot className="w-2.5 h-2.5 text-white" />
@@ -1693,7 +1595,7 @@ const ChatBot = memo(function ChatBot({
 
                   {/* Modern Quick Actions */}
                   {/* {messages.length <= 1 && (
-                    <div className="px-4 py-3 border-t border-white/20 dark:border-gray-700/50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl relative z-10">
+                    <div className="px-4 py-3 border-t border-white/20 dark:border-gray-700/50 bg-white/90 dark:bg-gray-900/90 relative z-10">
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-1.5">
                           {getQuickActions()
@@ -1708,7 +1610,7 @@ const ChatBot = memo(function ChatBot({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => sendMessage(action)}
-                                  className="text-xs h-7 px-3 rounded-lg font-semibold tracking-wide bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm transition-all duration-200"
+                                  className="text-xs h-7 px-3 rounded-lg font-semibold tracking-wide bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-600/50 transition-all duration-200"
                                 >
                                   {action.length > 25
                                     ? `${action.slice(0, 25)}...`
@@ -1723,14 +1625,14 @@ const ChatBot = memo(function ChatBot({
 
                   {/* Modern Voice Mode Status Bar */}
                   {isVoiceMode && (
-                    <div className="px-4 py-3 border-t border-white/20 dark:border-gray-700/50 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 backdrop-blur-xl relative z-10">
+                    <div className="px-4 py-3 border-t border-white/20 dark:border-gray-700/50 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 relative z-10">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-3">
                           <div className="flex items-center space-x-2">
                             {isListening ? (
                               <>
                                 <motion.div
-                                  animate={{ scale: [1, 1.3, 1] }}
+                                  animate={{ opacity: [1, 0.7, 1] }}
                                   transition={{ duration: 1, repeat: Infinity }}
                                   className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm"
                                 />
@@ -1741,7 +1643,7 @@ const ChatBot = memo(function ChatBot({
                             ) : isSpeaking ? (
                               <>
                                 <motion.div
-                                  animate={{ scale: [1, 1.2, 1] }}
+                                  animate={{ opacity: [1, 0.7, 1] }}
                                   transition={{
                                     duration: 0.8,
                                     repeat: Infinity,
@@ -1762,7 +1664,7 @@ const ChatBot = memo(function ChatBot({
                             )}
                           </div>
                           {interimTranscript && (
-                            <div className="flex items-center space-x-2 bg-white/80 dark:bg-gray-800/80 rounded-full px-2 py-1 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50">
+                            <div className="flex items-center space-x-2 bg-white/80 dark:bg-gray-800/80 rounded-full px-2 py-1 border border-gray-200/50 dark:border-gray-600/50">
                               <span className="text-xs text-gray-600 dark:text-gray-400 italic max-w-48 truncate">
                                 &ldquo;{interimTranscript}&rdquo;
                               </span>
@@ -1770,7 +1672,7 @@ const ChatBot = memo(function ChatBot({
                           )}
                         </div>
                         {voiceError && (
-                          <div className="flex items-center space-x-2 text-orange-500 text-xs bg-orange-50 dark:bg-orange-900/20 rounded-full px-2 py-1 backdrop-blur-sm border border-orange-200/50 dark:border-orange-700/50">
+                          <div className="flex items-center space-x-2 text-orange-500 text-xs bg-orange-50 dark:bg-orange-900/20 rounded-full px-2 py-1 border border-orange-200/50 dark:border-orange-700/50">
                             <VolumeX className="w-3 h-3" />
                             <span className="max-w-32 truncate font-medium">
                               {voiceError}
@@ -1801,7 +1703,7 @@ const ChatBot = memo(function ChatBot({
                   )}
 
                   {/* Modern Input */}
-                  <div className="p-4 border-t border-white/20 dark:border-gray-700/50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl relative z-10">
+                  <div className="p-4 border-t border-white/20 dark:border-gray-700/50 bg-white/95 dark:bg-gray-900/95 relative z-10">
                     <div className="flex justify-center items-center space-x-2">
                       <div className="flex-1 translate-y-[3px] relative">
                         <textarea
@@ -1816,7 +1718,7 @@ const ChatBot = memo(function ChatBot({
                                 : "Speak to chat..."
                               : "Ask about translations, languages..."
                           }
-                          className="w-full resize-none rounded-xl border border-gray-200/50 dark:border-gray-600/50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-2 text-sm font-medium tracking-wide placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 max-h-20 shadow-lg shadow-gray-200/50 dark:shadow-gray-800/50 scrollbar-hide"
+                          className="w-full resize-none rounded-xl border border-gray-200/50 dark:border-gray-600/50 bg-white/90 dark:bg-gray-800/90 px-3 py-2 text-sm font-medium tracking-wide placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 max-h-20 shadow-lg shadow-gray-200/50 dark:shadow-gray-800/50 scrollbar-hide"
                           rows={1}
                           disabled={isLoading || (isVoiceMode && !isPushToTalk)}
                         />
@@ -1836,19 +1738,14 @@ const ChatBot = memo(function ChatBot({
                           className={`h-10 w-10 cursor-pointer rounded-xl transition-all duration-300 ${
                             isVoiceMode
                               ? "bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg shadow-red-500/25"
-                              : "hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm"
+                              : "hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200/50 dark:border-gray-600/50"
                           }`}
                           title={
                             isVoiceMode ? "Stop voice mode" : "Start voice mode"
                           }
                         >
                           {isVoiceMode ? (
-                            <motion.div
-                              animate={{ scale: [1, 1.1, 1] }}
-                              transition={{ duration: 1, repeat: Infinity }}
-                            >
-                              <MicOff className="w-4 h-4" />
-                            </motion.div>
+                            <MicOff className="w-4 h-4" />
                           ) : (
                             <Mic className="w-4 h-4" />
                           )}
@@ -1861,12 +1758,12 @@ const ChatBot = memo(function ChatBot({
                             size="icon"
                             onClick={startVoiceInput}
                             disabled={isLoading || isListening}
-                            className="h-10 w-10 cursor-pointer rounded-xl hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm transition-all duration-300"
+                            className="h-10 w-10 cursor-pointer rounded-xl hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 border border-gray-200/50 dark:border-gray-600/50 transition-all duration-300"
                             title="Single voice input"
                           >
                             {isListening ? (
                               <motion.div
-                                animate={{ scale: [1, 1.2, 1] }}
+                                animate={{ opacity: [1, 0.7, 1] }}
                                 transition={{ duration: 0.5, repeat: Infinity }}
                               >
                                 <Volume2 className="w-4 h-4 text-red-500" />
@@ -1895,7 +1792,7 @@ const ChatBot = memo(function ChatBot({
                           variant="ghost"
                           size="icon"
                           onClick={clearChat}
-                          className="h-10 w-10 cursor-pointer rounded-xl hover:bg-red-500/10 hover:text-red-500 border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm transition-all duration-300"
+                          className="h-10 w-10 cursor-pointer rounded-xl hover:bg-red-500/10 hover:text-red-500 border border-gray-200/50 dark:border-gray-600/50 transition-all duration-300"
                           title="Clear chat"
                         >
                           <RotateCcw className="w-4 h-4" />
