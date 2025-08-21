@@ -1008,7 +1008,7 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="bg-gradient-to-br from-card/80 via-card/60 to-muted/20 border-border/50 backdrop-blur-xl shadow-2xl">
+          <Card className="bg-gradient-to-br from-background/90 via-background/80 to-muted/30 border-border/50 backdrop-blur-xl shadow-2xl dark:shadow-2xl dark:shadow-black/20">
             <CardContent className="p-8">
               <div className="text-center space-y-6">
                 <motion.div
@@ -1019,15 +1019,15 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                 >
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl animate-pulse"></div>
-                    <Headphones className="w-8 h-8 text-blue-400 relative z-10" />
+                    <Headphones className="w-8 h-8 text-blue-500 dark:text-blue-400 relative z-10" />
                   </div>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent ml-3">
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 dark:from-blue-400 dark:via-purple-400 dark:to-emerald-400 bg-clip-text text-transparent ml-3">
                     Audio Source
                   </h3>
                 </motion.div>
 
                 <div className="flex justify-center">
-                  <div className="bg-gradient-to-r from-muted/30 via-muted/20 to-muted/30 rounded-2xl p-2 flex backdrop-blur-xl border border-border/30 shadow-inner">
+                  <div className="bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 rounded-2xl p-2 flex backdrop-blur-xl border border-border/40 shadow-inner">
                     <motion.div
                       whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.98 }}
@@ -1041,8 +1041,8 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                         }
                         className={`transition-all duration-500 ${
                           audioSource === "microphone"
-                            ? "bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 text-white shadow-2xl shadow-blue-500/30 border-0 px-8 py-4 text-lg font-semibold"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50 px-8 py-4 text-lg font-medium border border-border/30"
+                            ? "bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 dark:from-blue-500 dark:via-purple-500 dark:to-emerald-500 text-white shadow-2xl shadow-blue-500/30 border-0 px-8 py-4 text-lg font-semibold"
+                            : "text-foreground hover:text-foreground hover:bg-accent/50 px-8 py-4 text-lg font-medium border border-border/50 hover:border-border/70"
                         } rounded-xl`}
                       >
                         <motion.div
@@ -1075,8 +1075,8 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                         variant={audioSource === "system" ? "default" : "ghost"}
                         className={`transition-all duration-500 ${
                           audioSource === "system"
-                            ? "bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 text-white shadow-2xl shadow-emerald-500/30 border-0 px-8 py-4 text-lg font-semibold"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50 px-8 py-4 text-lg font-medium border border-border/30"
+                            ? "bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 dark:from-emerald-500 dark:via-blue-500 dark:to-purple-500 text-white shadow-2xl shadow-emerald-500/30 border-0 px-8 py-4 text-lg font-semibold"
+                            : "text-foreground hover:text-foreground hover:bg-accent/50 px-8 py-4 text-lg font-medium border border-border/50 hover:border-border/70"
                         } ${
                           !isSystemAudioSupported
                             ? "opacity-50 cursor-not-allowed"
@@ -1103,39 +1103,69 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                   </div>
                 </div>
 
+                {audioSource === "microphone" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-emerald-500/10 border border-purple-500/30 dark:border-purple-500/20 rounded-2xl p-6 max-w-2xl mx-auto backdrop-blur-sm"
+                  >
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-lg animate-pulse"></div>
+                        <Mic className="w-6 h-6 text-purple-600 dark:text-purple-400 relative z-10" />
+                      </div>
+                      <span className="font-bold text-purple-700 dark:text-purple-300 ml-3 text-lg">
+                        Microphone Mode
+                      </span>
+                    </div>
+                    <p className="text-sm text-purple-700/80 dark:text-purple-200/80 mb-4 leading-relaxed">
+                      Direct voice input from your microphone. Perfect for clear
+                      speech and personal conversations. Works with both
+                      Standard and Real-Time modes.
+                    </p>
+
+                    <div className="flex justify-center gap-3 mt-4">
+                      <Button
+                        onClick={() => {
+                          toast.success(
+                            "🎤 Microphone Mode Tips - Speak clearly and at a normal volume. Position yourself close to the microphone for best results. Avoid background noise and ensure your microphone permissions are enabled. Works great for one-on-one conversations and clear speech recognition.",
+                            {
+                              duration: 6000,
+                            }
+                          );
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-500/40 text-purple-600 dark:text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/60 dark:hover:border-purple-400/50 transition-all duration-300"
+                      >
+                        💡 Tips
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+
                 {audioSource === "system" && (
                   <motion.div
                     initial={{ opacity: 0, y: 20, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-emerald-500/10 border border-blue-500/20 rounded-2xl p-6 max-w-2xl mx-auto backdrop-blur-sm"
+                    className="bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-emerald-500/10 border border-blue-500/30 dark:border-blue-500/20 rounded-2xl p-6 max-w-2xl mx-auto backdrop-blur-sm"
                   >
                     <div className="flex items-center justify-center mb-4">
                       <div className="relative">
                         <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-lg animate-pulse"></div>
-                        <Monitor className="w-6 h-6 text-blue-400 relative z-10" />
+                        <Monitor className="w-6 h-6 text-blue-600 dark:text-blue-400 relative z-10" />
                       </div>
-                      <span className="font-bold text-blue-300 ml-3 text-lg">
+                      <span className="font-bold text-blue-700 dark:text-blue-300 ml-3 text-lg">
                         System Audio Mode
                       </span>
                     </div>
-                    <p className="text-sm text-blue-200/80 mb-4 leading-relaxed">
+                    <p className="text-sm text-blue-700/80 dark:text-blue-200/80 mb-4 leading-relaxed">
                       Select a tab or window with audio (Zoom, Google Meet,
                       etc.) when prompted. Works with both Standard and
                       Real-Time modes.
                     </p>
-                    <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 p-4 rounded-xl border border-blue-500/30">
-                      <div className="flex items-center justify-center mb-2">
-                        <span className="text-blue-300 text-lg">💡</span>
-                        <span className="font-semibold text-blue-200 ml-2">
-                          Pro Tip
-                        </span>
-                      </div>
-                      <p className="text-xs text-blue-200/80 text-center">
-                        Choose &quot;Share system audio&quot; for best results,
-                        or select a specific tab that has active audio playing.
-                      </p>
-                    </div>
 
                     <div className="flex justify-center gap-3 mt-4">
                       <Button
@@ -1149,7 +1179,7 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                         }}
                         variant="outline"
                         size="sm"
-                        className="border-blue-500/30 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400/50 transition-all duration-300"
+                        className="border-blue-500/40 text-blue-600 dark:text-blue-300 hover:bg-blue-500/20 hover:border-blue-500/60 dark:hover:border-blue-400/50 transition-all duration-300"
                       >
                         🔧 Need Help?
                       </Button>
@@ -1257,7 +1287,7 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                         }}
                         variant="outline"
                         size="sm"
-                        className="border-green-500/30 text-green-300 hover:bg-green-500/20 hover:border-green-400/50 transition-all duration-300"
+                        className="border-green-500/40 text-green-600 dark:text-green-300 hover:bg-green-500/20 hover:border-green-500/60 dark:hover:border-green-400/50 transition-all duration-300"
                       >
                         🧪 Test Feature
                       </Button>
@@ -1270,15 +1300,17 @@ export default function MainPage({ initialMode }: MainPageProps = {}) {
                     initial={{ opacity: 0, y: 20, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="bg-gradient-to-br from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-500/20 rounded-2xl p-6 max-w-2xl mx-auto backdrop-blur-sm"
+                    className="bg-gradient-to-br from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-500/30 dark:border-yellow-500/20 rounded-2xl p-6 max-w-2xl mx-auto backdrop-blur-sm"
                   >
                     <div className="flex items-center justify-center mb-4">
-                      <span className="text-yellow-400 text-2xl mr-3">⚠️</span>
-                      <span className="font-bold text-yellow-300 text-lg">
+                      <span className="text-yellow-600 dark:text-yellow-400 text-2xl mr-3">
+                        ⚠️
+                      </span>
+                      <span className="font-bold text-yellow-700 dark:text-yellow-300 text-lg">
                         System Audio Not Supported
                       </span>
                     </div>
-                    <p className="text-sm text-yellow-200/80 text-center leading-relaxed">
+                    <p className="text-sm text-yellow-700/80 dark:text-yellow-200/80 text-center leading-relaxed">
                       Your browser doesn&apos;t support system audio capture.
                       Use microphone mode instead.
                     </p>

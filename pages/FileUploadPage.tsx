@@ -717,15 +717,15 @@ export default function FileUploadPage({
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-purple-400/20 to-transparent rounded-full blur-2xl"></div>
 
           <CardHeader className="relative text-center">
-            <div className="flex items-center justify-center mb-6">
+            <div className="flex gap-5 items-center justify-center mb-6">
               <div className="p-6 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-3xl shadow-2xl">
-                <FileAudio className="w-12 h-12 text-white" />
+                <FileAudio className="w-4 h-4 text-white" />
               </div>
+              <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent">
+                Media Processing Hub
+              </CardTitle>
             </div>
-            <CardTitle className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent mb-4">
-              Media Processing Hub
-            </CardTitle>
-            <p className="text-xl text-slate-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-l text-slate-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
               Upload audio files for AI transcription or video files for
               intelligent subtitle generation with professional-grade results
             </p>
