@@ -232,7 +232,7 @@ export default function Translate() {
                 </select>
               </div>
 
-              <div className="flex flex-col items-center justify-end pb-3">
+              <div className="flex flex-col items-center justify-end pt-7">
                 <Button
                   onClick={swapLanguages}
                   disabled={
