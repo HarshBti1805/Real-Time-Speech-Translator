@@ -238,6 +238,7 @@ const RegisterPage = () => {
         body: JSON.stringify({
           tempToken: otpData.tempToken,
           otp: otpData.otp,
+          password: formData.password,
         }),
       });
 
