@@ -520,7 +520,7 @@ const ChatBot = memo(function ChatBot({
       console.log("🗣️ Language code:", voiceConfig.languageCode);
       console.log("🎭 Voice name:", voiceConfig.voiceName);
 
-      const ttsUrl = "https://chatbot-tts-server.onrender.com/tts";
+      const ttsUrl = "http://3.109.5.241:8000/tts";
 
       console.log("🏠 Connecting to deployed Flask server:", ttsUrl);
       console.log("📤 Request payload:", {

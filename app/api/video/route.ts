@@ -70,16 +70,13 @@ async function extractAudioFromVideo(
   try {
     //
     // Use local FFmpeg server
-    const res = await fetch(
-      "https://ffmpeg-server-ervj.onrender.com/extract-audio",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": `video/${format}`,
-        },
-        body: new Uint8Array(buffer),
-      }
-    );
+    const res = await fetch("http://65.1.86.40:5000/extract-audio", {
+      method: "POST",
+      headers: {
+        "Content-Type": `video/${format}`,
+      },
+      body: new Uint8Array(buffer),
+    });
 
     if (!res.ok) {
       const errorData = await res
@@ -107,7 +104,7 @@ async function extractAudioFromVideo(
     // If local server fails, provide helpful error
     if (error instanceof Error && error.message.includes("fetch")) {
       throw new Error(
-        "FFmpeg server is not running. Please start the FFmpeg server at http://localhost:5000"
+        "FFmpeg server is not running. Please start the FFmpeg server at http://65.1.86.40:5000"
       );
     }
 

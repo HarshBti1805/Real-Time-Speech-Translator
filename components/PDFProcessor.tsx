@@ -209,7 +209,7 @@ export default function PDFProcessor() {
 
     try {
       // Use Flask server for PDF processing
-      const pdfurl = "https://chatbot-tts-server.onrender.com/pdf";
+      const pdfurl = "http://3.109.5.241:8000/pdf";
       const res = await fetch(pdfurl, {
         method: "POST",
         body: formData,

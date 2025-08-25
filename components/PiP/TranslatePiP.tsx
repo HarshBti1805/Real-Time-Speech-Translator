@@ -827,7 +827,7 @@ export function useTranslatePiP() {
         langCode: string
       ): Promise<string> {
         const config = getTTSVoiceConfig(langCode);
-        const res = await fetch("https://flask-tts-server.onrender.com/tts", {
+        const res = await fetch("http://52.66.135.144:8000/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
